@@ -18,6 +18,8 @@ namespace conman {
 
   // Computation graph
   struct GraphBlock {
+    boost::shared_ptr<RTT::TaskContext> taskcontext;
+    std::vector<boost::shared_ptr<GraphBlock>> parents;
     std::vector<boost::shared_ptr<GraphBlock>> children;
   };
 }
