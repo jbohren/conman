@@ -15,6 +15,11 @@ namespace conman {
 
   // TODO: replace this with a class with friendler member functions
   typedef std::map<std::string, std::map<std::string,int> > ResourceMap;
+
+  // Computation graph
+  struct GraphBlock {
+    std::vector<boost::shared_ptr<GraphBlock>> children;
+  };
 }
 
 
@@ -27,8 +32,8 @@ public:
     // Get group name from rosparam
      
     // Store provided interfaces
-    output_service_ = this->provides("out");
-    input_service_ = this->provides("in");
+    output_service_ = this->provides("control")->provides("out");
+    input_service_ = this->provides("control")->provides("in");
     // TODO: should we support operations, or just ports? Probably just ports.
       
     // Create RTT ports
@@ -40,10 +45,15 @@ public:
     output_resource_map_[group]["joint_effort"] = conman::EXCLUSIVE;
   }
 
-  const conman::ResourceMap get_input_resources() { 
+  // TODO: default (empty) in base class
+  const conman::ResourceMap get_control_input_resources() { 
+    return conman::ResourceMap(); 
+  }
+
+  const conman::ResourceMap get_control_input_resources() { 
     return input_resource_map_; 
   }
-  const conman::ResourceMap get_output_resources() {
+  const conman::ResourceMap get_control_output_resources() {
     return output_resource_map_; 
   }
 
@@ -144,7 +154,7 @@ int ORO_main(int argc, char** argv) {
     // Get the control groups of a given controller
     RTT::Logger::log() << RTT::Logger::Info << "Control groups: " << RTT::endlog();
 
-    deployer.connect("c0.out.left_arm.joint_effort","c1.in.left_arm.joint_effort",RTT::ConnPolicy());
+    deployer.connect("c0.control.out.left_arm.joint_effort","c1.control.in.left_arm.joint_effort",RTT::ConnPolicy());
 
     OCL::TaskBrowser task_browser(&deployer);
 
