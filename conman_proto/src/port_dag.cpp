@@ -29,6 +29,7 @@ public:
     // Store provided interfaces
     output_service_ = this->provides("out");
     input_service_ = this->provides("in");
+    // TODO: should we support operations, or just ports? Probably just ports.
       
     // Create RTT ports
     output_service_->provides(group)->addPort("joint_effort", effort_out_);
@@ -77,12 +78,22 @@ public:
     
   }
 
+  // TODO: maintain graph structure, or just serialized computation vector?
+
   //! Controllers
   // load controller (name) 
   //  This is where interfaces and ports get connected
+  //    new component c_new
+  //    store store resources of c_new associated with a reference to c_new
+  //    for each component c
+  //      for each control group
+  //        for each resource
+  //          if c has a similar group/resource, connect it
+  //    
   // enable controller (name)
   //  This is where resource exclusion is checked
-  // dosable controller (name)
+  //
+  // disable controller (name)
   // switch controllers (name)
 
   //! State Estimators
@@ -97,6 +108,8 @@ public:
   // compute control ()
   // write to hardware ()
 
+  // TODO: ROS service call interface (make as a separate thing?)
+  
 protected:
 
   // serialized feedback graph
