@@ -13,7 +13,8 @@ namespace conman {
     EXCLUSIVE,
   } ResourceType;
 
-  typedef std::map<std::string,int> ResourceMap;
+  // TODO: replace this with a class with friendler member functions
+  typedef std::map<std::string, std::map<std::string,int> > ResourceMap;
 }
 
 
@@ -30,22 +31,26 @@ public:
     input_service_ = this->provides("in");
       
     // Create RTT ports
-    output_service_->provides(group)->addPort("joint_effort", out_);
-    input_service_->provides(group)->addPort("joint_effort", in_);
+    output_service_->provides(group)->addPort("joint_effort", effort_out_);
+    input_service_->provides(group)->addPort("joint_effort", effort_in_);
 
     // Define resource types
-    input_resource_map_["joint_effort"] = conman::EXCLUSIVE;
-    output_resource_map_["joint_effort"] = conman::EXCLUSIVE;
+    input_resource_map_[group]["joint_effort"] = conman::EXCLUSIVE;
+    output_resource_map_[group]["joint_effort"] = conman::EXCLUSIVE;
   }
 
-  const conman::ResourceMap get_input_resources() { return input_resource_map_; }
-  const conman::ResourceMap get_output_resources() { return output_resource_map_; }
+  const conman::ResourceMap get_input_resources() { 
+    return input_resource_map_; 
+  }
+  const conman::ResourceMap get_output_resources() {
+    return output_resource_map_; 
+  }
 
   bool configureHook() {
     //bool ready = this->requires("in")->requires(group_)->getReferencedService->getPort("joint_effort")
     
     // Ready if the input is connected
-    bool ready = in_.connected();
+    bool ready = effort_in_.connected();
 
     return ready;
   }
@@ -55,8 +60,8 @@ public:
   RTT::Service::shared_ptr input_service_;
   RTT::Service::shared_ptr output_service_;
 
-  RTT::InputPort<double> in_;
-  RTT::OutputPort<double> out_;
+  RTT::InputPort<double> effort_in_;
+  RTT::OutputPort<double> effort_out_;
 
   // Resource maps
   conman::ResourceMap 
@@ -74,6 +79,7 @@ public:
 
   //! Controllers
   // load controller (name) 
+  //  This is where interfaces and ports get connected
   // enable controller (name)
   //  This is where resource exclusion is checked
   // dosable controller (name)
@@ -82,7 +88,6 @@ public:
   //! State Estimators
   // load estimator (name)
   // enable estimator (name)
-  //  This is where resource exclusion is checked
   // disable estimator (name)
   // switch estimators (name)
 
