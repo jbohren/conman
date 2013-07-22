@@ -388,13 +388,13 @@ namespace conman {
     // block_b, given the groups, inputs, and outputs of block_b
     static bool add_block(
         boost::shared_ptr<RTT::TaskContext> new_block,
-        conman::CausalGraph &graph,
+        conman::graph::CausalGraph &graph,
         const std::string &layer)
     {
       // TODO: Validate this this taskcontext has a valid conman interface
 
       // Add this block to the graph
-      boost::graph_traits<conman::CausalGraph>::vertex_descriptor new_vertex = boost::add_vertex(graph);
+      boost::graph_traits<conman::graph::CausalGraph>::vertex_descriptor new_vertex = boost::add_vertex(graph);
       graph[new_vertex].block = new_block;
 
       // Get groups for this block
@@ -411,7 +411,7 @@ namespace conman {
       }
 
       // Connect this new block to the appropriate network
-      typedef boost::graph_traits<CausalGraph>::vertex_iterator vertex_iter;
+      typedef boost::graph_traits<conman::graph::CausalGraph>::vertex_iterator vertex_iter;
 
       // Iterate over all vertices in this graph
       for(std::pair<vertex_iter, vertex_iter> vp = boost::vertices(graph);
