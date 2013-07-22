@@ -48,7 +48,7 @@ namespace conman {
   };
 
   struct VertexProperties {
-    boost::shared_ptr<RTT::TaskContext> task;
+    boost::shared_ptr<RTT::TaskContext> block;
   };
 
   typedef boost::adjacency_list<
@@ -176,7 +176,9 @@ namespace conman {
       std::string layer,
       RTT::Service::ProviderNames &groups,
       std::vector<std::string, RTT::Service::ProviderNames> &inputs,
-      std::vector<std::string, RTT::Service::ProviderNames> &outputs)
+      std::vector<std::string, RTT::Service::ProviderNames> &outputs,
+      std::vector<conman::VertexProperties> &new_block_outputs,
+      std::vector<conman::VertexProperties> &new_block_inputs)
   {
 
     if(block_a == block_b) {
@@ -196,11 +198,13 @@ namespace conman {
             port_it != inputs[*group_it].end();
             ++port_it)
         {
-          boost::shared_ptr<RTT::base::PortInterface> out_port =
-            conman::get_port(block_a,layer,*group_it,"out",*port_it);
+          boost::shared_ptr<RTT::base::PortInterface> 
+            out_port = conman::get_port(block_a,layer,*group_it,"out",*port_it),
+            in_port = conman::get_port(block_b,layer,*group_it,"in",*port_it)
 
           if(out_port.get()) {
-            out_port->connectTo(conamn::get_port(block_b,layer,*group_it,"in",*port_it).get());
+            out_port->connectTo(in_port.get());
+            new_block_inputs.push_back(
           }
         }
         // Connect:
@@ -224,12 +228,16 @@ namespace conman {
 
 
   // Connect a block to the appropriate blocks in a given graph
-  bool connect_block(
+  bool add_block(
       boost::shared_ptr<RTT::TaskContext> block,
       conman::CausalGraph &graph,
       std::string layer)
   {
     // TODO: Validate this this taskcontext has a valid conman interface
+
+    // Add this block to the graph
+    boost::vertex_descriptor new_vertex = boost::add_vertex(graph);
+    graph[new_vertex].block = new_block;
     
     // Get groups for this block
     RTT::Service::ProviderNames groups = get_groups(block,layer);
@@ -252,17 +260,75 @@ namespace conman {
         ++vp.first) 
     {
       // Get a shared pointer to the existing block, for convenience
-      boost::shared_ptr<RTT::TaskContext> existing_block(vp.first);
+      boost::shared_ptr<RTT::TaskContext> existing_block = vp.first->block;
 
       // Make sure we're not connecting the block to itself
       if(existing_block != new_block) {
+
         // Connect all ports in this layer
-        conman::connect_ports(existing_block,
-                              new_block,
-                              layer,
-                              groups,
-                              inputs,
-                              outputs);
+        for(RTT::Service::ProviderNames::iterator group_it = groups.begin();
+            group_it != groups.end();
+            ++group_it)
+        {
+          // Check if the existing block uses this control group
+          if(conman::has_group(existing_block,layer,*group_it)) {
+            // Connect:
+            // existing[control][control_group][out][*] --> new[control][control_group][in][*]
+            for(RTT::Service::ProviderNames::iterator port_it = inputs[*group_it].begin();
+                port_it != inputs[*group_it].end();
+                ++port_it)
+            {
+              boost::shared_ptr<RTT::base::PortInterface> 
+                out_port = conman::get_port(existing_block,layer,*group_it,"out",*port_it),
+                in_port = conman::get_port(new_block,layer,*group_it,"in",*port_it);
+
+              // Check if the port exists
+              if(out_port.get()) {
+                // Connect the port
+                out_port->connectTo(in_port.get());
+                // Add the edge to the graph
+                conman::EdgeProperties edge_props = {out_port, in_port};
+                boost::add_edge(vp.first, new_vertex, edge_props);
+              }
+            }
+            // Connect:
+            // existing[control][control_group][in][*] <-- new[control][control_group][out][*]
+            for(RTT::Service::ProviderNames::iterator port_it = outputs[*group_it].begin();
+                port_it != outputs[*group_it].end();
+                ++port_it)
+            {
+              boost::shared_ptr<RTT::base::PortInterface> 
+                out_port = conman::get_port(new_block,layer,*group_it,"out",*port_it),
+                in_port = conman::get_port(existing_block,layer,*group_it,"in",*port_it);
+
+              // Check if the port exists
+              if(in_port.get()) {
+                // Connect the port
+                out_port->connectTo(in_port.get());
+                // Add the edge to the graph
+                conman::EdgeProperties edge_props = {out_port, in_port};
+                boost::add_edge(new_vertex, vp.first, edge_props);
+              }
+            }
+          }
+        }
+
+        // Create edges from new_block --> existing_block
+        for(std::vector<conman::EdgeProperties>::iterator it = new_block_outputs.begin();
+            it != new_block_outputs.end();
+            ++it)
+        {
+          boost::add_edge(vertex_descriptor, vp.first, *it, graph);
+        }
+
+        // Create edges from existing_block --> new_block
+        for(std::vector<conman::EdgeProperties>::iterator it = new_block_inputs.begin();
+            it != new_block_inputs.end();
+            ++it)
+        {
+          boost::add_edge(vp.first, vertex_descriptor, *it, graph);
+        }
+
       }
     }
 
@@ -357,14 +423,9 @@ public:
     // Get the newly loaded block
     boost::shared_ptr<RTT::TaskContext> new_block(this->myGetPeer(block_name));
 
-    // Add this block to the control and feedback graphs
-    conman::VertexProperties v_prop = {new_block};
-    boost::add_vertex(v_prop,control_graph);
-    boost::add_vertex(v_prop,feedback_graph);
-
     // Connect the block in the appropriate ports in the control and feedback graphs
-    conman::connect_block(new_block, control_graph, "control");
-    conman::connect_block(new_block, feedback_graph, "feedback");
+    conman::add_block(new_block, control_graph, "control");
+    conman::add_block(new_block, feedback_graph, "feedback");
 
     return true;
   }
