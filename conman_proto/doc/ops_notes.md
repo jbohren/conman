@@ -1,6 +1,11 @@
 Orocos Script Notes
 ===================
 
+### Logging
+
+```cpp
+```
+
 ### Connecting Things
 
 #### Connectable
