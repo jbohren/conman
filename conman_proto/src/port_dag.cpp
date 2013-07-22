@@ -11,13 +11,14 @@
 
 
 /**
+ * Conman Controller Manager
+ *
  * Interfaces
  *  
- *
  * Resources
  *  RTT Ports are the only resources in conman. Reading resources is
  *  unrestricted, but writing to a resource can be controlled. Access is
- *  controlled when the ControllerManager enables and disables various control
+ *  controlled when the BlockManager enables and disables various control
  *  components, and not when it sets up the RTT Port network. This means that
  *  RTT Ports may be connected in such a way that violates the maximum numvber
  *  of connections. TODO: Should we instead connect and disconnect components
@@ -25,46 +26,50 @@
  *
  **/
 
+//! Conman Controller Manager
 namespace conman {
 
-  /** \name Causal Graph \{ **/
-
-  /**
-   * Causal block graph for control and feedback topological sort. This graph
-   * contains vertices which correspond to blocks, and edges which correspond to
-   * port connections between blocks.
+  /** 
+   * Causal block graph for topologically sorting control and feedback
+   * networks. This graph contains vertices which correspond to blocks, and
+   * edges which correspond to port connections between blocks.
    *
    * Vertex Type: listS
    *  - low time complexity
+   *
    * Edge Type: listS
    *  - low time complexity
    *  - permits parallel edges to describe multiple links between blocks
-   * Directed: true
    *
+   * Directed: true
+   * 
    */
+  //! Causal Graph Description
+  namespace graph {
 
-  struct EdgeProperties {
-    //! True if the ports are connected
-    bool connected;
-    //! The output port
-    boost::shared_ptr<RTT::base::PortInterface> out;
-    //! The input port:
-    boost::shared_ptr<RTT::base::PortInterface> in;
-  };
+    //! Boost Graph Edge Metadata
+    struct EdgeProperties {
+      //! True if the ports are connected
+      bool connected;
+      //! The output port
+      boost::shared_ptr<RTT::base::PortInterface> out;
+      //! The input port:
+      boost::shared_ptr<RTT::base::PortInterface> in;
+    };
 
-  struct VertexProperties {
-    //! The control or feedback block (depending on which graph it's in)
-    boost::shared_ptr<RTT::TaskContext> block;
-  };
+    //! Boost Graph Vertex Metadata
+    struct VertexProperties {
+      //! The control and/or feedback block (depending on which graph it's in)
+      boost::shared_ptr<RTT::TaskContext> block;
+    };
 
-  typedef boost::adjacency_list<
-    boost::listS, boost::listS, boost::directedS,
-    VertexProperties, EdgeProperties> CausalGraph;
+    //! Boost Graph Type
+    typedef boost::adjacency_list<
+      boost::listS, boost::listS, boost::directedS,
+      VertexProperties, EdgeProperties> CausalGraph;
+  }
 
-  /**\}**/
-
-
-  /** \name Convenience functions \{ **/
+  /** \name Convenience functions **/
 
   /** \brief Check of a block has a group **/
   bool has_group(boost::shared_ptr<RTT::TaskContext> block,
@@ -156,19 +161,24 @@ namespace conman {
         getPort(port));
   }
 
-  /**\}**/
-
+  //! Specialization of RTT::TaskContext to represent a control and/or feedback block in a control system.
   class Block : public RTT::TaskContext 
   {
   public:
-    /** \name Port Exclusivity Management \{ **/
-
-    /// Exclusion modes
+    /** \brief Exclusion modes describe how a given port can be accessed. **/
     typedef enum {
+      //! No exclusion mode set / unknown port.
       UNDEFINED,
+      //! Any number of connections.
       UNRESTRICTED,
+      //! Limit to one connection.
       EXCLUSIVE
     } ExclusionMode;
+
+    /** \name Port Exclusivity Management
+     *  Set and get the \ref ExclusionMode of a given port.
+     */
+    //\{
 
     /// Set the exclusion mode for a given port
     void set_exclusion(
@@ -201,9 +211,9 @@ namespace conman {
       return UNDEFINED;
     }
 
-    /**\}**/
+    //\}
 
-
+    //! Construct a conman Block with the standard "control" and "feedback" layers.
     Block(std::string const& name) :
       RTT::TaskContext(name, RTT::base::TaskCore::PreOperational)
     { 
@@ -212,7 +222,7 @@ namespace conman {
       this->provides("feedback")->doc("Feedback interface layer. This service provides all feedback/state estimation inputs & outputs for this block.");
     }
 
-    /// Add a port with exclusion mode
+    //! Add an RTT port with a conman interface and exclusion mode.
     RTT::base::PortInterface& add_conman_port(
         const std::string &layer,
         const std::string &group_name,
@@ -227,39 +237,51 @@ namespace conman {
       return this->provides(layer)->provides(group_name)->provides(direction)->addPort(port_name, port);
     }
 
-    /** \name Execution Hooks \} **/
+    /** \name Execution Hooks
+     * Member functions to overload in block implementations.
+     * These functions are each given the time of the latest event (time) and the
+     * time since the last event (period).
+     */
+    //\{
 
+    //! Read from lower-level hardware API if necessary.
     virtual void read_hardware(
-        RTT::os::TimeService::Seconds secs,
+        RTT::os::TimeService::Seconds time,
         RTT::os::TimeService::Seconds period) {}
+    //! Compute feedback / state estimation and write to ports in the "feedback" layer.
     virtual void compute_feedback(
-        RTT::os::TimeService::Seconds secs,
+        RTT::os::TimeService::Seconds time,
         RTT::os::TimeService::Seconds period) {}
+    //! Compute control commands and write to ports in the "control" layer.
     virtual void compute_control(
-        RTT::os::TimeService::Seconds secs, 
+        RTT::os::TimeService::Seconds time, 
         RTT::os::TimeService::Seconds period) {}
+    //! Write to lower-level hardware API if necessary.
     virtual void write_hardware(
-        RTT::os::TimeService::Seconds secs,
+        RTT::os::TimeService::Seconds time,
         RTT::os::TimeService::Seconds period) {}
-
-    /**\}**/
+    
+    //\}
 
   private:
-    // Exclusion mode container
+
+    //! Exclusion mode container for storing exclusion modes for each port.
     typedef std::map<std::string, // layer
             std::map<std::string, // group
             std::map<std::string, // direction
             std::map<std::string, // port
             ExclusionMode> > > > ExclusionContainer;
 
+    // Internal port exclusivity container
     ExclusionContainer exclusion_;
 
   };
 
-  class ControllerManager : public OCL::DeploymentComponent 
+  //! Manager for loading/unloading and starting/stopping Blocks
+  class BlockManager : public OCL::DeploymentComponent 
   {
   public:
-    ControllerManager(std::string name="ControllerManager") :
+    BlockManager(std::string name="BlockManager") :
       OCL::DeploymentComponent(name)
       {
 
@@ -453,8 +475,7 @@ namespace conman {
     std::map<std::string,std::vector<std::string> > resources_; 
   };
 
-  /// Block interface types
-
+  //! Interface types for ports used to connect Blocks
   namespace interfaces {
 
     struct SingleJointEffort { typedef double datatype; static const std::string name; };
@@ -519,7 +540,7 @@ int ORO_main(int argc, char** argv) {
   MyEffortController c2("c2","left_arm");
 
   {
-    OCL::DeploymentComponent deployer("ControllerManager"); 
+    OCL::DeploymentComponent deployer("BlockManager"); 
 
     // Create some controllers
     deployer.connectPeers(&c0);
