@@ -136,13 +136,20 @@ namespace conman {
     return block->provides(layer)->provides(group);
   }
 
-  RTT::Service::shared_ptr get_conduit(
+  RTT::Service::shared_ptr get_input_service(
       boot::shared_ptr<RTT::TaskContext> block,
       std::string layer, 
-      std::string group,
-      std::string direction) 
+      std::string group) 
   {
-    return block->provides(layer)->provides(group)->provides(direction);
+    return block->provides(layer)->provides(group)->provides("in");
+  }
+
+  RTT::Service::shared_ptr get_output_service(
+      boot::shared_ptr<RTT::TaskContext> block,
+      std::string layer, 
+      std::string group) 
+  {
+    return block->provides(layer)->provides(group)->provides("out");
   }
 
   boost::shared_ptr<RTT::base::PortInterface> get_port(
@@ -171,6 +178,11 @@ namespace conman {
       std::vector<std::string, RTT::Service::ProviderNames> &inputs,
       std::vector<std::string, RTT::Service::ProviderNames> &outputs)
   {
+
+    if(block_a == block_b) {
+      return false;
+    }
+
     // Iterate over each group
     for(RTT::Service::ProviderNames::iterator group_it = groups.begin();
         group_it != groups.end();
@@ -241,13 +253,17 @@ namespace conman {
     {
       // Get a shared pointer to the existing block, for convenience
       boost::shared_ptr<RTT::TaskContext> existing_block(vp.first);
-      // Connect all ports in this layer
-      conman::connect_ports(existing_block,
-                            new_block,
-                            layer,
-                            groups,
-                            inputs,
-                            outputs);
+
+      // Make sure we're not connecting the block to itself
+      if(existing_block != new_block) {
+        // Connect all ports in this layer
+        conman::connect_ports(existing_block,
+                              new_block,
+                              layer,
+                              groups,
+                              inputs,
+                              outputs);
+      }
     }
 
     return true;
@@ -268,8 +284,8 @@ public:
     // TODO: should we support operations, or just ports? Probably just ports.
       
     // Create RTT ports
-    conman::get_conduit(this,"control",group,"out")->addPort("joint_effort", effort_out_);
-    conman::get_conduit(this,"control",group,"in")->addPort("joint_effort", effort_in_);
+    conman::get_output_service(this,"control",group)->addPort("joint_effort", effort_out_);
+    conman::get_input_service(this,"control",group)->addPort("joint_effort", effort_in_);
 
     // Define resource types
     input_resource_map_[group]["joint_effort"] = conman::EXCLUSIVE;
