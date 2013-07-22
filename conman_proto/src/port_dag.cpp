@@ -287,17 +287,16 @@ namespace conman {
 
       }
 
-    //! Controllers
-    // load controller (name) 
-    //  This is where interfaces and ports get connected
-    //    new component c_new
-    //    store store resources of c_new associated with a reference to c_new
-    //    for each component c
-    //      for each control group
-    //        for each resource
-    //          if c has a similar group/resource, connect it
-
-    //! Load a controller/estimator block
+    /** \brief Load a conman Block 
+     *
+     *  This is where interfaces and ports get connected
+     *   - new component c_new
+     *   - store store resources of c_new associated with a reference to c_new
+     *   - for each component c
+     *     - for each control group
+     *       - for each resource
+     *         - if c has a similar group/resource, connect it
+     */
     bool load_block(const std::string &block_name,
         const std::string &package_name, 
         const std::string &component_type)
@@ -323,20 +322,29 @@ namespace conman {
     // enable controller (name)
     //  This is where resource exclusion is checked
 
+    /** \brief Enable a conman Block
+     *
+     * This is where port exclusivity (Block::ExclusionMode) gets checked. If
+     * enabling this port would violate the exclusivity of another port, then it
+     * will not be enabled unless force is specificed as true. If force is
+     * specified, then any conflicting blocks will be disabled, themselves.
+     *
+     *
+     * - Get block
+     * - Check if enabling would violate exclusivity 
+     *  - get other inputs from graph
+     *  - count inputs
+     *  - we can enable it if it won't violate exclusivity with its outputs
+     *  - we can enable it if we disable any blocks which would violate this
+     *  block's exclusivity
+     *
+     * - use boost::edge_range to get all edges between this block and other
+     *  blocks, and enable connect the ports associated with each edge
+     *
+     * - Start the block
+     */
     bool enable_block(const std::string &block_name, const bool force)
     {
-      // Get block
-      // Check if enabling would violate exclusivity 
-      //  - get other inputs from graph
-      //  - count inputs
-      //  - we can enable it if it won't violate exclusivity with its outputs
-      //  - we can enable it if we disable any blocks which would violate this
-      //  block's exclusivity
-      //
-      //  use boost::edge_range to get all edges between this block and other
-      //  blocks, and enable connect the ports associated with each edge
-      //
-      // Start the block
 
       return true;
     }
@@ -346,17 +354,19 @@ namespace conman {
     // switch controllers (name)
 
 
-    //! State Estimators
+    // State Estimators
     // load estimator (name)
     // enable estimator (name)
     // disable estimator (name)
     // switch estimators (name)
 
-    //! Execution
+    // Execution
     // read from hardware ()
     // compute feedback ()
     // compute control ()
     // write to hardware ()
+
+    //! Read from hardware, compute feedback, compute control, and write to hardware.
     void updateHook() 
     {
       // 
@@ -366,10 +376,12 @@ namespace conman {
 
   protected:
 
-    /// Graph structures
-    CausalGraph
+    //! \name Graph structures
+    //\{
+    conman::graph::CausalGraph
       control_graph_,
       feedback_graph_;
+    //\}
 
     // Connect a block to the appropriate blocks in a given graph
     // This connects all inputs/outputs of block_a to all outputs/inputs of
@@ -438,7 +450,7 @@ namespace conman {
                 // Connect the port
                 //out_port->connectTo(in_port.get());
                 // Add the edge to the graph
-                conman::EdgeProperties edge_props = {false, out_port, in_port};
+                conman::graph::EdgeProperties edge_props = {false, out_port, in_port};
                 boost::add_edge(*vp.first, new_vertex, edge_props, graph);
               }
             }
@@ -458,7 +470,7 @@ namespace conman {
                 // Connect the port
                 //out_port->connectTo(in_port.get());
                 // Add the edge to the graph
-                conman::EdgeProperties edge_props = {false, out_port, in_port};
+                conman::graph::EdgeProperties edge_props = {false, out_port, in_port};
                 boost::add_edge(new_vertex, *vp.first, edge_props, graph);
               }
             }
@@ -469,10 +481,8 @@ namespace conman {
       return true;
     }
 
-    // serialized feedback graph
-    // serialized control graph
-
-    std::map<std::string,std::vector<std::string> > resources_; 
+    // TODO: add serialized feedback graph
+    // TODO: add serialized control graph
   };
 
   //! Interface types for ports used to connect Blocks
