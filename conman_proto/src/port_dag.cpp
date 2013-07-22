@@ -6,22 +6,194 @@
 #include <ocl/LoggingService.hpp>
 #include <rtt/Logger.hpp>
 
+#include <boost/graph/adjacency_list.hpp>
+#include <boost/graph/topological_sort.hpp>
+
+
+/**
+ *
+ * Resources
+ *  RTT Ports are the only resources in conman. Reading resources is
+ *  unrestricted, but writing to a resource can be controlled. Access is
+ *  controlled when the ControllerManager enables and disables various control
+ *  components, and not when it sets up the RTT Port network. This means that
+ *  RTT Ports may be connected in such a way that violates the maximum numvber
+ *  of connections. TODO: Should we instead connect and disconnect components
+ *  at rumtime?
+ *
+ **/
 
 namespace conman {
-  typedef enum {
-    UNRESTRICTED = 0,
-    EXCLUSIVE,
-  } ResourceType;
+
+  const std::string CONTROL_SERVICE = "control";
+  const std::string FEEDBACK_SERVICE = "feedback";
 
   // TODO: replace this with a class with friendler member functions
   typedef std::map<std::string, std::map<std::string,int> > ResourceMap;
 
-  // Computation graph
-  struct GraphBlock {
-    boost::shared_ptr<RTT::TaskContext> taskcontext;
-    std::vector<boost::shared_ptr<GraphBlock>> parents;
-    std::vector<boost::shared_ptr<GraphBlock>> children;
-  };
+  struct Connector {
+    /** This class contains meta-information about a conman resource. This
+     * includes:
+     *  - a maximum number of accessors
+     *  - the current number of accessors
+     */
+
+    // Access control
+    enum {
+      UNRESTRICTED = 0,
+      EXCLUSIVE = 1
+    };
+    unsigned max_accessors;
+    unsigned n_accessors;
+
+    // Interface uri
+    std::string group;
+    std::string interface;
+  }
+
+  RTT::Service::shared_ptr control_service(
+      boost::shared_ptr<RTT::TaskContext> block) 
+  {
+    if(block->provides()->hasService(conman::CONTROL_SERVICE)) {
+      return block->getService(conman::CONTROL_SERVICE);
+    }
+    return RTT::Service::shared_ptr();
+  }
+
+  RTT::Service::shared_ptr feedback_service(
+      boost::shared_ptr<RTT::TaskContext> block) 
+  {
+    if(block->provides()->hasService(conman::FEEDBACK_SERVICE)) {
+      return block->getService(conman::FEEDBACK_SERVICE);
+    }
+    return RTT::Service::shared_ptr();
+  }
+
+
+  /// Convenience functions
+  bool has_group(boot::shared_ptr<RTT::TaskContext> block,
+                 std::string layer, 
+                 std::string group) 
+  {
+    return (block->provides()->hasService(layer)
+            && block->provides(layer)->hasService(group));
+  }
+
+  bool has_port(boot::shared_ptr<RTT::TaskContext> block,
+                std::string layer, 
+                std::string group,
+                std::string direction,
+                std::string port) 
+  {
+    return (has_group(block,layer,group) 
+            && (block->
+                provides(layer)->
+                provides(group)->
+                provides(direction)->
+                getPort(port)));
+  }
+
+  RTT::Service::ProviderNames get_groups(
+      boot::shared_ptr<RTT::TaskContext> block,
+      std::string layer)
+  {
+    return block->provides(layer)->getProviderNames();
+  }
+
+  RTT::Service::ProviderNames get_ports(
+      boot::shared_ptr<RTT::TaskContext> block,
+      std::string layer,
+      std::string group,
+      std::string direction)
+  {
+    return (block->
+            provides(layer)-> 
+            provides(group)->
+            provides(direction)-> 
+            getPortNames());
+  }
+
+  RTT::Service::shared_ptr get_group(
+      boot::shared_ptr<RTT::TaskContext> block,
+      std::string layer, 
+      std::string group) 
+  {
+    return block->provides(layer)->provides(group);
+  }
+
+  RTT::Service::shared_ptr get_conduit(
+      boot::shared_ptr<RTT::TaskContext> block,
+      std::string layer, 
+      std::string group,
+      std::string direction) 
+  {
+    return block->provides(layer)->provides(group)->provides(direction);
+  }
+
+  boost::shared_ptr<RTT::base::PortInterface> get_port(
+      boot::shared_ptr<RTT::TaskContext> block,
+      std::string layer, 
+      std::string group,
+      std::string direction,
+      std::string port) 
+  {
+    return boost::shared_ptr<RTT::base::PortInterface>(
+        block->
+        provides(layer)->
+        provides(group)->
+        provides(direction)->
+        getPort(port));
+  }
+
+  // Connect layers
+  // This connects all inputs/outputs of block_a to all outputs/inputs of
+  // block_b, given the groups, inputs, and outputs of block_b
+  bool connect_layers(
+      boost::shared_ptr<RTT::TaskContext> block_a,
+      boost::shared_ptr<RTT::TaskContext> block_b,
+      std::string layer,
+      RTT::Service::ProviderNames &groups,
+      std::vector<std::string, RTT::Service::ProviderNames> &inputs,
+      std::vector<std::string, RTT::Service::ProviderNames> &outputs)
+  {
+    for(RTT::Service::ProviderNames::iterator group_it = groups.begin();
+        group_it != groups.end();
+        ++group_it)
+    {
+      // Check if the existing block uses this control group
+      if(conman::has_group(block_a,layer,*group_it)) {
+        // Connect:
+        // existing[control][control_group][out][*] --> new[control][control_group][in][*]
+        for(RTT::Service::ProviderNames::iterator port_it = inputs[*group_it].begin();
+            port_it != inputs[*group_it].end();
+            ++port_it)
+        {
+          boost::shared_ptr<RTT::base::PortInterface> out_port =
+            conman::get_port(block_a,layer,*group_it,"out",*port_it);
+
+          if(out_port.get()) {
+            out_port->connectTo(conamn::get_port(block_b,layer,*group_it,"in",*port_it).get());
+          }
+        }
+        // Connect:
+        // existing[control][control_group][in][*] <-- new[control][control_group][out][*]
+        for(RTT::Service::ProviderNames::iterator port_it = outputs[*group_it].begin();
+            port_it != outputs[*group_it].end();
+            ++port_it)
+        {
+          boost::shared_ptr<RTT::base::PortInterface> in_port =
+            conman::get_port(block_a,layer,*group_it,"in",*port_it);
+
+          if(in_port.get()) {
+            in_port->connectTo(conamn::get_port(block_b,layer,*group_it,"out",*port_it).get());
+          }
+        }
+      }
+    }
+
+    return true;
+  }
+
 }
 
 
@@ -32,15 +204,14 @@ public:
     group_(group)
   {
     // Get group name from rosparam
+    // TODO: get configuration
      
     // Store provided interfaces
-    output_service_ = this->provides("control")->provides("out");
-    input_service_ = this->provides("control")->provides("in");
     // TODO: should we support operations, or just ports? Probably just ports.
       
     // Create RTT ports
-    output_service_->provides(group)->addPort("joint_effort", effort_out_);
-    input_service_->provides(group)->addPort("joint_effort", effort_in_);
+    conman::get_conduit(this,"control",group,"out")->addPort("joint_effort", effort_out_);
+    conman::get_conduit(this,"control",group,"in")->addPort("joint_effort", effort_in_);
 
     // Define resource types
     input_resource_map_[group]["joint_effort"] = conman::EXCLUSIVE;
@@ -90,7 +261,35 @@ public:
     
   }
 
-  // TODO: maintain graph structure, or just serialized computation vector?
+  /**
+   * Causal block graph for control and feedback topological sort. This graph
+   * contains vertices which correspond to blocks, and edges which correspond to
+   * port connections between blocks.
+   *
+   * Vertex Type: listS
+   *  - low time complexity
+   * Edge Type: listS
+   *  - low time complexity
+   *  - permits parallel edges to describe multiple links between blocks
+   * Directed: true
+   *
+   */
+
+  struct EdgeProperties {
+    boost::shared_ptr<RTT::PortInterface> out;
+    boost::shared_ptr<RTT::PortInterface> in;
+  };
+
+  struct VertexProperties {
+    boost::shared_ptr<RTT::TaskContext> task;
+  };
+
+  typedef boost::adjacency_list<
+    boost::listS,boost::listS,
+    boost::directedS,
+    VertexName,
+    EdgePortNames
+    > CausalGraph;
 
   //! Controllers
   // load controller (name) 
@@ -101,6 +300,77 @@ public:
   //      for each control group
   //        for each resource
   //          if c has a similar group/resource, connect it
+
+  //! Load a controller/estimator block
+  bool load_block(const std::string &block_name,
+                  const std::string &package_name, 
+                  const std::string &component_type)
+  {
+    // Load package
+    bool package_imported = this->import(package_name);
+    // Load block
+    bool component_loaded = this->loadComponent(block_name, component_type);
+    // Get the newly loaded block
+    boost::shared_ptr<RTT::TaskContext> new_block(this->myGetPeer(block_name));
+
+    // TODO: Validate this this taskcontext has a valid conman interface
+
+    // Get control and feedback groups for this new block
+    RTT::Service::ProviderNames 
+      control_groups = get_groups(new_block,"control"),
+      feedback_groups = get_groups(new_block,"feedback");
+
+    std::map<std::string, RTT::Service::ProviderNames> 
+      control_inputs,
+      control_outputs,
+      feedback_inputs,
+      feedback_outputs;
+    
+    // Get connectors for imput and output in each group
+    for(RTT::Service::ProviderNames::iterator group_it = control_groups.begin();
+        group_it != control_groups.end();
+        ++group_it) 
+    {
+      control_inputs[*group_it] = conman::get_ports(new_block,"control",*group_it,"in");
+      control_outputs[*group_it] = conman::get_ports(new_block,"control",*group_it,"out");
+    }
+
+    for(RTT::Service::ProviderNames::iterator group_it = feedback_groups.begin();
+        group_it != feedback_groups.end();
+        ++group_it) 
+    {
+      feedback_inputs[*group_it] = conman::get_ports(new_block,"feedback",*group_it,"in");
+      feedback_outputs[*group_it] = conman::get_ports(new_block,"feedback",*group_it,"out");
+    }
+
+    // Connect this new block to the control and feedback networks
+    typedef boost::graph_traits<CausalGraph>::vertex_iterator vertex_iter;
+    std::pair<vertex_iter, vertex_iter> vp;
+    for(vp = boost::vertices(g);
+        vp.first != vp.second;
+        ++vp.first) 
+    {
+      // Get a shared pointer to the existing block, for convenience
+      boost::shared_ptr<RTT::TaskContext> existing_block(vp.first);
+
+      // Connect all ports in the control layer
+      conman::connect_layers(existing_block, new_block,
+                             "control",
+                             control_groups,
+                             control_inputs,
+                             control_outputs);
+
+      // Connect all ports in the feedback layer
+      conman::connect_layers(existing_block, new_block,
+                             "feedback",
+                             feedback_groups,
+                             feedback_inputs,
+                             feedback_outputs);
+    }
+
+    return true;
+  }
+
   //    
   // enable controller (name)
   //  This is where resource exclusion is checked
