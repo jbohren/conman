@@ -1,4 +1,8 @@
 
+#include <string>
+#include <vector>
+#include <iterator>
+
 #include <rtt/os/main.h>
 
 #include <ocl/DeploymentComponent.hpp>
@@ -34,12 +38,12 @@ namespace conman {
    * networks. This graph contains vertices which correspond to blocks, and
    * edges which correspond to port connections between blocks.
    *
-   * Vertex Type: listS
-   *  - low time complexity
+   * Vertex Type: vecS 
+   *  - Has vertex index property needed for topological sort
    *
    * Edge Type: listS
-   *  - low time complexity
-   *  - permits parallel edges to describe multiple links between blocks
+   *  - Low time complexity
+   *  - Permits parallel edges to describe multiple links between blocks
    *
    * Directed: true
    * 
@@ -65,8 +69,11 @@ namespace conman {
 
     //! Boost Graph Type
     typedef boost::adjacency_list<
-      boost::listS, boost::listS, boost::directedS,
+      boost::listS, boost::vecS, boost::directedS,
       VertexProperties, EdgeProperties> CausalGraph;
+
+    //! Boost Vertex Descriptor Type
+    typedef boost::graph_traits<CausalGraph>::vertex_descriptor CausalVertex;
   }
 
   /** \name Convenience functions **/
@@ -297,7 +304,8 @@ namespace conman {
      *       - for each resource
      *         - if c has a similar group/resource, connect it
      */
-    bool load_block(const std::string &block_name,
+    bool load_block(
+        const std::string &block_name,
         const std::string &package_name, 
         const std::string &component_type)
     {
@@ -313,7 +321,10 @@ namespace conman {
       add_block(new_block, estimation_graph_, "estimation");
 
       // Recompute topological sort
-      // TODO
+      boost::topological_sort(control_graph_,
+                              std::back_inserter(control_serialization_));
+      boost::topological_sort(estimation_graph_, 
+                              std::back_inserter(estimation_serialization_));
 
       return true;
     }
@@ -381,6 +392,13 @@ namespace conman {
     conman::graph::CausalGraph
       control_graph_,
       estimation_graph_;
+    //\}
+
+    //! \name Topologically-sorted structures
+    //\{
+    std::vector<conman::graph::CausalVertex> 
+      control_serialization_,
+      estimation_serialization_;
     //\}
 
     // Connect a block to the appropriate blocks in a given graph
@@ -550,19 +568,19 @@ int ORO_main(int argc, char** argv) {
   MyEffortController c2("c2","left_arm");
 
   {
-    OCL::DeploymentComponent deployer("BlockManager"); 
+    conman::BlockManager manager("BlockManager"); 
 
     // Create some controllers
-    deployer.connectPeers(&c0);
-    deployer.connectPeers(&c1);
-    deployer.connectPeers(&c2);
+    //manager.connectPeers(&c0);
+    //manager.connectPeers(&c1);
+    //manager.connectPeers(&c2);
 
     // Get the control groups of a given controller
     RTT::Logger::log() << RTT::Logger::Info << "Control groups: " << RTT::endlog();
 
-    deployer.connect("c0.control.out.left_arm.joint_effort","c1.control.in.left_arm.joint_effort",RTT::ConnPolicy());
+    //manager.connect("c0.control.out.left_arm.joint_effort","c1.control.in.left_arm.joint_effort",RTT::ConnPolicy());
 
-    OCL::TaskBrowser task_browser(&deployer);
+    OCL::TaskBrowser task_browser(&manager);
 
     task_browser.loop();
   }
