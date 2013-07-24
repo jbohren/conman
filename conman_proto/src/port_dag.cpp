@@ -30,7 +30,7 @@
 namespace conman {
 
   /** 
-   * Causal block graph for topologically sorting control and feedback
+   * Causal block graph for topologically sorting control and estimation
    * networks. This graph contains vertices which correspond to blocks, and
    * edges which correspond to port connections between blocks.
    *
@@ -59,7 +59,7 @@ namespace conman {
 
     //! Boost Graph Vertex Metadata
     struct VertexProperties {
-      //! The control and/or feedback block (depending on which graph it's in)
+      //! The control and/or estimation block (depending on which graph it's in)
       boost::shared_ptr<RTT::TaskContext> block;
     };
 
@@ -161,7 +161,7 @@ namespace conman {
         getPort(port));
   }
 
-  //! Specialization of RTT::TaskContext to represent a control and/or feedback block in a control system.
+  //! Specialization of RTT::TaskContext to represent a control and/or estimation block in a control system.
   class Block : public RTT::TaskContext 
   {
   public:
@@ -213,13 +213,13 @@ namespace conman {
 
     //\}
 
-    //! Construct a conman Block with the standard "control" and "feedback" layers.
+    //! Construct a conman Block with the standard "control" and "estimation" layers.
     Block(std::string const& name) :
       RTT::TaskContext(name, RTT::base::TaskCore::PreOperational)
     { 
       // Create default services
       this->provides("control")->doc("Control interface layer. This service provides all control inputs & outputs for this block.");
-      this->provides("feedback")->doc("Feedback interface layer. This service provides all feedback/state estimation inputs & outputs for this block.");
+      this->provides("estimation")->doc("Estimation interface layer. This service provides all estimation/state estimation inputs & outputs for this block.");
     }
 
     //! Add an RTT port with a conman interface and exclusion mode.
@@ -248,8 +248,8 @@ namespace conman {
     virtual void read_hardware(
         RTT::os::TimeService::Seconds time,
         RTT::os::TimeService::Seconds period) {}
-    //! Compute feedback / state estimation and write to ports in the "feedback" layer.
-    virtual void compute_feedback(
+    //! Compute estimation / state estimation and write to ports in the "estimation" layer.
+    virtual void compute_estimation(
         RTT::os::TimeService::Seconds time,
         RTT::os::TimeService::Seconds period) {}
     //! Compute control commands and write to ports in the "control" layer.
@@ -308,9 +308,9 @@ namespace conman {
       // Get the newly loaded block
       boost::shared_ptr<RTT::TaskContext> new_block(this->myGetPeer(block_name));
 
-      // Connect the block in the appropriate ports in the control and feedback graphs
+      // Connect the block in the appropriate ports in the control and estimation graphs
       add_block(new_block, control_graph_, "control");
-      add_block(new_block, feedback_graph_, "feedback");
+      add_block(new_block, estimation_graph_, "estimation");
 
       // Recompute topological sort
       // TODO
@@ -362,11 +362,11 @@ namespace conman {
 
     // Execution
     // read from hardware ()
-    // compute feedback ()
+    // compute estimation ()
     // compute control ()
     // write to hardware ()
 
-    //! Read from hardware, compute feedback, compute control, and write to hardware.
+    //! Read from hardware, compute estimation, compute control, and write to hardware.
     void updateHook() 
     {
       // 
@@ -380,7 +380,7 @@ namespace conman {
     //\{
     conman::graph::CausalGraph
       control_graph_,
-      feedback_graph_;
+      estimation_graph_;
     //\}
 
     // Connect a block to the appropriate blocks in a given graph
@@ -481,7 +481,7 @@ namespace conman {
       return true;
     }
 
-    // TODO: add serialized feedback graph
+    // TODO: add serialized estimation graph
     // TODO: add serialized control graph
   };
 
