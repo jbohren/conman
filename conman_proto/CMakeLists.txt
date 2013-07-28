@@ -6,8 +6,10 @@ find_package(catkin REQUIRED)
 find_package(OROCOS-RTT REQUIRED)
 include(${OROCOS-RTT_USE_FILE_PATH}/UseOROCOS-RTT.cmake )
 
+include_directories(include)
+
 catkin_package(
-  #INCLUDE_DIRS include
+  INCLUDE_DIRS include
   #LIBRARIES conman_proto
   #CATKIN_DEPENDS other_catkin_pkg
   DEPENDS rtt
@@ -21,7 +23,14 @@ orocos_use_package( ocl-taskbrowser )
 orocos_use_package( ocl-deployment )
 orocos_use_package( ocl-logging )
 
-orocos_executable(port_dag src/port_dag.cpp)
+#orocos_plugin(conman_plugin src/conman.cpp src/manager.cpp)
+#orocos_plugin(conman_test_plugins src/conman_test_plugins.cpp)
+
+#orocos_executable(port_dag src/port_dag.cpp)
+add_definitions(-DRTT_STATIC)
+orocos_library(conman_proto src/scheme.cpp src/block.cpp src/conman.cpp src/conman_test_plugins.cpp)
+orocos_executable(scheme_test src/scheme_test.cpp)
+target_link_libraries(scheme_test conman_proto)
 
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations

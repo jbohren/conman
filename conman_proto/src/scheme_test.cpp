@@ -14,6 +14,8 @@
 #include <boost/graph/topological_sort.hpp>
 
 #include <conman_proto/conman.h>
+#include <conman_proto/scheme.h>
+#include <conman_proto/conman_test_plugins.h>
 
 int ORO_main(int argc, char** argv) {
 
@@ -23,15 +25,21 @@ int ORO_main(int argc, char** argv) {
 
   RTT::Logger::In in("Prototype");
 
-  std::vector<std::string> components;
-  std::map<std::string,std::vector<std::string> > resources; 
+  TestEffortController 
+    c0_left("c0_left"),//,"left_arm"),
+    c1_left("c1_left"),//,"left_arm"),
+    c0_right("c0_right");//,"right_arm");
 
-  MyEffortController c0("c0","left_arm");
-  MyEffortController c1("c1","left_arm");
-  MyEffortController c2("c2","left_arm");
+  RTT::Property<std::string>(c0_left.getProperty("group")) = "left_arm";
+  RTT::Property<std::string>(c1_left.getProperty("group")) = "left_arm";
+  RTT::Property<std::string>(c0_right.getProperty("group")) = "right_arm";
 
   {
-    conman::BlockManager manager("BlockManager"); 
+    conman::Scheme scheme("Scheme"); 
+
+    scheme.add_peer(&c0_left);
+    scheme.add_peer(&c1_left);
+    scheme.add_peer(&c0_right);
 
     // Create some controllers
     //manager.connectPeers(&c0);
@@ -43,7 +51,7 @@ int ORO_main(int argc, char** argv) {
 
     //manager.connect("c0.control.out.left_arm.joint_effort","c1.control.in.left_arm.joint_effort",RTT::ConnPolicy());
 
-    OCL::TaskBrowser task_browser(&manager);
+    OCL::TaskBrowser task_browser(&scheme);
 
     task_browser.loop();
   }
