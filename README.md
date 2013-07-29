@@ -78,9 +78,47 @@ port in cartesian-space should also provide the name of its origin frame.
 
 ## Tutorials 
 
+### Running a Conman Scheme
+
+**TBD**
+
+### Writing a State Estimation Block
+
+**TBD**
+
+### Managing a Scheme At Runtime
+
+**TBD**
+
+### Running Conman In Gazebo
+
+**TBD**
+
+### Loading a ros\_control-based Controller Into Conman
+
+**TBD**
+
+### Loading a ros\_control-based Hardware Interface Into Conman
+
+**TBD**
 
 ## Motivating Use Cases
 
+### Teaching: My First Controller™ ###
+
+**TBD**
+
+### Controller Switching at Runtime
+
+**TBD**
+
+### Automatic State Estimation Switching at Runtime
+
+**TBD**
+
+### Visual Feedback for Robotic Manipulator Control
+
+**TBD**
 
 ## Background & Prior Work
 
