@@ -284,16 +284,12 @@ discussion made the following pouints:
       configured with n timers which trigger the ports of the
       controller_manager. Note: You could also setup non-periodic update
       policies here if it made sense to your application.
-
-    An important thing to note with this setup is that although triggers come
-    from outside the controller_manager, the actual work is executed _in_ the
-    controller_manager thread, so no concurrency handling is required. I
-    overlooked this benefit in my previous post (!!!). Relating to Jonathans's
-    question on parallelism: there is none here, work is still done sequentially
-    inside the controller_manager.
-
-
-
+    * An important thing to note with this setup is that although triggers come
+      from outside the controller_manager, the actual work is executed _in_ the
+      controller_manager thread, so no concurrency handling is required. I
+      overlooked this benefit in my previous post (!!!). Relating to Jonathans's
+      question on parallelism: there is none here, work is still done
+      sequentially inside the controller_manager.
 
 * **Marcus Liebhardt**
   * It would be good to be able to load transmission-computation plugins just
