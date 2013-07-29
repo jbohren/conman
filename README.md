@@ -261,6 +261,34 @@ discussion made the following pouints:
     execution and passing data by pointers. It just does not allow the use case
     of clients running with different update policies (lower frequency,
     non-periodic triggering). How would you go about this?
+  * We want to be able to load controllers as plugins, and serialize their
+    execution in a single thread.
+  * We want to create controllers with arbitrary hardware interfaces.
+  * We should trigger each controller with a dedicated, configurable timer event
+    to allow each controller to have its own update rate. This timer event
+    should be compatible with deployment in hard-realtime and simulated clock
+    contexts.
+  * I'd stick with the current controller\_manager design and not deal with
+    clock/timer issues, but rather push this responsibility downstream. It's not
+    trivial to provide a solution that works well across different (realtime)
+    OS's and simulation environments
+  * I'll detail a bit more (my view of) the timer approach suggested by Herman.
+    Consider a system with two Orocos components (two threads):
+    - The controller\_manager, whose thread is non-periodic, and has n
+      event-triggered input ports. When a port is triggered, it executes some
+      work (update a controller, read hardware ,etc.). Without external
+      triggers, the controller_manager component does nothing.
+    - An OCL Timer component [1] configured with n timers which trigger the
+      ports of the controller_manager. Note: You could also setup non-periodic
+      update policies here if it made sense to your application.
+    An important thing to note with this setup is that although triggers come
+    from outside the controller_manager, the actual work is executed _in_ the
+    controller_manager thread, so no concurrency handling is required. I
+    overlooked this benefit in my previous post (!!!). Relating to Jonathans's
+    question on parallelism: there is none here, work is still done sequentially
+    inside the controller_manager.
+
+
 
 
 * **Marcus Liebhardt**
@@ -313,6 +341,15 @@ discussion made the following pouints:
   * My summary: the ROS/Orocos worlds are not providing the right tools,
     concepts and primitives for doing efficient and advanced (realtime) motion
     control for robots.
+  * I am suggestion a design in which the "manager" is doing the "Coordination &
+    Configuration" of several new complementary/decoupled responsibilities:
+    - timing port
+    - time interrupt handling: input to schedule function and to execution function
+    - scheduling function to compute the to-be-serially-executed computations
+    - execution of these computations
+    - shared data resource management (e.g., via an "immutable data" policy).  This
+      includes adding computations to the schedule for logging etc.
+  * Moving all timing out of code has been industry standard for years already.
 
 * **Piotr Trojanek**
 * **Sylvain Joyeux**
