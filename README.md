@@ -274,15 +274,17 @@ discussion made the following pouints:
     OS's and simulation environments
   * I'll detail a bit more (my view of) the timer approach suggested by Herman.
     Consider a system with two Orocos components (two threads):
-    - The controller\_manager, whose thread is non-periodic, and has n
+
+    * The controller\_manager, whose thread is non-periodic, and has n
       event-triggered input ports. When a port is triggered, it executes some
       work (update a controller, read hardware ,etc.). Without external
       triggers, the controller_manager component does nothing.
-    - An OCL [Timer
+    * An OCL [Timer
       component](http://www.orocos.org/stable/documentation/ocl/v2.x/api/html/classOCL_1_1TimerComponent.html)
       configured with n timers which trigger the ports of the
       controller_manager. Note: You could also setup non-periodic update
       policies here if it made sense to your application.
+
     An important thing to note with this setup is that although triggers come
     from outside the controller_manager, the actual work is executed _in_ the
     controller_manager thread, so no concurrency handling is required. I
