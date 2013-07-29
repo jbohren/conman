@@ -251,7 +251,7 @@ discussion made the following pouints:
       ```cpp
       void update() {
           if (count % 10 == 0) { // Eyes start bleeding
-              // Do stuff
+            // Do stuff
           }
           ++count;
       }
