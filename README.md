@@ -195,7 +195,7 @@ discussion made the following pouints:
 In Spring and Summer 2013, the [ros\_control framework](http://www.github.com/ros-controls/ros_control) 
 attracted a lot of attention. This framework was ported from the PR2 controller
 framework, and as such, its design is best suited for a fully-integrated robotic
-platform. **ros**\_**control** assumes that there is a single atomic robot
+platform. **ros\_control** assumes that there is a single atomic robot
 hardware interface class which owns several types of interfaces (state, effort,
 velocity, etc). One strange effect of this is that to get the joint state out of this
 framework, you write a "controller" which only reads the state, but doesn't
