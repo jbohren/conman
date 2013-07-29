@@ -71,7 +71,13 @@ For example, a port in joint-space should provide both the number of degrees of
 freedom of the joint group, as well as the ordered list of joint names, and a
 port in cartesian-space should also provide the name of its origin frame.
 
-### Background & Prior Work
+## Tutorials 
+
+
+## Motivating Use Cases
+
+
+## Background & Prior Work
 
 There has long been a desire to have a common platform for building and sharing
 robot control "blocks." Orocos RTT, itself, aims to be such a platform, however,
@@ -157,6 +163,24 @@ discussion made the following pouints:
     of computation from ROS command interfaces to hardware joint-level
     interfaces
   * The time reference should be external to the computational blocks
+  * Hardware transmission transformation from joint-space to actuator-space and
+    back should be handled explicitly.
+  * It would be great to be able to split up the JointTrajectoryController to
+    output something other than an effort command, and instead feed its output
+    into a lower-level controller.
+
+* **Marcus Liebhardt**
+  * It would be good to be able to load transmission-computation plugins just
+    like controller plugins.
+
+* **Sachin Chitta**
+  * The main goal of the **ros\_control** framework is to set upa robot-agnostic
+    version of the PR2 controlle framework (see below)
+  * It is possible for to implement a **ros\_control**-based controller which
+    implements multiple control interfaces
+  * 
+* **Shaun Edwards**
+  * The **ros\_control** framework and Adolfo's architectures both rely on [actionlib](http://www.ros.org/wiki/actionlib)-based interfaces, but it's very important to have streaming-type interfaces for visual servoing and teleoperation applications.
 
 * **Piotr Trojanek**
 * **Sylvain Joyeux**
@@ -165,4 +189,9 @@ discussion made the following pouints:
 In Spring and Summer 2013, the [ros\_control framework](http://www.github.com/ros-controls/ros_control) 
 attracted a lot of attention. This framework was ported from the PR2 controller
 framework, and as such, its design is best suited for a fully-integrated robotic
-platform. **ros**\_**control** assumes
+platform. **ros**\_**control** assumes that there is a single atomic robot
+hardware interface class which owns several types of interfaces (state, effort,
+velocity, etc). One strange effect of this is that to get the joint state out of this
+framework, you write a "controller" which only reads the state, but doesn't
+control anything. There is just one level of dynamically-loadable plugins, and
+they cannot be pipelined or easily composed.
