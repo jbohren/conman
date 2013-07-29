@@ -16,7 +16,9 @@ ROS-independent framework, tools for ROS integration are provided in the
 
 ### Scope
 
-*Conman* not trying to solve the world. *Conman* is designed with the following goals:
+*Conman* not trying to solve the world. *Conman* is just trying to get rich
+quick. As such, it is designed with the following goals:
+
 * Provide a common interface for running Orocos components for robot state estimation and control.
 * Handle the computational scheduling of these blocks.
 * Provide a special component, not a special framework.
@@ -24,10 +26,13 @@ ROS-independent framework, tools for ROS integration are provided in the
 
 ### Approach
 
-*Conman* is primarily concerned with two features of control schemes:
-* Correctly serialized computation of estimation and control blocks
-* Defining a set of standard Orocos/RTT interfaces for communicating between
-  such blocks.
+*Conman* is primarily concerned with two features of estimation and control
+system implementation:
+
+* **Execution:** Correctly serialized computation of estimation and control
+  blocks
+* **Metadata:** Defining a set of standard Orocos/RTT interfaces for
+  communicating between such blocks.
 
 #### Schemes: Serialized Control, Hardware, and Estimation Model Execution 
 
