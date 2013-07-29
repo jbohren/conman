@@ -246,14 +246,14 @@ discussion made the following pouints:
     positions and velocities at a lower frequency. I dislike bringing down the
     update frequency of some module with code like:
 
-    ```cpp
-    void update() {
-      if (count % 10 == 0) { // Eyes start bleeding
-        // Do stuff
+      ```cpp
+      void update() {
+        if (count % 10 == 0) { // Eyes start bleeding
+          // Do stuff
+        }
+        ++count;
       }
-      ++count;
-    }
-    ```
+      ```
 
     So, having most clients serialized for performance, and a few exceptions
     spinning separate threads seems reasonable to me. I'm open to alternative
