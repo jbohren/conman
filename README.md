@@ -45,24 +45,25 @@ separate thread and exchange information, or should compute with bounded latency
 These two graphs may share vertices (RTT components), but are distinguished by
 their arcs (relevant RTT ports). 
 
-Each scheme update involves the following stages:
+Each scheme update involves the following stages, executed in a single thread:
 
 1. Read from all hardware (sensors)
 2. Compute **estimation graph**
 3. Compute **control graph**
 4. Write to all hardware (actuators)
 
-These stages are supported by the corresponding *Conman* RTT operations:
+These stages are supported by the corresponding *Conman* RTT operations which
+**should execute quickly**:
 
-1. **readHardware**
+1. **readHardware()**
   * Reads lower-level hardware APIs or external interfaces (like ROS topics)
-2. **computeEstimation**
+2. **computeEstimation()**
   * Computes state estimation based on RTT port inputs
   * Writes estimated state to RTT ports modeled by edges in the **estimation graph**
-3. **computeControl**
+3. **computeControl()**
   * Computes control command based on RTT port inputs
   * Writes control command to RTT ports modeled by edges in the **control graph**
-4. **writeHardware**
+4. **writeHardware()**
   * Writes to lower-level hardware APIs or external interfaces
 
 #### Common RTT Port Interfaces
@@ -75,6 +76,28 @@ any given port to be self-describing.
 For example, a port in joint-space should provide both the number of degrees of
 freedom of the joint group, as well as the ordered list of joint names, and a
 port in cartesian-space should also provide the name of its origin frame.
+
+##### Joint-Space Quantity
+##### Cartesian-Space Quantity
+
+### Designing Components for Use in Conman
+
+#### Running Components at Different Rates
+
+The *Conman* scheme will run at a fixed rate (the rate at which you want to
+control the fastest hardware in the scheme), but you may want to have components
+which run slower than that. If this is the case, then they can still run at
+integral multiples of the loop rate, simply by checking the time at which they
+are invoked.
+
+#### Running Multiple Schemes
+
+**NOTE:** _Conman v1 is only concerned with schemes that do not interact_
+
+**BRAINSTORM** Since *Conman* schemes do not _own_ the RTT components involved
+in them, it's possible to run multiple schemes either in parallel or serialized.
+Of course there's nothing to worry about if the two schemes do not interact, but
+if they do, you can still run them in parallel...
 
 ## Tutorials 
 
@@ -215,6 +238,30 @@ discussion made the following pouints:
   * It would be great to be able to split up the JointTrajectoryController to
     output something other than an effort command, and instead feed its output
     into a lower-level controller.
+  * I picture the controller manager as being mostly single-threaded, where
+    clients are explicitly serialized in the manager's update cycle (using slave
+    activities in Orocos speak).
+  * An example of where I'd like to have a separate thread is a joint_states
+    publisher, a sink-only client that publishes information like joint
+    positions and velocities at a lower frequency. I dislike bringing down the
+    update frequency of some module with code like:
+    ```cpp
+    void update() {
+      if (count % 10 == 0) { // Eyes start bleeding
+        // Do stuff
+      }
+      ++count;
+    }
+    ```
+    So, having most clients serialized for performance, and a few exceptions
+    spinning separate threads seems reasonable to me. I'm open to alternative
+    solutions, though.
+  * The solution proposed in [1] (see original post for link) uses a plugin
+    mechanism for implementing controllers, which enforces single-threaded
+    execution and passing data by pointers. It just does not allow the use case
+    of clients running with different update policies (lower frequency,
+    non-periodic triggering). How would you go about this?
+
 
 * **Marcus Liebhardt**
   * It would be good to be able to load transmission-computation plugins just
@@ -229,9 +276,46 @@ discussion made the following pouints:
 * **Shaun Edwards**
   * The **ros\_control** framework and Adolfo's architectures both rely on [actionlib](http://www.ros.org/wiki/actionlib)-based interfaces, but it's very important to have streaming-type interfaces for visual servoing and teleoperation applications.
 
+* **J.D. Yamokoski**
+  * Mapping raises concerns due to the overhead of hash tables and string
+    comparisons
+  * An impressive characterization of space descriptions is given by [OMPL spaces](http://ompl.kavrakilab.org/spaces.html)
+
+* **Herman Bruyninckx**
+  * It is important to _first_ agree on the "meta model" of all these things
+    before spending effort on an _implementation_. This is the only approach for
+    long-term viability. Without a clear _computer-verifiable_ model you end up
+    with undebuggable systems.
+  * The mainstream software development in robotics is all about writing
+    software libraries with C++ code, while quite some other successful domains
+    "out there" don't write code, but generate it from models. Especially in the
+    context of this message: industrial control practice uses Simulink, 20Sim,
+    LabView or Modelica _models_, and _tools_ to generate the code. This helps a
+    lot in avoiding the problem of hand-writing APIs that support _all possible_
+    relevant combinations of robot control capabilities; the latter is just not
+    maintainable. (I see the same problem occurring in our KDL library, in the
+    context of kinematics and dynamics algorithms.)
+  * In the "Model Driven Engineering" approach it is; in the "class library API"
+    world it is a lot more difficult. Your "configuration file" is basically a
+    "model in disguise" :-) So, it makes more sense to make that model explicit,
+    and agree on that first.
+  * In many orocos applications that support motion control, people have made
+    the error to deploy the kind of architecture that you have in your drawing
+    ("sinks" and "sources" connected via "topic" data flows) one on one on an
+    Orocos "TaskContext" component design, which is _very_ inefficient.  Since
+    ages already, industry deploys such architectures into one single thread or
+    process, as different functions that access the "topics" as shared memory;
+    this is alot more efficient, especially since the computations in the
+    "components" are very simple, but a lot of data has to be streamed around
+    all the time. In addition, the Simulink, Modelica or 20Sim tools do the code
+    generation from your kind of "model" to such single-thread computations for
+    you.
+  * My summary: the ROS/Orocos worlds are not providing the right tools,
+    concepts and primitives for doing efficient and advanced (realtime) motion
+    control for robots.
+
 * **Piotr Trojanek**
 * **Sylvain Joyeux**
-* **Herman Bruyninckx**
 
 #### Early 2013 ros\_control Framework
  
