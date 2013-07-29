@@ -350,9 +350,34 @@ discussion made the following pouints:
     - shared data resource management (e.g., via an "immutable data" policy).  This
       includes adding computations to the schedule for logging etc.
   * Moving all timing out of code has been industry standard for years already.
+  * The common thing behind all these use cases are the things I mentioned:
+    separating the schedule from the model and the execution; generate code from
+    a domain-independent 'template implementation' with domain-dependent plug-in
+    functions; (immutable) data management; deployment onto various software
+    "containers".
+  * Rock is one of the most rock-solid tool chains for _component_ based
+    programming but not for _computational_ models. In other words, I do not see
+    it play in the league of the tools I mentioned. And that is not a criticism,
+    because it is not designed to be a computational toolchain that optimizes
+    efficiency and code generation to the "bare metal". :-)
+  * The logical next step is to focus first on the semantics, hence a "model".
+    Unfortunately, this is not a common reflex in the ROS/Orocos universe. But
+    things are slowly changing; this concrete topic could be a good start for a
+    more visible effort in this direction.
 
-* **Piotr Trojanek**
-* **Sylvain Joyeux**
+* **Wim Meeussen**
+  * We pass in two times into the update method to deal with the difference
+    between the system clock and the monotonic realtime clock.  The first
+    argument is the (estimated) non-monotonic system time, which the controller
+    can use to stamp data it sends out to other components, and to compare with
+    timestamps of incoming data from other components.  But since the system
+    time is non-monotonic (it can be modified by e.g. an ntp daemon), it can't
+    be used to compute e.g. the time difference between different update cycles.
+    So therefore the controller also need access to a monotonic clock. To make
+    it very difficult to mix up the system clock and the monotonic realtime
+    clock, we pass the system time in as a ros::Time, and the monotonic realtime
+    time as a ros::Duration -- which maps on two common uses of the two clocks:
+    stamping data and computing the time difference between two update cycles.
 
 #### Early 2013 ros\_control Framework
  
