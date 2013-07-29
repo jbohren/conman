@@ -250,10 +250,10 @@ discussion made the following pouints:
 
       ```cpp
       void update() {
-        if (count % 10 == 0) { // Eyes start bleeding
-          // Do stuff
-        }
-        ++count;
+          if (count % 10 == 0) { // Eyes start bleeding
+              // Do stuff
+          }
+          ++count;
       }
       ```
   * The solution proposed in [1] (see original post for link) uses a plugin
