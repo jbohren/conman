@@ -92,6 +92,8 @@ feature of Rock, however, is a notion of component dependency management which
 can allow the system to reason about which components are needed for downstream
 componentns.
 
+#### April 2012 Orocos RTT "Best Practices" Discussion
+
 In [April 2012](http://www.orocos.org/forum/rtt/rtt-dev/ideas-about-formalizing-and-tooling-composition-primitives),
 Piotr Trojanek outlined a desire for "best practices" for RTT component
 composition on the RTT Developers list. While not specific to constructing a
@@ -149,6 +151,8 @@ this discussion made the following points:
   * As in OpenRTM, compositions can change at rutime without affecting component
     lifecycle.
 
+#### January 2013 Joint Controller Manager Discussion
+
 In [January 2013](http://www.orocos.org/forum/orocos/orocos-users/joint-controller-manager),
 Adolfo Rodríguez Tsouroukdissian initiated a more recent discussion, inspired by
 the PR2 controller manager on the Orocos Users list. The contributors in this
@@ -185,6 +189,8 @@ discussion made the following pouints:
 * **Piotr Trojanek**
 * **Sylvain Joyeux**
 * **Herman Bruyninckx**
+
+#### Early 2013 ros\_control Framework
  
 In Spring and Summer 2013, the [ros\_control framework](http://www.github.com/ros-controls/ros_control) 
 attracted a lot of attention. This framework was ported from the PR2 controller
@@ -195,3 +201,4 @@ velocity, etc). One strange effect of this is that to get the joint state out of
 framework, you write a "controller" which only reads the state, but doesn't
 control anything. There is just one level of dynamically-loadable plugins, and
 they cannot be pipelined or easily composed.
+
