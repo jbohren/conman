@@ -245,6 +245,7 @@ discussion made the following pouints:
     publisher, a sink-only client that publishes information like joint
     positions and velocities at a lower frequency. I dislike bringing down the
     update frequency of some module with code like:
+
     ```cpp
     void update() {
       if (count % 10 == 0) { // Eyes start bleeding
@@ -253,9 +254,11 @@ discussion made the following pouints:
       ++count;
     }
     ```
+
     So, having most clients serialized for performance, and a few exceptions
     spinning separate threads seems reasonable to me. I'm open to alternative
     solutions, though.
+
   * The solution proposed in [1] (see original post for link) uses a plugin
     mechanism for implementing controllers, which enforces single-threaded
     execution and passing data by pointers. It just does not allow the use case
