@@ -9,9 +9,10 @@ platform for sharing robot controllers and state estimators.
 
 ### Audience
 
-This tool is meant for people who wish to do real-time robot state estimation
-and control within the Orocos framework. While this is a ROS-independent
-framework, tools for ROS integration are provided in the **conman_ros** package.
+This tool is meant for robotics researchers who wish to do real-time robot state
+estimation and control within the Orocos real-time toolkit (RTT). While this is a
+ROS-independent framework, tools for ROS integration are provided in the
+**conman_ros** package. 
 
 ### Scope
 
@@ -19,6 +20,7 @@ framework, tools for ROS integration are provided in the **conman_ros** package.
 * Provide a common interface for running Orocos components for robot state estimation and control.
 * Handle the computational scheduling of these blocks.
 * Provide a special component, not a special framework.
+* Enable external manipulation of the running set of estimators and controllers.
 
 ### Approach
 
@@ -27,12 +29,16 @@ framework, tools for ROS integration are provided in the **conman_ros** package.
 * Defining a set of standard Orocos/RTT interfaces for communicating between
   such blocks.
 
-#### Serialized RTT Component Computation 
+#### Schemes: Serialized Control, Hardware, and Estimation Model Execution 
 
-A *Conman* "scheme" is a pair of directed acyclic computational graphs meant to
-be computed topologically in realtime: the **estimation graph** and the **control
-graph**. These two graphs may share vertices (RTT components), but are
-distinguished by their arcs (relevant RTT ports). 
+A *Conman* "scheme" is a set of RTT components, and a pair of directed acyclic
+computational graphs on these components and their RTT ports: the **estimation
+graph** and the **control graph**.  These graphs are meant to be computed
+topologically in realtime, so their respective parts should either compute in a
+separate thread and exchange information, or should compute with bounded latency.
+
+These two graphs may share vertices (RTT components), but are distinguished by
+their arcs (relevant RTT ports). 
 
 Each scheme update involves the following stages:
 
@@ -40,6 +46,19 @@ Each scheme update involves the following stages:
 2. Compute **estimation graph**
 3. Compute **control graph**
 4. Write to all hardware (actuators)
+
+These stages are supported by the corresponding *Conman* RTT operations:
+
+1. **readHardware**
+  * Reads lower-level hardware APIs or external interfaces (like ROS topics)
+2. **computeEstimation**
+  * Computes state estimation based on RTT port inputs
+  * Writes estimated state to RTT ports modeled by edges in the **estimation graph**
+3. **computeControl**
+  * Computes control command based on RTT port inputs
+  * Writes control command to RTT ports modeled by edges in the **control graph**
+4. **writeHardware**
+  * Writes to lower-level hardware APIs or external interfaces
 
 #### Common RTT Port Interfaces
 
@@ -52,7 +71,7 @@ For example, a port in joint-space should provide both the number of degrees of
 freedom of the joint group, as well as the ordered list of joint names, and a
 port in cartesian-space should also provide the name of its origin frame.
 
-### Prior Work
+### Background & Prior Work
 
 There has long been a desire to have a common platform for building and sharing
 robot control "blocks." Orocos RTT, itself, aims to be such a platform, however,
@@ -143,4 +162,7 @@ discussion made the following pouints:
 * **Sylvain Joyeux**
 * **Herman Bruyninckx**
  
-
+In Spring and Summer 2013, the [ros\_control framework](http://www.github.com/ros-controls/ros_control) 
+attracted a lot of attention. This framework was ported from the PR2 controller
+framework, and as such, its design is best suited for a fully-integrated robotic
+platform. **ros**\_**control** assumes
