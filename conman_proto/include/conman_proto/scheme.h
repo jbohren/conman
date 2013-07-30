@@ -7,31 +7,16 @@
 namespace conman
 {
   //! Manager for loading/unloading and starting/stopping Blocks
-  class Scheme : public OCL::DeploymentComponent 
+  class Scheme : public Block
   {
   public:
     Scheme(std::string name="Scheme");
 
-    /** \brief Load a conman Block 
-     *
-     *  This is where interfaces and ports get connected
-     *   - new component c_new
-     *   - store store resources of c_new associated with a reference to c_new
-     *   - for each component c
-     *     - for each control group
-     *       - for each resource
-     *         - if c has a similar group/resource, connect it
+    /** \brief Add a block that has already been constructed
      */
-    bool load_block(
-        const std::string &block_name,
-        const std::string &component_type);
-
-    /** \brief Add a block which is already a peer of this
-     * component by name. **/
     bool add_peer(RTT::TaskContext *new_block);
 
-    /** \brief Add a block that has already been constructed to
-     * the graphs
+    /** \brief Add a block which is already a peer of this component by name.
      */
     bool add_block(const std::string &name);
 

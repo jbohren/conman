@@ -87,10 +87,10 @@ namespace conman {
     struct EdgeProperties {
       //! True if the ports are connected
       bool connected;
-      //! The output port
-      RTT::base::PortInterface *out;
-      //! The input port:
-      RTT::base::PortInterface *in;
+      //! The source (output) port
+      RTT::base::PortInterface *source_port;
+      //! The sink (input) port:
+      RTT::base::PortInterface *sink_port;
     };
 
     //! Boost Graph Vertex Metadata
@@ -100,9 +100,9 @@ namespace conman {
     };
 
     //! Boost Graph Type
-    typedef boost::adjacency_list<
-      boost::listS, boost::vecS, boost::directedS,
-      VertexProperties, EdgeProperties> CausalGraph;
+    typedef boost::labeled_graph<
+      boost::adjacency_list< boost::listS, boost::vecS, boost::directedS, VertexProperties, EdgeProperties>,
+      std::string> CausalGraph;
 
     //! Boost Vertex Descriptor Type
     typedef boost::graph_traits<CausalGraph>::vertex_descriptor CausalVertex;
@@ -112,6 +112,7 @@ namespace conman {
   }
   
   //! Interface types for ports used to connect Blocks
+  /**TODO: 
   namespace interfaces {
 
     template<class InterfaceT>
@@ -140,7 +141,7 @@ namespace conman {
 
     struct JointEffort { typedef double datatype; };
     
-  }
+  }**/
 
 }
 

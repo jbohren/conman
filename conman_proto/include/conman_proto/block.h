@@ -10,7 +10,7 @@ namespace conman {
   class Block : public RTT::TaskContext 
   {
   public:
-    /** \brief Exclusion modes describe how a given port can be accessed. **/
+    /** \brief Exclusivity modes describe how a given port can be accessed. **/
     typedef enum {
       //! No exclusion mode set / unknown port.
       UNDEFINED,
@@ -18,41 +18,54 @@ namespace conman {
       UNRESTRICTED,
       //! Limit to one connection.
       EXCLUSIVE
-    } ExclusionMode;
+    } ExclusivityMode;
 
-    /** \name Port Exclusivity Management
-     *  Set and get the \ref ExclusionMode of a given port.
-     */
-    //\{
+    static bool HasConmanInterface(RTT::TaskContext *block);
 
-    /// Set the exclusion mode for a given port
-    void set_exclusion(
-        const std::string &layer,
-        const std::string &group_name,
-        const std::string &direction,
-        const std::string &port_name,
-        const ExclusionMode mode);
+  private:
 
-    /// Get the exclusion mode for a given port
-    ExclusionMode get_exclusion(
-        const std::string &layer,
-        const std::string &group_name,
-        const std::string &direction,
-        const std::string &port_name);
+    //! Execution rate for this component
+    double execution_rate_;
 
-    //\}
+    //! Service for Conman's RTT API
+    RTT::Service::shared_ptr conman_service_;
 
+    //! Exclusivity mode container for storing exclusion modes for each port.
+    std::map<std::string, ExclusivityMode> exclusivity_;
+    std::map<std::string, std::set<std::string> > conman_ports_;
+
+  public:
+    
     //! Construct a conman Block with the standard "control" and "estimation" layers.
     Block(std::string const& name);
 
+    /** \name Conman Port Management
+     */
+    //\{
     //! Add an RTT port with a conman interface and exclusion mode.
-    RTT::base::PortInterface& add_conman_port(
+    RTT::base::PortInterface& Block::registerControlPort(
         const std::string &layer,
-        const std::string &group_name,
-        const std::string &direction,
-        const std::string &port_name,
-        const ExclusionMode exclusion_mode,
+        const ExclusivityMode exclusion_mode,
         RTT::base::PortInterface &port);
+
+    //! Get the registered conman ports for a given layer
+    const std::vector<std::string> getConmanPorts(const std::string &layer) const;
+    //\}
+
+
+    /** \name Port Exclusivity Management
+     *  Set and get the \ref ExclusivityMode of a given port.
+     */
+    //\{
+
+    //! Set the exclusion mode for a given port
+    void setExclusivity(
+        const std::string &port_name,
+        const ExclusivityMode mode) ;
+
+    //! Get the exclusion mode for a given port
+    const ExclusivityMode getExclusivity(const std::string &port_name) const;
+    //\}
 
     /** \name Execution Hooks
      * Member functions to overload in block implementations.
@@ -62,35 +75,41 @@ namespace conman {
     //\{
 
     //! Read from lower-level hardware API if necessary.
-    virtual void read_hardware(
+    virtual void readHardwareHook(
         RTT::os::TimeService::Seconds time,
         RTT::os::TimeService::Seconds period) {}
     //! Compute estimation / state estimation and write to ports in the "estimation" layer.
-    virtual void compute_estimation(
+    virtual void computeEstimationHook(
         RTT::os::TimeService::Seconds time,
         RTT::os::TimeService::Seconds period) {}
     //! Compute control commands and write to ports in the "control" layer.
-    virtual void compute_control(
+    virtual void computeControlHook(
         RTT::os::TimeService::Seconds time, 
         RTT::os::TimeService::Seconds period) {}
     //! Write to lower-level hardware API if necessary.
-    virtual void write_hardware(
+    virtual void writeHardwareHook(
         RTT::os::TimeService::Seconds time,
         RTT::os::TimeService::Seconds period) {}
     
     //\}
-
+  
   private:
-
-    //! Exclusion mode container for storing exclusion modes for each port.
-    typedef std::map<std::string, // layer
-            std::map<std::string, // group
-            std::map<std::string, // direction
-            std::map<std::string, // port
-            ExclusionMode> > > > ExclusionContainer;
-
-    // Internal port exclusivity container
-    ExclusionContainer exclusion_;
+    //! Read from lower-level hardware API if necessary.
+    void readHardware(
+        RTT::os::TimeService::Seconds time,
+        RTT::os::TimeService::Seconds period) { this->readHardwareHook(); }
+    //! Compute estimation / state estimation and write to ports in the "estimation" layer.
+    void computeEstimation(
+        RTT::os::TimeService::Seconds time,
+        RTT::os::TimeService::Seconds period) { this->computeEstimationHook(); }
+    //! Compute control commands and write to ports in the "control" layer.
+    void computeControl(
+        RTT::os::TimeService::Seconds time, 
+        RTT::os::TimeService::Seconds period) { this->computeControlHook(); }
+    //! Write to lower-level hardware API if necessary.
+    void writeHardware(
+        RTT::os::TimeService::Seconds time,
+        RTT::os::TimeService::Seconds period) { this->writeHardwareHook(); }
 
   };
 

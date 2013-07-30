@@ -6,24 +6,11 @@ ORO_LIST_COMPONENT_TYPE(conman::Scheme);
 using namespace conman;
 
 Scheme::Scheme(std::string name) 
- : OCL::DeploymentComponent(name)
+ : Block(name)
 {
   // Add operations
-  this->addOperation("load_block", &Scheme::load_block, this, RTT::ClientThread)
-    .doc("Load a Conman block into this scheme.");
   this->addOperation("add_block", &Scheme::add_block, this, RTT::ClientThread)
-    .doc("Add an already loaded conman block into this scheme.");
-}
-
-bool Scheme::load_block(
-    const std::string &block_name,
-    const std::string &component_type)
-{
-  // Load block
-  bool component_loaded = this->loadComponent(block_name, component_type);
-  
-  // Add the block to the graphs
-  return this->add_block(block_name);
+    .doc("Add a conman block into this scheme.");
 }
 
 bool Scheme::add_peer(RTT::TaskContext *new_block)
@@ -47,7 +34,7 @@ bool Scheme::add_block(const std::string &block_name)
     RTT::TaskContext::PeerList peers = this->getPeerList();
 
     RTT::Logger::log() << RTT::Logger::Error 
-      << "No block named: "<< block_name << std::endl
+      << "No peer block named: "<< block_name << std::endl
       << "Available blocks include:" << std::endl;
 
     for(RTT::TaskContext::PeerList::iterator it = peers.begin();
@@ -82,9 +69,9 @@ bool Scheme::add_block(const std::string &block_name)
   // Recompute topological sort
   control_serialization_.clear();
   estimation_serialization_.clear();
-  boost::topological_sort(control_graph_,
+  boost::topological_sort(control_graph_.graph(),
                           std::back_inserter(control_serialization_));
-  boost::topological_sort(estimation_graph_, 
+  boost::topological_sort(estimation_graph_.graph(), 
                           std::back_inserter(estimation_serialization_));
 
   // Print out the ordering
@@ -125,88 +112,59 @@ bool Scheme::add_block_to_graph(
     conman::graph::CausalGraph &graph,
     const std::string &layer)
 {
-  // TODO: Validate this this taskcontext has a valid conman interface
-
-  // Add this block to the graph
-  boost::graph_traits<conman::graph::CausalGraph>::vertex_descriptor new_vertex = boost::add_vertex(graph);
-  graph[new_vertex].block = new_block;
-
-  // Get groups for this block
-  RTT::Service::ProviderNames groups = get_groups(new_block,layer);
-  std::map<std::string, RTT::Service::ProviderNames> inputs, outputs;
-
-  // Get ports for input and output of each group
-  for(RTT::Service::ProviderNames::iterator group_it = groups.begin();
-      group_it != groups.end();
-      ++group_it) 
-  {
-    inputs[*group_it] = conman::get_ports(new_block,layer,*group_it,"in");
-    outputs[*group_it] = conman::get_ports(new_block,layer,*group_it,"out");
+  // Validate this this taskcontext has a valid conman interface
+  if(!Block::HasConmanInterface(new_block)) {
+    RTT::Logger::log() << RTT::Logger::Error << "RTT TaskContext is not a valid Conman::Block" << RTT::endLog();
+    return false;
   }
 
-  // Connect this new block to the appropriate network
-  typedef boost::graph_traits<conman::graph::CausalGraph>::vertex_iterator vertex_iter;
+  // Add this block to the graph
+  std::string new_block_name = new_block->getName();
+  boost::add_vertex(new_block_name, graph);
+  graph[new_block_name].block = new_block;
 
-  // Iterate over all vertices in this graph
-  for(std::pair<vertex_iter, vertex_iter> vp = boost::vertices(graph);
-      vp.first != vp.second;
-      ++vp.first) 
+  // Get the registered ports for a given layer
+  RTT::OperationCaller<const std::vector<std::string>(const std::string &)>
+    get_conman_ports = new_block->getOperation("getConmanPorts");
+
+  const std::vector<std::string> conman_port_names = get_conman_ports(layer),
+
+  for(std::vector<std::string>::iterator name_it = conman_port_names.begin();
+      name_it != conman_port_names.end();
+      ++name_it)
   {
-    // Get a shared pointer to the existing block, for convenience
-    RTT::TaskContext *existing_block = graph[*vp.first].block;
+    // Get the port
+    RTT::base::PortInterface* port = new_block->getPort(*name_it);
 
-    // Make sure we're not connecting the block to itself
-    if(existing_block == new_block) {
-      continue;
-    }
+    // Get the port connections (to get endpoints)
+    std::list<RTT::internal::ConnectionManager::ChannelDescriptor> channels = port->getManager()->getChannels();
+    std::list<RTT::internal::ConnectionManager::ChannelDescriptor>::iterator channel_it;
 
-    // Connect all ports in this layer
-    for(RTT::Service::ProviderNames::iterator group_it = groups.begin();
-        group_it != groups.end();
-        ++group_it)
-    {
-      // Check if the existing block uses this control group
-      if(conman::has_group(existing_block,layer,*group_it)) 
+    // Iterate over all the connections
+    for(channel_it = channels.begin(); channel_it != channels.end; ++channel_it) {
+      // Get the connection descriptor
+      RTT::base::ChannelElementBase::shared_ptr connection = channel_it->get<1>();
+
+      // Pointers to the endpoints of this connection
+      RTT::base::PortInterface  
+        *source_port = connection->getOutputEndPoint()->getPort(), 
+        *sink_port = connection->getInputEndPoint()->getPort();
+
+      // Make sure the ports and components are not null
+      if( source_port != NULL && source_port->getInterface() != NULL
+          && sink_port != NULL && sink_port->getInterface() != NULL) 
       {
-        // Temporary pointers to port interfaces
-        RTT::base::PortInterface *out_port, *in_port;
+        // Get the source and sink names
+        std::string 
+          source_name = source_port->getInterface()->getOwner()->getName(),
+          sink_name = sink_name->getInterface()->getOwner()->getName();
 
-        // Connect existing outputs to new inputs:
-        // existing[control][control_group][out][*] --> new[control][control_group][in][*]
-        for(RTT::Service::ProviderNames::iterator port_it = inputs[*group_it].begin();
-            port_it != inputs[*group_it].end();
-            ++port_it)
-        {
-          out_port = conman::get_port(existing_block,layer,*group_it,"out",*port_it);
-          in_port = conman::get_port(new_block,layer,*group_it,"in",*port_it);
-
-          // Check if the port exists on the new block
-          if(out_port) {
-            // Connect the port
-            //out_port->connectTo(in_port.get());
-            // Add the edge to the graph
-            conman::graph::EdgeProperties edge_props = {false, out_port, in_port};
-            boost::add_edge(*vp.first, new_vertex, edge_props, graph);
-          }
-        }
-
-        // Connect existing inputs to new outputs
-        // existing[control][control_group][in][*] <-- new[control][control_group][out][*]
-        for(RTT::Service::ProviderNames::iterator port_it = outputs[*group_it].begin();
-            port_it != outputs[*group_it].end();
-            ++port_it)
-        {
-          out_port = conman::get_port(new_block,layer,*group_it,"out",*port_it);
-          in_port = conman::get_port(existing_block,layer,*group_it,"in",*port_it);
-
-          // Check if the port exists on the new block
-          if(in_port) {
-            // Connect the port
-            //out_port->connectTo(in_port.get());
-            // Add the edge to the graph
-            conman::graph::EdgeProperties edge_props = {false, out_port, in_port};
-            boost::add_edge(new_vertex, *vp.first, edge_props, graph);
-          }
+        // Make sure both blocks are in the graph
+        if(graph[source_name] != graph.null_vertex() && graph[sink_name] != graph.null_vertex()) {
+          // Create a new edge representing this connection
+          conman::graph::EdgeProperties edge_props = {true, source_port, sink_port};
+          // Add the edge to the graph
+          boost::add_edge_by_label(source_name, sink_name, edge_props, graph.graph());
         }
       }
     }

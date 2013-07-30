@@ -13,10 +13,9 @@ public:
   virtual void compute_control( RTT::os::TimeService::Seconds secs,
                                 RTT::os::TimeService::Seconds period);
 private:
-  std::string group_;
 
-  RTT::InputPort<conman::interfaces::SingleJointEffort::datatype> effort_in_;
-  RTT::OutputPort<conman::interfaces::SingleJointEffort::datatype> effort_out_;
+  RTT::InputPort<double> effort_in_;
+  RTT::OutputPort<double> effort_out_;
 };
 
 #endif // ifndef __CONMAN_TEST_PLUGINS_H

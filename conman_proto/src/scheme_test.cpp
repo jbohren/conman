@@ -26,20 +26,24 @@ int ORO_main(int argc, char** argv) {
   RTT::Logger::In in("Prototype");
 
   TestEffortController 
-    c0_left("c0_left"),//,"left_arm"),
-    c1_left("c1_left"),//,"left_arm"),
-    c0_right("c0_right");//,"right_arm");
+    left_1("left_1"),//,"left_arm"),
+    left_2("left_2"),//,"left_arm"),
+    right_1("right_1");//,"right_arm");
 
-  RTT::Property<std::string>(c0_left.getProperty("group")) = "left_arm";
-  RTT::Property<std::string>(c1_left.getProperty("group")) = "left_arm";
-  RTT::Property<std::string>(c0_right.getProperty("group")) = "right_arm";
+  //RTT::Property<std::string>(c0_left.getProperty("group")) = "left_arm";
+  //RTT::Property<std::string>(c1_left.getProperty("group")) = "left_arm";
+  //RTT::Property<std::string>(c0_right.getProperty("group")) = "right_arm";
 
   {
     conman::Scheme scheme("Scheme"); 
 
-    scheme.add_peer(&c0_left);
-    scheme.add_peer(&c1_left);
-    scheme.add_peer(&c0_right);
+    ConnPolicy policy = RTT::ConnPolicy::buffer(10);
+    left_1.getPort("effort_out").connectTo( &left_2.getPort("effort_in"), policy );
+    left_2.getPort("effort_out").connectTo( &right_1.getPort("effort_in"), policy );
+
+    scheme.add_peer(&left_1);
+    scheme.add_peer(&left_2);
+    scheme.add_peer(&right_1);
 
     // Create some controllers
     //manager.connectPeers(&c0);
