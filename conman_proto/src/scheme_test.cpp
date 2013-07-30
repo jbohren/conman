@@ -37,9 +37,9 @@ int ORO_main(int argc, char** argv) {
   {
     conman::Scheme scheme("Scheme"); 
 
-    ConnPolicy policy = RTT::ConnPolicy::buffer(10);
-    left_1.getPort("effort_out").connectTo( &left_2.getPort("effort_in"), policy );
-    left_2.getPort("effort_out").connectTo( &right_1.getPort("effort_in"), policy );
+    RTT::ConnPolicy policy = RTT::ConnPolicy::buffer(10);
+    left_1.getPort("effort_out")->connectTo( left_2.getPort("effort_in"), policy );
+    left_2.getPort("effort_out")->connectTo( right_1.getPort("effort_in"), policy );
 
     scheme.add_peer(&left_1);
     scheme.add_peer(&left_2);

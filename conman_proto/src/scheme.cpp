@@ -81,7 +81,7 @@ bool Scheme::add_block(const std::string &block_name)
       it != control_serialization_.end();
       ++it) 
   {
-    RTT::Logger::log() << RTT::Logger::Info << control_graph_[*it].block->getName() << ", ";
+    RTT::Logger::log() << RTT::Logger::Info << control_graph_.graph()[*it].block->getName() << ", ";
   }
   RTT::Logger::log() << RTT::Logger::Info << " ] " << RTT::endlog();
 
@@ -114,7 +114,7 @@ bool Scheme::add_block_to_graph(
 {
   // Validate this this taskcontext has a valid conman interface
   if(!Block::HasConmanInterface(new_block)) {
-    RTT::Logger::log() << RTT::Logger::Error << "RTT TaskContext is not a valid Conman::Block" << RTT::endLog();
+    RTT::Logger::log() << RTT::Logger::Error << "RTT TaskContext is not a valid Conman::Block" << RTT::endlog();
     return false;
   }
 
@@ -124,12 +124,13 @@ bool Scheme::add_block_to_graph(
   graph[new_block_name].block = new_block;
 
   // Get the registered ports for a given layer
-  RTT::OperationCaller<const std::vector<std::string>(const std::string &)>
-    get_conman_ports = new_block->getOperation("getConmanPorts");
+  RTT::OperationCaller<void(const std::string &, std::vector<std::string>&)>
+    get_conman_ports = new_block->provides()->getService("conman")->getOperation("getConmanPorts");
 
-  const std::vector<std::string> conman_port_names = get_conman_ports(layer),
+  std::vector<std::string> conman_port_names;
+  get_conman_ports(layer, conman_port_names);
 
-  for(std::vector<std::string>::iterator name_it = conman_port_names.begin();
+  for(std::vector<std::string>::const_iterator name_it = conman_port_names.begin();
       name_it != conman_port_names.end();
       ++name_it)
   {
@@ -141,7 +142,7 @@ bool Scheme::add_block_to_graph(
     std::list<RTT::internal::ConnectionManager::ChannelDescriptor>::iterator channel_it;
 
     // Iterate over all the connections
-    for(channel_it = channels.begin(); channel_it != channels.end; ++channel_it) {
+    for(channel_it = channels.begin(); channel_it != channels.end(); ++channel_it) {
       // Get the connection descriptor
       RTT::base::ChannelElementBase::shared_ptr connection = channel_it->get<1>();
 
@@ -157,14 +158,14 @@ bool Scheme::add_block_to_graph(
         // Get the source and sink names
         std::string 
           source_name = source_port->getInterface()->getOwner()->getName(),
-          sink_name = sink_name->getInterface()->getOwner()->getName();
+          sink_name = sink_port->getInterface()->getOwner()->getName();
 
         // Make sure both blocks are in the graph
-        if(graph[source_name] != graph.null_vertex() && graph[sink_name] != graph.null_vertex()) {
+        if(graph.vertex(source_name) != graph.null_vertex() && graph.vertex(sink_name) != graph.null_vertex()) {
           // Create a new edge representing this connection
           conman::graph::EdgeProperties edge_props = {true, source_port, sink_port};
           // Add the edge to the graph
-          boost::add_edge_by_label(source_name, sink_name, edge_props, graph.graph());
+          boost::add_edge_by_label(source_name, sink_name, edge_props, graph);
         }
       }
     }

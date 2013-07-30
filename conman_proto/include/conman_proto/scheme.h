@@ -3,6 +3,7 @@
 #define __CONMAN_SCHEME_H
 
 #include <conman_proto/conman.h>
+#include <conman_proto/block.h>
 
 namespace conman
 {
@@ -93,121 +94,6 @@ namespace conman
         conman::graph::CausalGraph &graph,
         const std::string &layer);
   };
-
-  /** \name Convenience functions **/
-  //\{
-
-  /** \brief Check of a block has a group **/
-  static bool has_group(
-      RTT::TaskContext *block,
-      const std::string &layer, 
-      const std::string &group) 
-  {
-    return (block != NULL
-            && block->provides()->hasService(layer)
-            && block->provides(layer)->hasService(group));
-  }
-
-  /** \brief Check if a block has a specific port **/
-  static bool has_port(
-      RTT::TaskContext *block,
-      const std::string &layer, 
-      const std::string &group,
-      const std::string &direction,
-      const std::string &port) 
-  {
-    return (has_group(block,layer,group) 
-            && (block->
-                provides(layer)->
-                provides(group)->
-                provides(direction)->
-                getPort(port)));
-  }
-
-  /** \brief Get a list of service names corresponding to the groups in a given
-   * layer **/
-  static RTT::Service::ProviderNames get_groups(
-      RTT::TaskContext *block,
-      const std::string &layer)
-  {
-    return (block != NULL) ? 
-      (block->provides(layer)->getProviderNames()) 
-      :
-      (RTT::Service::ProviderNames());
-  }
-
-  /** \brief Get a list of port names for s specific conduit **/
-  static RTT::Service::ProviderNames get_ports(
-      RTT::TaskContext *block,
-      const std::string &layer,
-      const std::string &group,
-      const std::string &direction)
-  {
-    return (block != NULL) ? 
-      ( block->
-        provides(layer)-> 
-        provides(group)->
-        provides(direction)-> 
-        getPortNames())  
-      :
-      (RTT::Service::ProviderNames());
-  }
-
-  /** \brief Get the service for a specific group **/
-  static RTT::Service::shared_ptr get_group(
-      RTT::TaskContext *block,
-      const std::string &layer, 
-      const std::string &group) 
-  {
-    return (block != NULL) ?
-      (block->provides(layer)->provides(group))
-      : 
-      (RTT::Service::shared_ptr((RTT::Service*)NULL));
-  }
-
-  /** \brief Get the input service for a group **/
-  static RTT::Service::shared_ptr get_input_service(
-      RTT::TaskContext *block,
-      const std::string &layer, 
-      const std::string &group) 
-  {
-    return (block != NULL) ? 
-      (block->provides(layer)->provides(group)->provides("in"))
-      : 
-      (RTT::Service::shared_ptr((RTT::Service*)NULL));
-  }
-
-  /** \brief Get the output service for a group **/
-  static RTT::Service::shared_ptr get_output_service(
-      RTT::TaskContext *block,
-      const std::string &layer, 
-      const std::string &group) 
-  {
-    return (block != NULL) ?
-      (block->provides(layer)->provides(group)->provides("out"))
-      :
-      (RTT::Service::shared_ptr((RTT::Service*)NULL));
-  }
-
-  /** \brief Get a specific port **/
-  static RTT::base::PortInterface* get_port(
-      RTT::TaskContext *block,
-      const std::string &layer, 
-      const std::string &group,
-      const std::string &direction,
-      const std::string &port) 
-  {
-    return (block != NULL) ?
-      (block->
-       provides(layer)->
-       provides(group)->
-       provides(direction)->
-       getPort(port))
-      :
-      (NULL);
-  }
-
-  //\}
 }
 
 #endif // ifndef __CONMAN_SCHEME_H

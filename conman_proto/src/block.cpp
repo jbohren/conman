@@ -15,7 +15,7 @@ Block::Block(std::string const& name) :
   RTT::TaskContext(name, RTT::base::TaskCore::PreOperational)
 { 
   // All conman services are implemnented under the "conman" service
-  conman_service_ = this->provides("conman")->doc("Conman Controller Manager Service");
+  conman_service_ = this->provides("conman");
 
   // Conman Properties
   conman_service_->addProperty("executionRate",execution_rate_)
@@ -32,12 +32,12 @@ Block::Block(std::string const& name) :
 }
 
 RTT::base::PortInterface& Block::registerConmanPort(
-    const std::string &layer
-    const ExclusivityMode exclusion_mode,
+    const std::string &layer,
+    const ExclusivityMode exclusivity_mode,
     RTT::base::PortInterface &port)
 {
-  // Store the exclusion mode
-  this->setExclusivity(port.getName(),exclusion_mode);
+  // Store the exclusivity mode
+  this->setExclusivity(port.getName(),exclusivity_mode);
   // Designate this port as a control port
   conman_ports_[layer].insert(port.getName());
   // Add the port & pass-through normal interface
@@ -48,25 +48,25 @@ void Block::setExclusivity(
     const std::string &port_name,
     const ExclusivityMode mode)
 {
-  exclusion_[port_name] = mode; 
+  exclusivity_[port_name] = mode; 
 }
 
-const Block::ExclusivityMode Block::getExclusivity(const std::string &port_name) const
+const Block::ExclusivityMode Block::getExclusivity(const std::string &port_name)
 {
   // Check if this is a registered port
-  if(exclusion_.find(port_name) != exclusion_.end()) {
-    return exclusion_[port_name]; 
+  if(exclusivity_.find(port_name) != exclusivity_.end()) {
+    return exclusivity_[port_name]; 
   }
   // Return undefined if the port isn't registered
   return UNDEFINED;
 }
 
-const std::vector<std::string> Block::getConmanPorts(const std::string &layer) const 
+void Block::getConmanPorts(
+    const std::string &layer,
+    std::vector<std::string> &port_names)  
 {
   if(conman_ports_.find(layer) != conman_ports_.end()) {
-    return conman_ports_[layer];
+    port_names.assign(conman_ports_[layer].begin(), conman_ports_[layer].end());
   }
-
-  return std:vector<std::string>();
 }
 

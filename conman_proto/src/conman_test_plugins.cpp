@@ -13,9 +13,9 @@ TestEffortController::TestEffortController(std::string const& name) :
 
 bool TestEffortController::configureHook() {
   // Construct conman ports
-  this->add_conman_port("control",EXCLUSIVE, this->addPort("effort_in",effort_in_))
+  this->registerConmanPort("control",EXCLUSIVE, this->addPort("effort_in",effort_in_))
     .doc("Effort input.");
-  this->add_conman_port("control",EXCLUSIVE, this->addPort("effort_out",effort_out))
+  this->registerConmanPort("control",EXCLUSIVE, this->addPort("effort_out",effort_out_))
     .doc("Effort output = input + 1.");
 
   return true;
