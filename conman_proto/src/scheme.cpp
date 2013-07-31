@@ -87,13 +87,36 @@ bool Scheme::enable_block(const std::string &block_name, const bool force)
 
 void Scheme::updateHook() 
 {
-  // Read from hardware
+  // What time is it
+  RTT::os::TimeService::nsecs now = RTT::os::TimeService::Instance()->getNSecs();
+  RTT::os::TimeService::Seconds 
+    time = (1E-9)*static_cast<double>(now),
+    period = (1E-9)*static_cast<double>(RTT::os::TimeService::Instance()->getNSecs(last_update_time_));
+  // Store updat time
+  last_update_time_ = now;
 
-  // Compute state estimate
+  // Iterate through estimation graph
+  for(graph::CausalOrdering::iterator it = estimation_serialization_.begin();
+      it != estimation_serialization_.end();
+      ++it)
+  {
+    // Read from hardware
+    estimation_graph_.graph()[*it].read_hardware(time, period);
+    // Compute state estimate
+    estimation_graph_.graph()[*it].compute_estimation(time, period);
+  }
   
-  // Compute control commands
+  // Iterate through control graph
+  for(graph::CausalOrdering::iterator it = control_serialization_.begin();
+      it != control_serialization_.end();
+      ++it)
+  {
+    // Compute control commands
+    control_graph_.graph()[*it].compute_control(time, period);
+    // Write to hardware
+    control_graph_.graph()[*it].write_hardware(time, period);
+  }
 
-  // Write to hardware
 
 }
 
@@ -113,6 +136,10 @@ bool Scheme::add_block_to_graph(
   std::string new_block_name = new_block->getName();
   graph.add_vertex(new_block_name);
   graph[new_block_name].block = new_block;
+  graph[new_block_name].read_hardware = new_block->provides()->getService("conman")->getOperation("readHardware");
+  graph[new_block_name].compute_estimation = new_block->provides()->getService("conman")->getOperation("computeEstimation");
+  graph[new_block_name].compute_control = new_block->provides()->getService("conman")->getOperation("computeControl");
+  graph[new_block_name].write_hardware = new_block->provides()->getService("conman")->getOperation("writeHardware");
 
   // Get the registered ports for a given layer
   RTT::OperationCaller<void(const std::string &, std::vector<std::string>&)>
@@ -169,7 +196,7 @@ bool Scheme::add_block_to_graph(
     ordering.clear();
     boost::topological_sort( graph.graph(), std::back_inserter(ordering));
   } catch(std::exception &ex) {
-    // Report error
+    // Report error (if this block's connections add cycles)
     RTT::Logger::log() << RTT::Logger::Error
       << "Cannot connect block \""<<new_block_name<<"\" in conman scheme \""<<layer<<"\" layer: " << ex.what() 
       << RTT::endlog();

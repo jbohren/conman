@@ -13,6 +13,8 @@ namespace conman
   public:
     Scheme(std::string name="Scheme");
 
+    //! \name Scheme Construction
+    //\{
     /** \brief Add a block that has already been constructed
      */
     bool add_peer(RTT::TaskContext *new_block);
@@ -20,7 +22,10 @@ namespace conman
     /** \brief Add a block which is already a peer of this component by name.
      */
     bool add_block(const std::string &name);
+    //\}
 
+    //! \name Runtime Scheme Control
+    //\{
     /** \brief Enable a conman Block
      *
      * This is where port exclusivity (Block::ExclusionMode) gets checked. If
@@ -46,6 +51,8 @@ namespace conman
 
     // TODO: disable controller (name)
     // TODO: switch controllers (name)
+    
+    //\}
 
     //! Read from hardware, compute estimation, compute control, and write to hardware.
     void updateHook();
@@ -54,18 +61,20 @@ namespace conman
 
   protected:
 
+    RTT::os::TimeService::nsecs last_update_time_;
+
     //! \name Graph structures
     //\{
     conman::graph::CausalGraph
-      control_graph_,
-      estimation_graph_;
+      estimation_graph_,
+      control_graph_;
     //\}
 
     //! \name Topologically-sorted structures
     //\{
     conman::graph::CausalOrdering
-      control_serialization_,
-      estimation_serialization_;
+      estimation_serialization_,
+      control_serialization_;
     //\}
 
     /** Connect a block to the appropriate blocks in a given graph
