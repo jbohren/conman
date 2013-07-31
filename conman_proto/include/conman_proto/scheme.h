@@ -17,7 +17,7 @@ namespace conman
     //\{
     /** \brief Add a block that has already been constructed
      */
-    bool add_peer(RTT::TaskContext *new_block);
+    bool add_block(RTT::TaskContext *new_block);
 
     /** \brief Add a block which is already a peer of this component by name.
      */
@@ -48,6 +48,7 @@ namespace conman
      * - Start the block
      */
     bool enable_block(const std::string &block_name, const bool force);
+    bool disable_block(const std::string &block_name);
 
     // TODO: disable controller (name)
     // TODO: switch controllers (name)
@@ -91,6 +92,7 @@ namespace conman
         conman::graph::CausalGraph &graph,
         conman::graph::CausalOrdering &ordering,
         const std::string &layer);
+
   };
 }
 

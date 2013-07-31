@@ -33,19 +33,24 @@ int ORO_main(int argc, char** argv) {
   {
     conman::Scheme scheme("Scheme"); 
 
+    // Connect some stuff
     left_2.getPort("effort_out")->connectTo( left_1.getPort("effort_in"));
     left_1.getPort("effort_out")->connectTo( right_1.getPort("effort_in"));
     right_1.getPort("effort_out")->connectTo( left_2.getPort("effort_in"));
 
-    scheme.add_peer(&left_1);
-    scheme.add_peer(&left_2);
-    scheme.add_peer(&right_1);
+    // Add the blocks
+    scheme.add_block(&left_1);
+    scheme.add_block(&left_2);
+    scheme.add_block(&right_1);
 
     //RTT::Logger::log() << RTT::Logger::Info << "Control groups: " << RTT::endlog();
 
     //manager.connect("c0.control.out.left_arm.joint_effort","c1.control.in.left_arm.joint_effort",RTT::ConnPolicy());
 
-    OCL::TaskBrowser task_browser(&scheme);
+    OCL::DeploymentComponent deployer("Deployer");
+    scheme.addPeer(&deployer);
+
+    OCL::TaskBrowser task_browser(&deployer);
 
     task_browser.loop();
   }

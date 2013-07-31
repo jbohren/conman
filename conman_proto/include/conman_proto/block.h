@@ -36,7 +36,7 @@ namespace conman {
 
   public:
     
-    //! Construct a conman Block with the standard "control" and "estimation" layers.
+    //! Construct a conman Block 
     Block(std::string const& name);
 
     /** \name Conman Port Management

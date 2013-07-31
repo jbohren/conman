@@ -9,11 +9,11 @@ Scheme::Scheme(std::string name)
  : Block(name)
 {
   // Add operations
-  this->addOperation("add_block", &Scheme::add_block, this, RTT::ClientThread)
+  this->addOperation("add_block", (bool (Scheme::*)(const std::string&))&Scheme::add_block, this, RTT::ClientThread)
     .doc("Add a conman block into this scheme.");
 }
 
-bool Scheme::add_peer(RTT::TaskContext *new_block)
+bool Scheme::add_block(RTT::TaskContext *new_block)
 {
   RTT::Logger::In in("Scheme::add_peer");
 
@@ -63,8 +63,15 @@ bool Scheme::add_block(const std::string &block_name)
   }
 
   // Connect the block in the appropriate ports in the control and estimation graphs
-  add_block_to_graph(new_block, control_graph_, control_serialization_, "control");
-  add_block_to_graph(new_block, estimation_graph_, estimation_serialization_, "estimation");
+  bool block_added = true;
+  block_added = add_block_to_graph(new_block, control_graph_, control_serialization_, "control");
+  block_added = block_added && add_block_to_graph(new_block, estimation_graph_, estimation_serialization_, "estimation");
+
+  // Check if the block was successfully added
+  if(!block_added) {
+    RTT::Logger::log() << RTT::Logger::Error << "Could not add TaskContext \""<< block_name <<"\" to scheme." << RTT::endlog();
+    return false;
+  }
 
   // Print out the ordering
   RTT::Logger::log() << RTT::Logger::Info << "New ordering: [ ";
@@ -82,8 +89,22 @@ bool Scheme::add_block(const std::string &block_name)
 bool Scheme::enable_block(const std::string &block_name, const bool force)
 {
 
+  // Check edges in both control and estimation graphs for exclusivity
+  // violations
+
+  // If there are violations and we're force-enabling, disable the conflicting
+  // blocks, otherwise, don't do anything
+
+  // Start Block
 
 
+  return true;
+}
+
+bool Scheme::disable_block(const std::string &block_name)
+{
+  // Stop a block
+  
   return true;
 }
 
@@ -154,9 +175,13 @@ bool Scheme::add_block_to_graph(
     conman::graph::CausalOrdering &ordering,
     const std::string &layer)
 {
+  if(new_block == NULL) {
+    RTT::Logger::log() << RTT::Logger::Error << "TaskContext is NULL." << RTT::endlog();
+    return false;
+  }
   // Validate this this taskcontext has a valid conman interface
   if(!Block::HasConmanInterface(new_block)) {
-    RTT::Logger::log() << RTT::Logger::Error << "RTT TaskContext is not a valid Conman::Block" << RTT::endlog();
+    RTT::Logger::log() << RTT::Logger::Error << "TaskContext \""<<new_block->getName()<<"\" is not a valid Conman::Block." << RTT::endlog();
     return false;
   }
 

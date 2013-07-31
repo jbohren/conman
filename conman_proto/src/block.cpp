@@ -5,9 +5,17 @@ using namespace conman;
 
 bool Block::HasConmanInterface(RTT::TaskContext *block)
 {
-  return (block != NULL)
-    && block->provides()->hasService("conman")
-    && block->provides()->getService("conman")->hasOperation("getConmanPorts");
+  bool invalid = false;
+
+  if(invalid = (block == NULL)) {
+    RTT::Logger::log() << RTT::Logger::Error << "TaskContext is NULL." << RTT::endlog();
+  } else if(invalid = (block->provides()->hasService("conman") == false)) {
+    RTT::Logger::log() << RTT::Logger::Error << "TaskContext does not have the \"conman\" service." << RTT::endlog();
+  } else if(invalid = (block->provides()->getService("conman")->hasOperation("getConmanPorts") == false)) {
+    RTT::Logger::log() << RTT::Logger::Error << "TaskContext does not have the \"conman.getConmanPorts\" service." << RTT::endlog();
+  }
+
+  return !invalid;
 }
 
 
