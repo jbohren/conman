@@ -39,8 +39,8 @@ system implementation:
 A *Conman* "scheme" is a set of RTT components, and a pair of directed acyclic
 computational graphs on these components and their RTT ports: the **estimation
 graph** and the **control graph**.  These graphs are meant to be computed
-topologically in realtime, so their respective parts should either compute in a
-separate thread and exchange information, or should compute with bounded latency.
+topologically in realtime, so their respective vertices should either compute
+their results with bounded latency, or asynchronously in a separate thread.
 
 These two graphs may share vertices (RTT components), but are distinguished by
 their arcs (relevant RTT ports). 
@@ -87,8 +87,12 @@ port in cartesian-space should also provide the name of its origin frame.
 The *Conman* scheme will run at a fixed rate (the rate at which you want to
 control the fastest hardware in the scheme), but you may want to have components
 which run slower than that. If this is the case, then they can still run at
-integral multiples of the loop rate, simply by checking the time at which they
-are invoked.
+integral multiples of the loop rate.
+
+Each `conman::Block` has a minimum execution period associated with it. By
+default, this minimum execution period is 0.0 seconds. A minimum execution
+period of 0.0 seconds means that the block will be executed as fast as the
+scheme, itself.
 
 #### Running Multiple Schemes
 

@@ -12,17 +12,19 @@ bool Block::HasConmanInterface(RTT::TaskContext *block)
 
 
 Block::Block(std::string const& name) :
-  RTT::TaskContext(name, RTT::base::TaskCore::PreOperational)
+  RTT::TaskContext(name, RTT::base::TaskCore::PreOperational),
+  execution_period_(0.0)
 { 
   // All conman services are implemnented under the "conman" service
   conman_service_ = this->provides("conman");
 
   // Conman Properties
-  conman_service_->addProperty("executionRate",execution_rate_)
-    .doc("The desired execution rate for this block [Hz]");
+  conman_service_->addProperty("executionPeriod",execution_period_)
+    .doc("The desired execution period for this block, in seconds. By default, this is 0 and it will run as fast as the scheme period.");
 
   // Conman Introspection interface
   conman_service_->addOperation("getConmanPorts",&Block::getConmanPorts,this);
+  conman_service_->addOperation("getPeriod",&Block::getPeriod,this);
 
   // Conman Execution interface
   conman_service_->addOperation("readHardware",&Block::readHardware,this);
@@ -70,3 +72,6 @@ void Block::getConmanPorts(
   }
 }
 
+RTT::os::TimeService::Seconds Block::getPeriod() {
+  return execution_period_;
+}

@@ -25,7 +25,7 @@ namespace conman {
   private:
 
     //! Execution rate for this component
-    double execution_rate_;
+    RTT::os::TimeService::Seconds execution_period_;
 
     //! Service for Conman's RTT API
     RTT::Service::shared_ptr conman_service_;
@@ -54,6 +54,7 @@ namespace conman {
         std::vector<std::string> &port_names);
     //\}
 
+    RTT::os::TimeService::Seconds getPeriod();
 
     /** \name Port Exclusivity Management
      *  Set and get the \ref ExclusivityMode of a given port.

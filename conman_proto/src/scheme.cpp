@@ -82,6 +82,18 @@ bool Scheme::add_block(const std::string &block_name)
 bool Scheme::enable_block(const std::string &block_name, const bool force)
 {
 
+
+
+  return true;
+}
+
+bool Scheme::configureHook()
+{
+  return true;
+}
+
+bool Scheme::startHook()
+{
   return true;
 }
 
@@ -92,7 +104,7 @@ void Scheme::updateHook()
   RTT::os::TimeService::Seconds 
     time = (1E-9)*static_cast<double>(now),
     period = (1E-9)*static_cast<double>(RTT::os::TimeService::Instance()->getNSecs(last_update_time_));
-  // Store updat time
+  // Store update time
   last_update_time_ = now;
 
   // Iterate through estimation graph
@@ -100,10 +112,19 @@ void Scheme::updateHook()
       it != estimation_serialization_.end();
       ++it)
   {
-    // Read from hardware
-    estimation_graph_.graph()[*it].read_hardware(time, period);
-    // Compute state estimate
-    estimation_graph_.graph()[*it].compute_estimation(time, period);
+    // Temporary variable for readability
+    conman::graph::VertexProperties &block_vertex = estimation_graph_.graph()[*it];
+
+    // Get the state of the task
+    RTT::base::TaskCore::TaskState block_state = block_vertex.block->getTaskState();
+
+    // Check if the task is running and needs to be executed
+    if( block_state == RTT::base::TaskCore::Running 
+        && (now - block_vertex.last_estimation_time) >= block_vertex.get_period())
+    { 
+      block_vertex.read_hardware(time, period);
+      block_vertex.compute_estimation(time, period);
+    }
   }
   
   // Iterate through control graph
@@ -111,13 +132,20 @@ void Scheme::updateHook()
       it != control_serialization_.end();
       ++it)
   {
-    // Compute control commands
-    control_graph_.graph()[*it].compute_control(time, period);
-    // Write to hardware
-    control_graph_.graph()[*it].write_hardware(time, period);
+    // Temporary variable for readability
+    conman::graph::VertexProperties &block_vertex = control_graph_.graph()[*it];
+    
+    // Get the state of the task
+    RTT::base::TaskCore::TaskState block_state = block_vertex.block->getTaskState();
+
+    // Check if the task is running and needs to be executed
+    if( block_state == RTT::base::TaskCore::Running
+        && (now - block_vertex.last_estimation_time) >= block_vertex.get_period())
+    {
+      block_vertex.compute_control(time, period);
+      block_vertex.write_hardware(time, period);
+    }
   }
-
-
 }
 
 bool Scheme::add_block_to_graph(
@@ -140,6 +168,7 @@ bool Scheme::add_block_to_graph(
   graph[new_block_name].compute_estimation = new_block->provides()->getService("conman")->getOperation("computeEstimation");
   graph[new_block_name].compute_control = new_block->provides()->getService("conman")->getOperation("computeControl");
   graph[new_block_name].write_hardware = new_block->provides()->getService("conman")->getOperation("writeHardware");
+  graph[new_block_name].get_period = new_block->provides()->getService("conman")->getOperation("getPeriod");
 
   // Get the registered ports for a given layer
   RTT::OperationCaller<void(const std::string &, std::vector<std::string>&)>

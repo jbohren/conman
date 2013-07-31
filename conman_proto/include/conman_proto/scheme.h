@@ -54,6 +54,8 @@ namespace conman
     
     //\}
 
+    bool configureHook();
+    bool startHook();
     //! Read from hardware, compute estimation, compute control, and write to hardware.
     void updateHook();
 

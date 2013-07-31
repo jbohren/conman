@@ -96,13 +96,17 @@ namespace conman {
 
     //! Boost Graph Vertex Metadata
     struct VertexProperties {
-      //! The control and/or estimation block (depending on which graph it's in)
+      //! The control and/or estimation block 
       RTT::TaskContext *block;
       RTT::OperationCaller<void(RTT::os::TimeService::Seconds time, RTT::os::TimeService::Seconds period)> 
         read_hardware,
         compute_estimation,
         compute_control,
         write_hardware;
+      RTT::OperationCaller<RTT::os::TimeService::Seconds(void)> get_period;
+      RTT::os::TimeService::nsecs 
+        last_estimation_time,
+        last_control_time;
     };
 
     //! Boost Graph Type
