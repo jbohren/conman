@@ -9,14 +9,13 @@ TestEffortController::TestEffortController(std::string const& name) :
   // Create RTT ports
   //using namespace conman;
   //using namespace conman::interfaces;
-}
-
-bool TestEffortController::configureHook() {
-  // Construct conman ports
   this->registerConmanPort("control",EXCLUSIVE, this->addPort("effort_in",effort_in_))
     .doc("Effort input.");
   this->registerConmanPort("control",EXCLUSIVE, this->addPort("effort_out",effort_out_))
     .doc("Effort output = input + 1.");
+}
+
+bool TestEffortController::configureHook() {
 
   return true;
 }
