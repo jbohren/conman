@@ -80,7 +80,7 @@ namespace conman {
     virtual void readHardwareHook(
         RTT::os::TimeService::Seconds time,
         RTT::os::TimeService::Seconds period) {}
-    //! Compute estimation / state estimation and write to ports in the "estimation" layer.
+    //! Compute state estimation and write to ports in the "estimation" layer.
     virtual void computeEstimationHook(
         RTT::os::TimeService::Seconds time,
         RTT::os::TimeService::Seconds period) {}
@@ -99,19 +99,23 @@ namespace conman {
     //! Read from lower-level hardware API if necessary.
     void readHardware(
         RTT::os::TimeService::Seconds time,
-        RTT::os::TimeService::Seconds period) { this->readHardwareHook(time, period); }
-    //! Compute estimation / state estimation and write to ports in the "estimation" layer.
+        RTT::os::TimeService::Seconds period)
+    { this->readHardwareHook(time, period); }
+    //! Compute state estimation and write to ports in the "estimation" layer.
     void computeEstimation(
         RTT::os::TimeService::Seconds time,
-        RTT::os::TimeService::Seconds period) { this->computeEstimationHook(time, period); }
+        RTT::os::TimeService::Seconds period)
+    { this->computeEstimationHook(time, period); }
     //! Compute control commands and write to ports in the "control" layer.
     void computeControl(
         RTT::os::TimeService::Seconds time, 
-        RTT::os::TimeService::Seconds period) { this->computeControlHook(time, period); }
+        RTT::os::TimeService::Seconds period) 
+    { this->computeControlHook(time, period); }
     //! Write to lower-level hardware API if necessary.
     void writeHardware(
         RTT::os::TimeService::Seconds time,
-        RTT::os::TimeService::Seconds period) { this->writeHardwareHook(time, period); }
+        RTT::os::TimeService::Seconds period) 
+    { this->writeHardwareHook(time, period); }
 
   };
 

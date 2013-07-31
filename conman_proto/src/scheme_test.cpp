@@ -26,32 +26,22 @@ int ORO_main(int argc, char** argv) {
   RTT::Logger::In in("Prototype");
 
   TestEffortController 
-    left_1("left_1"),//,"left_arm"),
-    left_2("left_2"),//,"left_arm"),
-    right_1("right_1");//,"right_arm");
-
-  //RTT::Property<std::string>(c0_left.getProperty("group")) = "left_arm";
-  //RTT::Property<std::string>(c1_left.getProperty("group")) = "left_arm";
-  //RTT::Property<std::string>(c0_right.getProperty("group")) = "right_arm";
+    left_1("left_1"),
+    left_2("left_2"),
+    right_1("right_1");
 
   {
     conman::Scheme scheme("Scheme"); 
 
-    RTT::ConnPolicy policy = RTT::ConnPolicy::buffer(10);
-    left_2.getPort("effort_out")->connectTo( left_1.getPort("effort_in"), policy );
-    left_1.getPort("effort_out")->connectTo( right_1.getPort("effort_in"), policy );
+    left_2.getPort("effort_out")->connectTo( left_1.getPort("effort_in"));
+    left_1.getPort("effort_out")->connectTo( right_1.getPort("effort_in"));
+    right_1.getPort("effort_out")->connectTo( left_2.getPort("effort_in"));
 
     scheme.add_peer(&left_1);
     scheme.add_peer(&left_2);
     scheme.add_peer(&right_1);
 
-    // Create some controllers
-    //manager.connectPeers(&c0);
-    //manager.connectPeers(&c1);
-    //manager.connectPeers(&c2);
-
-    // Get the control groups of a given controller
-    RTT::Logger::log() << RTT::Logger::Info << "Control groups: " << RTT::endlog();
+    //RTT::Logger::log() << RTT::Logger::Info << "Control groups: " << RTT::endlog();
 
     //manager.connect("c0.control.out.left_arm.joint_effort","c1.control.in.left_arm.joint_effort",RTT::ConnPolicy());
 

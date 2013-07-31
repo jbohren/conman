@@ -92,6 +92,7 @@ namespace conman
     static bool add_block_to_graph(
         RTT::TaskContext *new_block,
         conman::graph::CausalGraph &graph,
+        conman::graph::CausalOrdering &ordering,
         const std::string &layer);
   };
 }

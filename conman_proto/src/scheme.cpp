@@ -63,20 +63,11 @@ bool Scheme::add_block(const std::string &block_name)
   }
 
   // Connect the block in the appropriate ports in the control and estimation graphs
-  add_block_to_graph(new_block, control_graph_, "control");
-  add_block_to_graph(new_block, estimation_graph_, "estimation");
-
-  // Recompute topological sort
-  control_serialization_.clear();
-  estimation_serialization_.clear();
-  boost::topological_sort(control_graph_.graph(),
-                          std::back_inserter(control_serialization_));
-  boost::topological_sort(estimation_graph_.graph(), 
-                          std::back_inserter(estimation_serialization_));
+  add_block_to_graph(new_block, control_graph_, control_serialization_, "control");
+  add_block_to_graph(new_block, estimation_graph_, estimation_serialization_, "estimation");
 
   // Print out the ordering
-  RTT::Logger::log() << RTT::Logger::Info 
-    << "New ordering: [ ";
+  RTT::Logger::log() << RTT::Logger::Info << "New ordering: [ ";
   for(conman::graph::CausalOrdering::iterator it = control_serialization_.begin();
       it != control_serialization_.end();
       ++it) 
@@ -84,7 +75,6 @@ bool Scheme::add_block(const std::string &block_name)
     RTT::Logger::log() << RTT::Logger::Info << control_graph_.graph()[*it].block->getName() << ", ";
   }
   RTT::Logger::log() << RTT::Logger::Info << " ] " << RTT::endlog();
-
 
   return true;
 }
@@ -110,6 +100,7 @@ void Scheme::updateHook()
 bool Scheme::add_block_to_graph(
     RTT::TaskContext *new_block,
     conman::graph::CausalGraph &graph,
+    conman::graph::CausalOrdering &ordering,
     const std::string &layer)
 {
   // Validate this this taskcontext has a valid conman interface
@@ -168,6 +159,23 @@ bool Scheme::add_block_to_graph(
           boost::add_edge_by_label(source_name, sink_name, edge_props, graph);
         }
       }
+    }
+
+    // Recompute topological sort
+    try {
+      ordering.clear();
+      boost::topological_sort( graph.graph(), std::back_inserter(ordering));
+    } catch(std::exception &ex) {
+      // Report error
+      RTT::Logger::log() << RTT::Logger::Error
+        << "Cannot connect block \""<<new_block_name<<"\" in scheme layer \""<<layer<<"\": " << ex.what() 
+        << RTT::endlog();
+      // Remove the vertex
+      graph.remove_vertex(new_block_name);
+      // Recompute the sort
+      ordering.clear();
+      boost::topological_sort( graph.graph(), std::back_inserter(ordering));
+      return false;
     }
   }
 
