@@ -44,22 +44,8 @@ namespace conman
      */
     bool enable_block(const std::string &block_name, const bool force);
 
-    //
-    // disable controller (name)
-    // switch controllers (name)
-
-
-    // State Estimators
-    // load estimator (name)
-    // enable estimator (name)
-    // disable estimator (name)
-    // switch estimators (name)
-
-    // Execution
-    // read from hardware ()
-    // compute estimation ()
-    // compute control ()
-    // write to hardware ()
+    // TODO: disable controller (name)
+    // TODO: switch controllers (name)
 
     //! Read from hardware, compute estimation, compute control, and write to hardware.
     void updateHook();

@@ -111,7 +111,7 @@ bool Scheme::add_block_to_graph(
 
   // Add this block to the graph
   std::string new_block_name = new_block->getName();
-  boost::add_vertex(new_block_name, graph);
+  graph.add_vertex(new_block_name);
   graph[new_block_name].block = new_block;
 
   // Get the registered ports for a given layer
@@ -121,6 +121,7 @@ bool Scheme::add_block_to_graph(
   std::vector<std::string> conman_port_names;
   get_conman_ports(layer, conman_port_names);
 
+  // Create graph arcs for each port
   for(std::vector<std::string>::const_iterator name_it = conman_port_names.begin();
       name_it != conman_port_names.end();
       ++name_it)
@@ -132,7 +133,7 @@ bool Scheme::add_block_to_graph(
     std::list<RTT::internal::ConnectionManager::ChannelDescriptor> channels = port->getManager()->getChannels();
     std::list<RTT::internal::ConnectionManager::ChannelDescriptor>::iterator channel_it;
 
-    // Iterate over all the connections
+    // Create graph arcs for each connection
     for(channel_it = channels.begin(); channel_it != channels.end(); ++channel_it) {
       // Get the connection descriptor
       RTT::base::ChannelElementBase::shared_ptr connection = channel_it->get<1>();
@@ -160,23 +161,24 @@ bool Scheme::add_block_to_graph(
         }
       }
     }
-
-    // Recompute topological sort
-    try {
-      ordering.clear();
-      boost::topological_sort( graph.graph(), std::back_inserter(ordering));
-    } catch(std::exception &ex) {
-      // Report error
-      RTT::Logger::log() << RTT::Logger::Error
-        << "Cannot connect block \""<<new_block_name<<"\" in scheme layer \""<<layer<<"\": " << ex.what() 
-        << RTT::endlog();
-      // Remove the vertex
-      graph.remove_vertex(new_block_name);
-      // Recompute the sort
-      ordering.clear();
-      boost::topological_sort( graph.graph(), std::back_inserter(ordering));
-      return false;
-    }
+  }
+  
+  // Recompute topological sort (and require that this layer is still a DAG)
+  try {
+    // Clear the topologically-sorted ordering and recompute the sort
+    ordering.clear();
+    boost::topological_sort( graph.graph(), std::back_inserter(ordering));
+  } catch(std::exception &ex) {
+    // Report error
+    RTT::Logger::log() << RTT::Logger::Error
+      << "Cannot connect block \""<<new_block_name<<"\" in conman scheme \""<<layer<<"\" layer: " << ex.what() 
+      << RTT::endlog();
+    // Remove the vertex
+    graph.remove_vertex(new_block_name);
+    // Clear the topologically-sorted ordering and recompute the sort
+    ordering.clear();
+    boost::topological_sort( graph.graph(), std::back_inserter(ordering));
+    return false;
   }
 
   return true;
