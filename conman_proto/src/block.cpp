@@ -5,36 +5,38 @@ using namespace conman;
 
 static bool has_conman_operation(RTT::TaskContext *task, const std::string &name) 
 {
-  if( !( task == NULL &&
-         task->provides()->hasService("conman") &&
-         task->provides()->getService("conman")->getService("conman")->hasOperation(name)))
+  if( task != NULL &&
+      task->provides()->hasService("conman") &&
+      task->provides()->getService("conman")->hasOperation(name) )
   {
-    RTT::Logger::log() << RTT::Logger::Error << "TaskContext does not have the \"conman."<<name<<"\" service." << RTT::endlog();
-    return false;
+    return true;
   }
 
-  return true;
+  RTT::Logger::log() << RTT::Logger::Error << "TaskContext does not have the \"conman."<<name<<"\" service." << RTT::endlog();
+  return false;
 }
 
 bool Block::HasConmanInterface(RTT::TaskContext *task)
 {
-  bool invalid = false;
+  bool valid = true;
 
-  if(invalid = (task == NULL)) {
+  if(task == NULL) {
     RTT::Logger::log() << RTT::Logger::Error << "TaskContext is NULL." << RTT::endlog();
-  } else if(invalid = (task->provides()->hasService("conman") == false)) {
+    return false;
+  } else if(task->provides()->hasService("conman") == false) {
     RTT::Logger::log() << RTT::Logger::Error << "TaskContext does not have the \"conman\" service." << RTT::endlog();
+    return false;
   } else {
-    invalid &= !has_conman_operation(task, "getConmanPorts");
-    invalid &= !has_conman_operation(task, "getExclusivity");
-    invalid &= !has_conman_operation(task, "getPeriod");
-    invalid &= !has_conman_operation(task, "readHardware");
-    invalid &= !has_conman_operation(task, "computeEstimation");
-    invalid &= !has_conman_operation(task, "computeControl");
-    invalid &= !has_conman_operation(task, "writeHardware");
+    valid &= has_conman_operation(task, "getConmanPorts");
+    valid &= has_conman_operation(task, "getExclusivity");
+    valid &= has_conman_operation(task, "getPeriod");
+    valid &= has_conman_operation(task, "readHardware");
+    valid &= has_conman_operation(task, "computeEstimation");
+    valid &= has_conman_operation(task, "computeControl");
+    valid &= has_conman_operation(task, "writeHardware");
   }
 
-  return !invalid;
+  return valid;
 }
 
 
