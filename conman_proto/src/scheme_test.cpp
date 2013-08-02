@@ -48,9 +48,9 @@ int ORO_main(int argc, char** argv) {
     //manager.connect("c0.control.out.left_arm.joint_effort","c1.control.in.left_arm.joint_effort",RTT::ConnPolicy());
 
     OCL::DeploymentComponent deployer("Deployer");
-    scheme.addPeer(&deployer);
+    scheme.connectPeers(&deployer);
 
-    OCL::TaskBrowser task_browser(&deployer);
+    OCL::TaskBrowser task_browser(&scheme);
 
     task_browser.loop();
   }

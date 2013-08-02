@@ -9,28 +9,33 @@ Scheme::Scheme(std::string name)
  : Block(name)
 {
   // Add operations
-  this->addOperation("add_block", 
+  this->addOperation("addBlock", 
       (bool (Scheme::*)(const std::string&))&Scheme::add_block, this, 
       RTT::OwnThread)
     .doc("Add a conman block into this scheme.");
+  
+  this->addOperation("getBlocks", 
+      &Scheme::get_blocks, this, 
+      RTT::OwnThread)
+    .doc("Get the list of all blocks.");
 
   // Block runtime management
-  this->addOperation("enable_block", 
+  this->addOperation("enableBlock", 
       (bool (Scheme::*)(const std::string&, bool))&Scheme::enable_block, this, 
       RTT::OwnThread)
     .doc("Enable a block in this scheme.");
 
-  this->addOperation("disable_block", 
+  this->addOperation("disableBlock", 
       (bool (Scheme::*)(const std::string&))&Scheme::disable_block, this, 
       RTT::OwnThread)
     .doc("Disable a block in this scheme.");
 
-  this->addOperation("switch_blocks", 
+  this->addOperation("switchBlocks", 
       &Scheme::switch_blocks, this, 
       RTT::OwnThread)
     .doc("Simultaneousy enable and disable a list of blocks, any block not in either list will remain in its current state.");
 
-  this->addOperation("set_blocks", 
+  this->addOperation("setBlocks", 
       &Scheme::set_blocks, this, 
       RTT::OwnThread)
     .doc("Set the list running blocks, any block not on the list will be disabled.");

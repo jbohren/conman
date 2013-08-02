@@ -31,6 +31,10 @@ namespace conman
         std::vector<std::string> &grouped_blocks) { return false; }
     bool remove_group( const std::string &group_name) { return false; }
     //\}
+    
+    const std::vector<std::string> & get_blocks() {
+      return block_names_;
+    }
 
     //! \name Runtime Scheme Control
     //\{
