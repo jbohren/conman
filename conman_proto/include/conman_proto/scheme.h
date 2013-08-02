@@ -22,6 +22,14 @@ namespace conman
     /** \brief Add a block which is already a peer of this component by name.
      */
     bool add_block(const std::string &name);
+
+    bool set_group(
+        const std::string &group_name,
+        const std::vector<std::string> &grouped_blocks) { return false; }
+    bool get_groups(
+        const std::string &group_name,
+        std::vector<std::string> &grouped_blocks) { return false; }
+    bool remove_group( const std::string &group_name) { return false; }
     //\}
 
     //! \name Runtime Scheme Control
@@ -48,11 +56,40 @@ namespace conman
      * - Start the block
      */
     bool enable_block(const std::string &block_name, const bool force);
-    bool disable_block(const std::string &block_name);
+    bool enable_block(RTT::TaskContext *block, const bool force);
 
-    // TODO: disable controller (name)
-    // TODO: switch controllers (name)
+    /** \brief Disable a conman Block
+     */
+    bool disable_block(const std::string &block_name);
+    bool disable_block(RTT::TaskContext *block);
+
+    /** \brief Try to disable a set of blocks and enable another set of blocks
+     * \param strict Break on error if true, otherwise, try to switch the modes
+     * of all blocks listed even if some fail.
+     *
+     * NOTE: This function first disables the blocks on the disable list, and
+     * then it enables blocks on the enable list.
+     * 
+     */
+    bool switch_blocks(
+        const std::vector<std::string> &disable,
+        const std::vector<std::string> &enable, 
+        const bool force, 
+        const bool strict);
     
+
+    /** \brief Set the set of enabled and disabled blocks.
+     *
+     * NOTE: This function does not provide a "force" option like \ref
+     * enable_block or switch_blocks, because the only conflicts that are
+     * possible are in the list of blocks to be enabled, and the caller should
+     * know whether or not these are in conflict.
+     *
+     * \param strict Break on error if true, otherwise, try to enable all blocks
+     * on the list even if some can't be enabled.
+     */
+    bool set_blocks(std::vector<std::string> &enabled, bool strict);
+
     //\}
 
     bool configureHook();
@@ -65,6 +102,9 @@ namespace conman
   protected:
 
     RTT::os::TimeService::nsecs last_update_time_;
+
+    //! A list of block names (to distinguish from other peers)
+    std::vector<std::string> block_names_;
 
     //! \name Graph structures
     //\{
@@ -79,6 +119,8 @@ namespace conman
       estimation_serialization_,
       control_serialization_;
     //\}
+
+    std::map<std::string, std::vector<RTT::TaskContext*> > block_conflicts_;
 
     /** Connect a block to the appropriate blocks in a given graph
      * This connects all inputs/outputs of block_a to all outputs/inputs of

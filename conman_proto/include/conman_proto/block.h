@@ -20,7 +20,9 @@ namespace conman {
       EXCLUSIVE
     } ExclusivityMode;
 
-    static bool HasConmanInterface(RTT::TaskContext *block);
+    /** \brief Checks if an RTT task has the necessary Conman RTT interfaces
+     */
+    static bool HasConmanInterface(RTT::TaskContext *task);
 
   private:
 

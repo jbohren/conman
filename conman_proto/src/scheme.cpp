@@ -9,8 +9,31 @@ Scheme::Scheme(std::string name)
  : Block(name)
 {
   // Add operations
-  this->addOperation("add_block", (bool (Scheme::*)(const std::string&))&Scheme::add_block, this, RTT::ClientThread)
+  this->addOperation("add_block", 
+      (bool (Scheme::*)(const std::string&))&Scheme::add_block, this, 
+      RTT::OwnThread)
     .doc("Add a conman block into this scheme.");
+
+  // Block runtime management
+  this->addOperation("enable_block", 
+      (bool (Scheme::*)(const std::string&, bool))&Scheme::enable_block, this, 
+      RTT::OwnThread)
+    .doc("Enable a block in this scheme.");
+
+  this->addOperation("disable_block", 
+      (bool (Scheme::*)(const std::string&))&Scheme::disable_block, this, 
+      RTT::OwnThread)
+    .doc("Disable a block in this scheme.");
+
+  this->addOperation("switch_blocks", 
+      &Scheme::switch_blocks, this, 
+      RTT::OwnThread)
+    .doc("Simultaneousy enable and disable a list of blocks, any block not in either list will remain in its current state.");
+
+  this->addOperation("set_blocks", 
+      &Scheme::set_blocks, this, 
+      RTT::OwnThread)
+    .doc("Set the list running blocks, any block not on the list will be disabled.");
 }
 
 bool Scheme::add_block(RTT::TaskContext *new_block)
@@ -34,14 +57,14 @@ bool Scheme::add_block(const std::string &block_name)
     RTT::TaskContext::PeerList peers = this->getPeerList();
 
     RTT::Logger::log() << RTT::Logger::Error 
-      << "No peer block named: "<< block_name << std::endl
-      << "Available blocks include:" << std::endl;
+      << "Requested block to add named \""<< block_name << "\" was not found." << std::endl
+      << "  Available blocks include:" << std::endl;
 
     for(RTT::TaskContext::PeerList::iterator it = peers.begin();
         it != peers.end();
         ++it) 
     {
-      RTT::Logger::log() << RTT::Logger::Error << "  " << *it << std::endl;
+      RTT::Logger::log() << RTT::Logger::Error << "    " << *it << std::endl;
     }
 
     RTT::Logger::log() << RTT::Logger::Error 
@@ -56,8 +79,8 @@ bool Scheme::add_block(const std::string &block_name)
   // Nulls are bad
   if(new_block == NULL) {
     RTT::Logger::log() << RTT::Logger::Error 
-      << "Requested block named: "<<block_name
-      << " was found, but could not be acquired (getPeer returned NULL)"
+      << "Requested block to add named \""<<block_name
+      << "\" was found, but it could not be acquired (getPeer returned NULL)"
       << RTT::endlog();
     return false;
   }
@@ -72,6 +95,9 @@ bool Scheme::add_block(const std::string &block_name)
     RTT::Logger::log() << RTT::Logger::Error << "Could not add TaskContext \""<< block_name <<"\" to scheme." << RTT::endlog();
     return false;
   }
+  
+  // Add this block to the list of block names
+  block_names_.push_back(block_name);
 
   // Print out the ordering
   RTT::Logger::log() << RTT::Logger::Info << "New ordering: [ ";
@@ -88,24 +114,106 @@ bool Scheme::add_block(const std::string &block_name)
 
 bool Scheme::enable_block(const std::string &block_name, const bool force)
 {
+  // Get the block by name
+  return this->enable_block(this->getPeer(block_name), force);
+}
 
-  // Check edges in both control and estimation graphs for exclusivity
-  // violations
+bool Scheme::enable_block(RTT::TaskContext *block, const bool force)
+{
+  RTT::Logger::In in("Scheme::enable_block");
 
-  // If there are violations and we're force-enabling, disable the conflicting
-  // blocks, otherwise, don't do anything
+  if(block == NULL) { return false; }
 
-  // Start Block
+  // Check if conflicting blocks are running
+  const std::string &block_name = block->getName();
+  std::vector<RTT::TaskContext*> &conflicts = block_conflicts_[block_name];
 
+  for(std::vector<RTT::TaskContext*>::iterator it = conflicts.begin();
+      it != conflicts.end();
+      ++it)
+  {
+    // Check if the conflicting block is running
+    if((*it)->getTaskState() == RTT::TaskContext::Running) {
+      // If force is selected, disable the conflicting block
+      if(force) {
+        RTT::Logger::log() << RTT::Logger::Debug << "Force-enabling block \""<< block_name << "\" is disabling block \"" << (*it)->getName() << "\"" << RTT::endlog();
+        // Make sure we can actually disable it
+        if(this->disable_block(*it) == false) {
+          RTT::Logger::log() << RTT::Logger::Error << "Could not disable block \"" << (*it)->getName() << "\"" << RTT::endlog();
+          return false;
+        }
+      } else {
+        RTT::Logger::log() << RTT::Logger::Error << "Could not enable block \""<< block_name << "\" because it conflicts with block \"" << (*it)->getName() << "\"" << RTT::endlog();
+        return false;
+      }
+    }
+  }
 
-  return true;
+  // Make sure the block is configured
+  if(block->getTaskState() == RTT::TaskContext::PreOperational ) {
+    if(!block->configure()) {
+      return false;
+    }
+  }
+  // Try to start the block
+  return block->start();
 }
 
 bool Scheme::disable_block(const std::string &block_name)
 {
+  // Get the block by name
+  return this->disable_block(this->getPeer(block_name));
+}
+
+bool Scheme::disable_block(RTT::TaskContext* block) 
+{
+  if(block == NULL) { return false; }
+
   // Stop a block
-  
-  return true;
+  return block->stop();
+}
+
+bool Scheme::switch_blocks(
+    const std::vector<std::string> &disable,
+    const std::vector<std::string> &enable,
+    const bool force, 
+    const bool strict)
+{
+  bool success = true;
+
+  // First disable blocks, so that "force" can be used appropriately when
+  // enabling blocks below
+  for(std::vector<std::string>::const_iterator it = disable.begin();
+      it != disable.end();
+      ++it)
+  {
+    // Try to disable the block
+    success &= this->disable_block(*it);
+
+    // Break on failure if strict
+    if(strict && !success) { return false; }
+  }
+
+  // Enable blocks
+  for(std::vector<std::string>::const_iterator it = enable.begin();
+      it != enable.end();
+      ++it)
+  {
+    // Try to start the block
+    success &= this->enable_block(*it,force);
+
+    // Break on failure if strict
+    if(strict && !success) { return false; }
+  }
+
+  return success;
+}
+
+bool Scheme::set_blocks(
+    std::vector<std::string> &enable,
+    bool strict)
+{
+  return this->switch_blocks(this->block_names_, enable, false, strict);
 }
 
 bool Scheme::configureHook()
@@ -126,6 +234,8 @@ void Scheme::updateHook()
     time = (1E-9)*static_cast<double>(now),
     period = (1E-9)*static_cast<double>(RTT::os::TimeService::Instance()->getNSecs(last_update_time_));
   // Store update time
+  // NOTE: We maintain a single update time for all blocks so that any blocks
+  // running at the same rate are executed in the same update() cycle
   last_update_time_ = now;
 
   // Iterate through estimation graph
@@ -187,6 +297,7 @@ bool Scheme::add_block_to_graph(
 
   // Add this block to the graph
   std::string new_block_name = new_block->getName();
+
   graph.add_vertex(new_block_name);
   graph[new_block_name].block = new_block;
   graph[new_block_name].read_hardware = new_block->provides()->getService("conman")->getOperation("readHardware");

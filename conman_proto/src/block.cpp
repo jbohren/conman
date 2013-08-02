@@ -3,16 +3,35 @@
 
 using namespace conman;
 
-bool Block::HasConmanInterface(RTT::TaskContext *block)
+static bool has_conman_operation(RTT::TaskContext *task, const std::string &name) 
+{
+  if( !( task == NULL &&
+         task->provides()->hasService("conman") &&
+         task->provides()->getService("conman")->getService("conman")->hasOperation(name)))
+  {
+    RTT::Logger::log() << RTT::Logger::Error << "TaskContext does not have the \"conman."<<name<<"\" service." << RTT::endlog();
+    return false;
+  }
+
+  return true;
+}
+
+bool Block::HasConmanInterface(RTT::TaskContext *task)
 {
   bool invalid = false;
 
-  if(invalid = (block == NULL)) {
+  if(invalid = (task == NULL)) {
     RTT::Logger::log() << RTT::Logger::Error << "TaskContext is NULL." << RTT::endlog();
-  } else if(invalid = (block->provides()->hasService("conman") == false)) {
+  } else if(invalid = (task->provides()->hasService("conman") == false)) {
     RTT::Logger::log() << RTT::Logger::Error << "TaskContext does not have the \"conman\" service." << RTT::endlog();
-  } else if(invalid = (block->provides()->getService("conman")->hasOperation("getConmanPorts") == false)) {
-    RTT::Logger::log() << RTT::Logger::Error << "TaskContext does not have the \"conman.getConmanPorts\" service." << RTT::endlog();
+  } else {
+    invalid &= !has_conman_operation(task, "getConmanPorts");
+    invalid &= !has_conman_operation(task, "getExclusivity");
+    invalid &= !has_conman_operation(task, "getPeriod");
+    invalid &= !has_conman_operation(task, "readHardware");
+    invalid &= !has_conman_operation(task, "computeEstimation");
+    invalid &= !has_conman_operation(task, "computeControl");
+    invalid &= !has_conman_operation(task, "writeHardware");
   }
 
   return !invalid;
@@ -31,14 +50,15 @@ Block::Block(std::string const& name) :
     .doc("The desired execution period for this block, in seconds. By default, this is 0 and it will run as fast as the scheme period.");
 
   // Conman Introspection interface
-  conman_service_->addOperation("getConmanPorts",&Block::getConmanPorts,this);
-  conman_service_->addOperation("getPeriod",&Block::getPeriod,this);
+  conman_service_->addOperation("getConmanPorts",&Block::getConmanPorts, this, RTT::ClientThread);
+  conman_service_->addOperation("getExclusivity",&Block::getExclusivity, this, RTT::ClientThread);
+  conman_service_->addOperation("getPeriod",&Block::getPeriod, this, RTT::ClientThread);
 
   // Conman Execution interface
-  conman_service_->addOperation("readHardware",&Block::readHardware,this);
-  conman_service_->addOperation("computeEstimation",&Block::computeEstimation,this);
-  conman_service_->addOperation("computeControl",&Block::computeControl,this);
-  conman_service_->addOperation("writeHardware",&Block::writeHardware,this);
+  conman_service_->addOperation("readHardware",&Block::readHardware,this, RTT::ClientThread);
+  conman_service_->addOperation("computeEstimation",&Block::computeEstimation,this, RTT::ClientThread);
+  conman_service_->addOperation("computeControl",&Block::computeControl,this, RTT::ClientThread);
+  conman_service_->addOperation("writeHardware",&Block::writeHardware,this, RTT::ClientThread);
 }
 
 RTT::base::PortInterface& Block::registerConmanPort(
