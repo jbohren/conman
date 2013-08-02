@@ -36,40 +36,51 @@ namespace conman
       return block_names_;
     }
 
+
+    /** \brief Compute the conflicts between blocks in the scheme
+     *
+     *  TODO: Use boost::edge_range to get all edges between this block and
+     *  other blocks, and enable connect the ports associated with each edge
+     */
+    void compute_conflicts() { }
+    void compute_conflicts(const std::string &block_name) { }
+    void compute_conflicts(const std::vector<std::string> &block_names) { }
+
     //! \name Runtime Scheme Control
     //\{
-    /** \brief Enable a conman Block
+    /** \brief Enable a single conman Block
      *
-     * This is where port exclusivity (Block::ExclusionMode) gets checked. If
-     * enabling this port would violate the exclusivity of another port, then it
-     * will not be enabled unless force is specificed as true. If force is
-     * specified, then any conflicting blocks will be disabled, themselves.
+     * This function / operation enables a single Conman block. This is where
+     * block conflicts get checked. If enabling this port conflicts with another
+     * block (like if enabling it would violate the exclusivity of an input
+     * port), then it will not be enabled unless force is specificed as true. If
+     * force is specified, then any conflicting blocks will be disabled,
+     * themselves.
      *
+     * This attempts to start() the block, which requires that the block be
+     * configured before enable_block() is called. This is because calls to
+     * configure() may block for unacceptable lengths of time.
      *
-     * - Get block
-     * - Check if enabling would violate exclusivity 
-     *  - get other inputs from graph
-     *  - count inputs
-     *  - we can enable it if it won't violate exclusivity with its outputs
-     *  - we can enable it if we disable any blocks which would violate this
-     *  block's exclusivity
-     *
-     * - use boost::edge_range to get all edges between this block and other
-     *  blocks, and enable connect the ports associated with each edge
-     *
-     * - Start the block
      */
     bool enable_block(RTT::TaskContext *block, const bool force);
+    //! Enable a single Conman block by name
     bool enable_block(const std::string &block_name, const bool force);
+    //! Enable multiple Conman blocks
     bool enable_blocks(
         const std::vector<std::string> &block_names, 
         const bool strict,
         const bool force);
 
     /** \brief Disable a conman Block
+     *
+     * This function / operation disables a single Conman block by stopping it
+     * if it is currently running. 
+     *
      */
     bool disable_block(RTT::TaskContext *block);
+    //! Disable a single Conman block by name
     bool disable_block(const std::string &block_name);
+    //! Disable multiple Conman blocks
     bool disable_blocks(
         const std::vector<std::string> &block_names,
         const bool strict);

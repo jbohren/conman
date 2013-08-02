@@ -141,7 +141,7 @@ bool Scheme::enable_block(RTT::TaskContext *block, const bool force)
     if((*it)->getTaskState() == RTT::TaskContext::Running) {
       // If force is selected, disable the conflicting block
       if(force) {
-        RTT::Logger::log() << RTT::Logger::Debug << "Force-enabling block \""<< block_name << "\" is disabling block \"" << (*it)->getName() << "\"" << RTT::endlog();
+        RTT::Logger::log() << RTT::Logger::Info << "Force-enabling block \""<< block_name << "\" involves disabling block \"" << (*it)->getName() << "\"" << RTT::endlog();
         // Make sure we can actually disable it
         if(this->disable_block(*it) == false) {
           RTT::Logger::log() << RTT::Logger::Error << "Could not disable block \"" << (*it)->getName() << "\"" << RTT::endlog();
