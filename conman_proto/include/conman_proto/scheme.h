@@ -92,7 +92,7 @@ namespace conman
      * \param strict Break on error if true, otherwise, try to enable all blocks
      * on the list even if some can't be enabled.
      */
-    bool set_blocks(std::vector<std::string> &enabled, bool strict);
+    bool set_blocks(const std::vector<std::string> &enabled, bool strict);
 
     //\}
 

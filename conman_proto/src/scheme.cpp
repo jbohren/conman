@@ -157,6 +157,7 @@ bool Scheme::enable_block(RTT::TaskContext *block, const bool force)
   // Make sure the block is configured
   if(block->getTaskState() == RTT::TaskContext::PreOperational ) {
     if(!block->configure()) {
+      RTT::Logger::log() << RTT::Logger::Error << "Could not enable block \""<< block_name << "\" because it could not be configured." << RTT::endlog();
       return false;
     }
   }
@@ -196,7 +197,7 @@ bool Scheme::switch_blocks(
     success &= this->disable_block(*it);
 
     // Break on failure if strict
-    if(strict && !success) { return false; }
+    if(!success && strict) { return false; }
   }
 
   // Enable blocks
@@ -208,15 +209,15 @@ bool Scheme::switch_blocks(
     success &= this->enable_block(*it,force);
 
     // Break on failure if strict
-    if(strict && !success) { return false; }
+    if(!success && strict) { return false; }
   }
 
   return success;
 }
 
 bool Scheme::set_blocks(
-    std::vector<std::string> &enable,
-    bool strict)
+    const std::vector<std::string> &enable,
+    const bool strict)
 {
   return this->switch_blocks(this->block_names_, enable, false, strict);
 }
