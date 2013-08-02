@@ -59,30 +59,41 @@ namespace conman
      *
      * - Start the block
      */
-    bool enable_block(const std::string &block_name, const bool force);
     bool enable_block(RTT::TaskContext *block, const bool force);
+    bool enable_block(const std::string &block_name, const bool force);
+    bool enable_blocks(
+        const std::vector<std::string> &block_names, 
+        const bool strict,
+        const bool force);
 
     /** \brief Disable a conman Block
      */
-    bool disable_block(const std::string &block_name);
     bool disable_block(RTT::TaskContext *block);
+    bool disable_block(const std::string &block_name);
+    bool disable_blocks(
+        const std::vector<std::string> &block_names,
+        const bool strict);
 
     /** \brief Try to disable a set of blocks and enable another set of blocks
-     * \param strict Break on error if true, otherwise, try to switch the modes
-     * of all blocks listed even if some fail.
      *
      * NOTE: This function first disables the blocks on the disable list, and
      * then it enables blocks on the enable list.
      * 
+     * \param strict Break on error if true, otherwise, try to switch the modes
+     * of all blocks listed even if some fail.
+     *
      */
     bool switch_blocks(
-        const std::vector<std::string> &disable,
-        const std::vector<std::string> &enable, 
-        const bool force, 
-        const bool strict);
+        const std::vector<std::string> &disable_block_names,
+        const std::vector<std::string> &enable_block_names, 
+        const bool strict, 
+        const bool force);
     
 
     /** \brief Set the set of enabled and disabled blocks.
+     *
+     * This is equivalent to calling \ref disable_blocks for all blocks, and
+     * then calling \ref enable_blocks for a list of blocks,
      *
      * NOTE: This function does not provide a "force" option like \ref
      * enable_block or switch_blocks, because the only conflicts that are
@@ -92,7 +103,9 @@ namespace conman
      * \param strict Break on error if true, otherwise, try to enable all blocks
      * on the list even if some can't be enabled.
      */
-    bool set_blocks(const std::vector<std::string> &enabled, bool strict);
+    bool set_blocks(
+        const std::vector<std::string> &enabled_block_names, 
+        const bool strict);
 
     //\}
 

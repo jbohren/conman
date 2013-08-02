@@ -155,14 +155,18 @@ bool Scheme::enable_block(RTT::TaskContext *block, const bool force)
   }
 
   // Make sure the block is configured
-  if(block->getTaskState() == RTT::TaskContext::PreOperational ) {
-    if(!block->configure()) {
-      RTT::Logger::log() << RTT::Logger::Error << "Could not enable block \""<< block_name << "\" because it could not be configured." << RTT::endlog();
-      return false;
-    }
+  if(!block->isConfigured()) {
+    RTT::Logger::log() << RTT::Logger::Error << "Could not enable block \""<< block_name << "\" because it has not been confiugre()ed." << RTT::endlog();
+    return false;
   }
+
   // Try to start the block
-  return block->start();
+  if(!block->start()) {
+    RTT::Logger::log() << RTT::Logger::Error << "Could not enable block \""<< block_name << "\" because it could not be start()ed." << RTT::endlog();
+    return false;
+  }
+
+  return true;
 }
 
 bool Scheme::disable_block(const std::string &block_name)
@@ -176,33 +180,22 @@ bool Scheme::disable_block(RTT::TaskContext* block)
   if(block == NULL) { return false; }
 
   // Stop a block
-  return block->stop();
+  if(block->isRunning()) {
+    if(!block->stop()) {
+      RTT::Logger::log() << RTT::Logger::Error << "Could not disable block \""<< block->getName() << "\" because it could not be stop()ed." << RTT::endlog();
+      return false;
+    }
+  }
+
+  return true;
 }
 
-bool Scheme::switch_blocks(
-    const std::vector<std::string> &disable,
-    const std::vector<std::string> &enable,
-    const bool force, 
-    const bool strict)
+bool Scheme::enable_blocks(const std::vector<std::string> &block_names, const bool strict, const bool force)
 {
   bool success = true;
 
-  // First disable blocks, so that "force" can be used appropriately when
-  // enabling blocks below
-  for(std::vector<std::string>::const_iterator it = disable.begin();
-      it != disable.end();
-      ++it)
-  {
-    // Try to disable the block
-    success &= this->disable_block(*it);
-
-    // Break on failure if strict
-    if(!success && strict) { return false; }
-  }
-
-  // Enable blocks
-  for(std::vector<std::string>::const_iterator it = enable.begin();
-      it != enable.end();
+  for(std::vector<std::string>::const_iterator it = block_names.begin();
+      it != block_names.end();
       ++it)
   {
     // Try to start the block
@@ -215,11 +208,41 @@ bool Scheme::switch_blocks(
   return success;
 }
 
+bool Scheme::disable_blocks(const std::vector<std::string> &block_names, const bool strict)
+{
+  bool success = true;
+
+  for(std::vector<std::string>::const_iterator it = block_names.begin();
+      it != block_names.end();
+      ++it)
+  {
+    // Try to disable the block
+    success &= this->disable_block(*it);
+
+    // Break on failure if strict
+    if(!success && strict) { return false; }
+  }
+
+  return success;
+}
+
+bool Scheme::switch_blocks(
+    const std::vector<std::string> &disable_block_names,
+    const std::vector<std::string> &enable_block_names,
+    const bool strict,
+    const bool force)
+{
+  // First disable blocks, so that "force" can be used appropriately when
+  // enabling blocks. Also note that we used & instead of && in order to prevent
+  // short-circuiting.
+  return disable_blocks(disable_block_names, strict) & enable_blocks(enable_block_names, strict, force);
+}
+
 bool Scheme::set_blocks(
-    const std::vector<std::string> &enable,
+    const std::vector<std::string> &enabled_block_names,
     const bool strict)
 {
-  return this->switch_blocks(this->block_names_, enable, false, strict);
+  return this->switch_blocks(this->block_names_, enabled_block_names, strict, false);
 }
 
 bool Scheme::configureHook()
