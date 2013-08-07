@@ -1,4 +1,3 @@
-
 #include <conman_proto/conman_test_plugins.h>
 
 ORO_LIST_COMPONENT_TYPE(TestEffortController)
@@ -29,7 +28,7 @@ bool TestEffortController::startHook() {
 }
 
 
-void TestEffortController::compute_control(
+void TestEffortController::computeControlHook(
     RTT::os::TimeService::Seconds secs, 
     RTT::os::TimeService::Seconds period) 
 {
