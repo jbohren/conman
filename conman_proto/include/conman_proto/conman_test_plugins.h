@@ -10,8 +10,8 @@ public:
   TestEffortController(std::string const& name);
   bool startHook();
   bool configureHook();
-  virtual void compute_control( RTT::os::TimeService::Seconds secs,
-                                RTT::os::TimeService::Seconds period);
+  virtual void computeControlHook( RTT::os::TimeService::Seconds secs,
+                                   RTT::os::TimeService::Seconds period);
 private:
 
   RTT::InputPort<double> effort_in_;
