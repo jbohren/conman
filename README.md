@@ -1,6 +1,8 @@
 Conman
 ======
 
+***WARNING: THIS IS SUPER-UNSTABLE.***
+
 ## Introduction
 
 *Conman* is a controller and state estimator manager built on top of the
