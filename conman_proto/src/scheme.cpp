@@ -42,52 +42,6 @@ Scheme::Scheme(std::string name)
 }
 
 
-bool Scheme::add_block(const std::string &block_name)
-{
-  RTT::Logger::In in("Scheme::add_block(string)");
-
-  // Make sure the block exists
-  if(!this->hasPeer(block_name)) {
-    RTT::TaskContext::PeerList peers = this->getPeerList();
-
-    RTT::Logger::log() << RTT::Logger::Error 
-      << "Requested block to add named \""<< block_name << "\" was not found." << std::endl
-      << "  Available blocks include:" << std::endl;
-
-    for(RTT::TaskContext::PeerList::iterator it = peers.begin();
-        it != peers.end();
-        ++it) 
-    {
-      RTT::Logger::log() << RTT::Logger::Error << "    " << *it << std::endl;
-    }
-
-    RTT::Logger::log() << RTT::Logger::Error 
-      << RTT::endlog();
-
-    return false;
-  }
-
-  // Get the newly loaded block
-  RTT::TaskContext *new_block = this->getPeer(block_name);
-
-  // Nulls are bad
-  if(new_block == NULL) {
-    RTT::Logger::log() << RTT::Logger::Error 
-      << "Requested block to add named \""<<block_name
-      << "\" was found, but it could not be acquired (getPeer returned NULL)"
-      << RTT::endlog();
-    return false;
-  }
-
-
-  if(!this->connectPeers(new_block)) {
-    RTT::Logger::log() << RTT::Logger::Error << "Could not connect peer: "<< new_block->getName() << RTT::endlog();
-  }
-
-  // Add the block to the graphs
-  return this->add_block(new_block->getName());
-}
-
 bool Scheme::add_block(RTT::TaskContext *new_block)
 {
   RTT::Logger::In in("Scheme::add_block(task)");
@@ -104,6 +58,12 @@ bool Scheme::add_block(RTT::TaskContext *new_block)
     RTT::Logger::log(RTT::Error) 
       << "Requested block to add does not have the conman hook service." << RTT::endlog();
     return false;
+  }
+
+  // Try to add this block as a peer
+  if(!this->connectPeers(new_block)) {
+    RTT::Logger::log() << RTT::Logger::Error << "Could not connect peer: "<<
+      new_block->getName() << RTT::endlog();
   }
 
   // Get the block name
@@ -124,6 +84,7 @@ bool Scheme::add_block(RTT::TaskContext *new_block)
   block_names_.push_back(block_name);
 
   // Print out the ordering
+  {
   RTT::Logger::log(RTT::Debug) << "New ordering: [ ";
   for(conman::graph::CausalOrdering::iterator it = control_serialization_.begin();
       it != control_serialization_.end();
@@ -132,8 +93,41 @@ bool Scheme::add_block(RTT::TaskContext *new_block)
     RTT::Logger::log() << RTT::Logger::Info << control_graph_.graph()[*it].block->getName() << ", ";
   }
   RTT::Logger::log() << RTT::Logger::Info << " ] " << RTT::endlog();
+  }
 
   return true;
+}
+
+bool Scheme::add_block(const std::string &block_name)
+{
+  RTT::Logger::In in("Scheme::add_block(string)");
+
+  // Make sure the block exists as a peer of the scheme
+  if(!this->hasPeer(block_name)) {
+    RTT::TaskContext::PeerList peers = this->getPeerList();
+
+    RTT::Logger::log(RTT::Error)
+      << "Requested block to add named \"" << block_name << "\" was not a peer"
+      "of this Scheme." << std::endl
+      << "  Available blocks include:" << std::endl;
+
+    for(RTT::TaskContext::PeerList::iterator it = peers.begin();
+        it != peers.end();
+        ++it) 
+    {
+      RTT::Logger::log(RTT::Error) << "    " << *it << std::endl;
+    }
+
+    RTT::Logger::log(RTT::Error) << RTT::endlog();
+
+    return false;
+  }
+
+  // Get the newly loaded block
+  RTT::TaskContext *new_block = this->getPeer(block_name);
+
+  // Add the block to the graphs
+  return this->add_block(new_block);
 }
 
 
@@ -166,6 +160,7 @@ bool Scheme::add_block_to_graph(
   new_vertex.block = new_block;
   new_vertex.hook = new_block->getProvider<conman::HookService>("conman");
 
+  // Regenerate the topological ordering
   if(!regenerate_graph(graph, ordering, layer)) {
     // Report error (if this block's connections add cycles)
     RTT::Logger::log(RTT::Error) << "Cannot connect block "
@@ -187,6 +182,8 @@ bool Scheme::regenerate_graph(
     conman::graph::CausalOrdering &ordering,
     const std::string &layer)
 {
+  RTT::Logger::In in("Scheme::regenerate_graph()");
+
   // Iterate over all vertices in this graph layer
   for(std::pair<conman::VertexIterator, conman::VertexIterator> vert_it = boost::vertices(graph);
       vert_it.first != vert_it.second;
@@ -259,6 +256,10 @@ bool Scheme::regenerate_graph(
   return true;
 }
 
+bool Scheme::regenerate_conflicts() {
+  
+  return true;
+}
 
 bool Scheme::enable_block(const std::string &block_name, const bool force)
 {
@@ -270,11 +271,21 @@ bool Scheme::enable_block(RTT::TaskContext *block, const bool force)
 {
   RTT::Logger::In in("Scheme::enable_block");
 
-  if(block == NULL) { return false; }
+  if(block == NULL) { 
+    return false; 
+  }
+
+  const std::string &block_name = block->getName();
+
+  // Make sure the block is configured
+  if(!block->isConfigured()) {
+    RTT::Logger::log(RTT::Error) << "Could not enable block \""<< block_name <<
+      "\" because it has not been confiugre()ed." << RTT::endlog();
+    return false;
+  }
 
   // Check if conflicting blocks are running
-  const std::string &block_name = block->getName();
-  std::vector<RTT::TaskContext*> &conflicts = block_conflicts_[block_name];
+  std::vector<RTT::TaskContext*> &conflicts = block_conflicts_[block];
 
   for(std::vector<RTT::TaskContext*>::iterator it = conflicts.begin();
       it != conflicts.end();
@@ -302,13 +313,6 @@ bool Scheme::enable_block(RTT::TaskContext *block, const bool force)
     }
   }
 
-  // Make sure the block is configured
-  if(!block->isConfigured()) {
-    RTT::Logger::log(RTT::Error) << "Could not enable block \""<< block_name <<
-      "\" because it has not been confiugre()ed." << RTT::endlog();
-    return false;
-  }
-
   // Try to start the block
   if(!block->start()) {
     RTT::Logger::log(RTT::Error) << "Could not enable block \""<< block_name <<
@@ -332,9 +336,9 @@ bool Scheme::disable_block(RTT::TaskContext* block)
   // Stop a block
   if(block->isRunning()) {
     if(!block->stop()) {
-      RTT::Logger::log(RTT::Error) << "Could not disable block \""<<
-        block->getName() << "\" because it could not be stop()ed." <<
-        RTT::endlog();
+      RTT::Logger::log(RTT::Error) 
+        << "Could not disable block \""<< block->getName() << "\" because it"
+        "could not be stop()ed." << RTT::endlog();
       return false;
     }
   }
@@ -414,6 +418,7 @@ void Scheme::updateHook()
   RTT::os::TimeService::Seconds 
     time = (1E-9)*static_cast<double>(now),
     period = (1E-9)*static_cast<double>(RTT::os::TimeService::Instance()->getNSecs(last_update_time_));
+  
   // Store update time
   // NOTE: We maintain a single update time for all blocks so that any blocks
   // running at the same rate are executed in the same update() cycle

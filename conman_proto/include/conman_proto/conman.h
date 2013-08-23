@@ -87,7 +87,10 @@ namespace conman {
     //! Boost Graph Edge Metadata
     struct EdgeProperties {
       //! True if the ports are connected
-      bool connected;
+      // TODO: 
+      //bool connected;
+
+      // TODO: Make these Input/OuputPortInterfaces instead of just PortInterfaces
       //! The source (output) port
       RTT::base::PortInterface *source_port;
       //! The sink (input) port:
@@ -106,8 +109,13 @@ namespace conman {
 
     //! Boost Graph Type
     typedef boost::labeled_graph<
-      boost::adjacency_list< boost::listS, boost::vecS, boost::directedS, VertexProperties, EdgeProperties>,
-      std::string> CausalGraph;
+      boost::adjacency_list< 
+        boost::listS, 
+        boost::vecS, 
+        boost::directedS, 
+        VertexProperties, 
+        EdgeProperties>,
+      RTT::TaskContext*> CausalGraph;
 
     //! Boost Vertex Descriptor Type
     typedef boost::graph_traits<CausalGraph>::vertex_descriptor CausalVertex;

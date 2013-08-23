@@ -1,6 +1,6 @@
 
-#ifndef __CONMAN_BLOCK_H
-#define __CONMAN_BLOCK_H
+#ifndef __CONMAN_HOOK_SERVICE_H
+#define __CONMAN_HOOK_SERVICE_H
 
 #include <conman_proto/conman.h>
 
@@ -140,4 +140,4 @@ namespace conman {
   };
 }
 
-#endif // ifndef __CONMAN_BLOCK_H
+#endif // ifndef __CONMAN_HOOK_SERVICE_H
