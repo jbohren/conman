@@ -3,15 +3,23 @@
 ORO_LIST_COMPONENT_TYPE(TestEffortController)
 
 TestEffortController::TestEffortController(std::string const& name) :
-  conman::Block(name)
+  RTT::TaskContext(name)
 {
+  using namespace conman;
+
+  // Create block interface
+  ConManService::Ptr conman_hook = ConManService::Load(this);
+  
   // Create RTT ports
-  //using namespace conman;
-  //using namespace conman::interfaces;
-  this->registerConmanPort("control",EXCLUSIVE, this->addPort("effort_in",effort_in_))
-    .doc("Effort input.");
-  this->registerConmanPort("control",EXCLUSIVE, this->addPort("effort_out",effort_out_))
-    .doc("Effort output = input + 1.");
+  this->addPort("effort_in", effort_in_).doc("Effort input.");
+  this->addPort("effort_out", effort_out_).doc("Effort output := input + 1.");
+
+  // Add the ports to conman
+  conman_hook->setInputExclusivity(EXCLUSIVE, effort_in_);
+  conman_hook->setOutputLayer("control", effort_out_);
+
+  // Register the conman execution hooks
+  conman_hook->setComputeControlHook(boost::bind(TestEffortController::computeControlHook,this,1_));
 }
 
 bool TestEffortController::configureHook() {

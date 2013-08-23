@@ -3,105 +3,141 @@
 
 using namespace conman;
 
-static bool has_conman_operation(RTT::TaskContext *task, const std::string &name) 
-{
-  if( task != NULL &&
-      task->provides()->hasService("conman") &&
-      task->provides()->getService("conman")->hasOperation(name) )
-  {
-    return true;
-  }
-
-  RTT::Logger::log() << RTT::Logger::Error << "TaskContext does not have the \"conman."<<name<<"\" service." << RTT::endlog();
-  return false;
-}
-
-bool Block::HasConmanInterface(RTT::TaskContext *task)
-{
-  bool valid = true;
-
-  if(task == NULL) {
-    RTT::Logger::log() << RTT::Logger::Error << "TaskContext is NULL." << RTT::endlog();
-    return false;
-  } else if(task->provides()->hasService("conman") == false) {
-    RTT::Logger::log() << RTT::Logger::Error << "TaskContext does not have the \"conman\" service." << RTT::endlog();
-    return false;
-  } else {
-    valid &= has_conman_operation(task, "getConmanPorts");
-    valid &= has_conman_operation(task, "getExclusivity");
-    valid &= has_conman_operation(task, "getPeriod");
-    valid &= has_conman_operation(task, "readHardware");
-    valid &= has_conman_operation(task, "computeEstimation");
-    valid &= has_conman_operation(task, "computeControl");
-    valid &= has_conman_operation(task, "writeHardware");
-  }
-
-  return valid;
-}
-
-
-Block::Block(std::string const& name) :
-  RTT::TaskContext(name, RTT::base::TaskCore::PreOperational),
+HookService::HookService(RTT::TaskContext* owner) :
+  RTT::Service("conman",owner),
+  // Property Initialization
   execution_period_(0.0)
 { 
-  // All conman services are implemnented under the "conman" service
-  conman_service_ = this->provides("conman");
+  // ConMan Properties
+  this->addProperty("executionPeriod",execution_period_)
+    .doc("The desired execution period for this block, in seconds. By default, "
+        "this is 0 and it will run as fast as the scheme period.");
 
-  // Conman Properties
-  conman_service_->addProperty("executionPeriod",execution_period_)
-    .doc("The desired execution period for this block, in seconds. By default, this is 0 and it will run as fast as the scheme period.");
+  // ConMan Introspection interface
+  this->addOperation("getPeriod",&HookService::getPeriod, this, RTT::ClientThread);
 
-  // Conman Introspection interface
-  conman_service_->addOperation("getConmanPorts",&Block::getConmanPorts, this, RTT::ClientThread);
-  conman_service_->addOperation("getExclusivity",&Block::getExclusivity, this, RTT::ClientThread);
-  conman_service_->addOperation("getPeriod",&Block::getPeriod, this, RTT::ClientThread);
-
-  // Conman Execution interface
-  conman_service_->addOperation("readHardware",&Block::readHardware,this, RTT::ClientThread);
-  conman_service_->addOperation("computeEstimation",&Block::computeEstimation,this, RTT::ClientThread);
-  conman_service_->addOperation("computeControl",&Block::computeControl,this, RTT::ClientThread);
-  conman_service_->addOperation("writeHardware",&Block::writeHardware,this, RTT::ClientThread);
+  // ConMan Execution interface
+  this->addOperation("readHardware",&HookService::readHardware,this, RTT::ClientThread);
+  this->addOperation("computeEstimation",&HookService::computeEstimation,this, RTT::ClientThread);
+  this->addOperation("computeControl",&HookService::computeControl,this, RTT::ClientThread);
+  this->addOperation("writeHardware",&HookService::writeHardware,this, RTT::ClientThread);
 }
 
-RTT::base::PortInterface& Block::registerConmanPort(
-    const std::string &layer,
-    const ExclusivityMode exclusivity_mode,
-    RTT::base::PortInterface &port)
+
+RTT::os::TimeService::Seconds HookService::getPeriod() {
+  return execution_period_;
+}
+
+
+RTT::base::PortInterface& HookService::setOutputLayer(
+    const std::string &layer_name,
+    RTT::base::PortInterface &port) 
 {
-  // Store the exclusivity mode
-  this->setExclusivity(port.getName(),exclusivity_mode);
-  // Designate this port as a control port
-  conman_ports_[layer].insert(port.getName());
-  // Add the port & pass-through normal interface
+  // Make sure that the port is an inputport
+  if(dynamic_cast<RTT::base::OutputPortInterface*>(&port)) {
+    // Add to the output port map
+    output_ports_[port].layer = layer; 
+    // Add to the layer map
+    output_ports_by_layer_[layer].insert(port);
+  } else {
+    // Complain
+    RTT::log(RTT::Error) << "Tried to set output layer for an input port."
+      "Input ports inherit the layer from the output port to which they are"
+      "connected." << RTT::endlog();
+  }
+  // Return the port for more manipulation similarly to TaskContext::addPort
   return port;
 }
 
-void Block::setExclusivity(
-    const std::string &port_name,
-    const ExclusivityMode mode)
+RTT::base::PortInterface& HookService::setInputExclusivity(
+    const ExclusivityMode mode,
+    RTT::base::PortInterface &port)
 {
-  exclusivity_[port_name] = mode; 
+  // Make sure that the port is an inputport
+  if(dynamic_cast<RTT::base::InputPortInterface*>(&port)) {
+    // Add to the input port map
+    input_ports_[port].exclusivity = mode; 
+  } else {
+    // Complain
+    RTT::log(RTT::Error) << "Tried to set input exclusivity for an output
+      "port. Output ports do not have exclusivity" << RTT::endlog();
+  }
+  // Return the port for more manipulation similarly to TaskContext::addPort
+  return port;
 }
 
-const Block::ExclusivityMode Block::getExclusivity(const std::string &port_name)
+const conman::ExclusivityMode HookService::getInputExclusivity(
+    RTT::base::PortInterface const *port)
 {
-  // Check if this is a registered port
-  if(exclusivity_.find(port_name) != exclusivity_.end()) {
-    return exclusivity_[port_name]; 
+  std::map<RTT::base::PortInterface,InputProperties>::iterator props = input_ports_.find(port);
+
+  if(props != input_ports_.end()) {
+    return props->exclusivity; 
   }
+
   // Return undefined if the port isn't registered
   return UNDEFINED;
 }
 
-void Block::getConmanPorts(
-    const std::string &layer,
-    std::vector<std::string> &port_names)  
+const std::string& HookService::getOutputLayer(
+    RTT::base::PortInterface const *port)
 {
-  if(conman_ports_.find(layer) != conman_ports_.end()) {
-    port_names.assign(conman_ports_[layer].begin(), conman_ports_[layer].end());
+  std::map<RTT::base::PortInterface,OutputProperties>::iterator props = output_ports_.find(port);
+  
+  if(props != output_ports_.end()) {
+    return props->layer; 
+  }
+
+  // Return empty string if the port isn't registered
+  return "";
+}
+
+void HookService::getOutputPortsOnLayer(
+    const std::string &layer_name,
+    std::vector<RTT::base::PortInterface*> &ports)  
+{
+  std::map<std::string, std::set<RTT::base::PortInterface*> >::iterator layer = output_ports_.find(layer_name);
+
+  if(layer != conman_ports_.end()) {
+    ports.assign(layer->begin(), layer->end());
   }
 }
 
-RTT::os::TimeService::Seconds Block::getPeriod() {
-  return execution_period_;
+
+bool setReadHardwareHook(ExecutionHook func) {
+  read_hardware_hook_ = func;
+  return true;
+}
+bool setComputeEstimationHook(ExecutionHook func) {
+  compute_estimation_hook_ = func;
+  return true;
+}
+bool setComputeControlHook(ExecutionHook func) {
+  compute_control_hook_ = func;
+  return true;
+}
+bool setWriteHardwareHook(ExecutionHook func) {
+  write_hardware_hook_ = func;
+  return true;
+}
+
+
+void HookService::readHardware( RTT::os::TimeService::Seconds time, RTT::os::TimeService::Seconds period) { 
+  this->read_hardware_hook_(time, period); 
+  // TODO: Check no conman ports were written to
+}
+
+void HookService::computeEstimation( RTT::os::TimeService::Seconds time, RTT::os::TimeService::Seconds period) {
+  this->compute_estimation_hook_(time, period); 
+  // TODO: Check no conman control ports were written to
+}
+
+void HookService::computeControl( RTT::os::TimeService::Seconds time, RTT::os::TimeService::Seconds period)  {
+  this->compute_control_hook_(time, period); 
+  // TODO: Check no conman estimation ports were written to
+}
+
+void HookService::writeHardware(RTT::os::TimeService::Seconds time, RTT::os::TimeService::Seconds period)  { 
+  this->write_hardware_hook_(time, period); 
+  // TODO: Check no conman ports were written to
 }

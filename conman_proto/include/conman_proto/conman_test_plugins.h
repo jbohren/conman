@@ -4,7 +4,7 @@
 #include <conman_proto/conman.h>
 #include <conman_proto/block.h>
 
-class TestEffortController : public conman::Block 
+class TestEffortController : public RTT::TaskContext
 {
 public:
   TestEffortController(std::string const& name);

@@ -98,12 +98,7 @@ namespace conman {
     struct VertexProperties {
       //! The control and/or estimation block 
       RTT::TaskContext *block;
-      RTT::OperationCaller<void(RTT::os::TimeService::Seconds time, RTT::os::TimeService::Seconds period)> 
-        read_hardware,
-        compute_estimation,
-        compute_control,
-        write_hardware;
-      RTT::OperationCaller<RTT::os::TimeService::Seconds(void)> get_period;
+      conman::HookService::Ptr hook;
       RTT::os::TimeService::nsecs 
         last_estimation_time,
         last_control_time;
@@ -119,7 +114,21 @@ namespace conman {
 
     //! Topological Ordering Structure
     typedef std::vector<conman::graph::CausalVertex> CausalOrdering;
+
+    //! Iterator for iterating over all vertices in no particular order
+    typedef boost::graph_traits<conman::CausalGraph>::vertex_iterator VertexIterator;
   }
+
+  /** \brief Exclusivity modes describe how a given port can be accessed. **/
+  enum ExclusivityMode {
+    //! No exclusivity mode set / unknown port.
+    UNDEFINED = 0,
+    //! Any number of connections.
+    UNRESTRICTED,
+    //! Limit to one connection.
+    EXCLUSIVE
+  };
+
   
   //! Interface types for ports used to connect Blocks
   /**TODO: 
@@ -152,7 +161,6 @@ namespace conman {
     struct JointEffort { typedef double datatype; };
     
   }**/
-
 }
 
 #endif // ifndef __CONMAN_CONMAN_H

@@ -8,7 +8,7 @@
 namespace conman
 {
   //! Manager for loading/unloading and starting/stopping Blocks
-  class Scheme : public Block
+  class Scheme : public RTT::TaskContext
   {
   public:
     Scheme(std::string name="Scheme");
