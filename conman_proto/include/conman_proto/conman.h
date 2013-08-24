@@ -17,7 +17,6 @@
 #include <boost/graph/topological_sort.hpp>
 #include <boost/graph/labeled_graph.hpp>
 
-
 /**
  * Conman Controller Manager
  *
@@ -67,6 +66,12 @@
 //! Conman Controller Manager
 namespace conman {
 
+  //! Forward declarations
+  class Hook;
+
+  //! Functor signature for execution hooks
+  typedef boost::function<void(RTT::os::TimeService::Seconds, RTT::os::TimeService::Seconds)> ExecutionHook;
+
   /** \brief Causal block graph description
    * Causal block graph for topologically sorting control and estimation
    * networks. This graph contains vertices which correspond to blocks, and
@@ -86,9 +91,9 @@ namespace conman {
 
     //! Boost Graph Edge Metadata
     struct EdgeProperties {
-      //! True if the ports are connected
-      // TODO: 
-      //bool connected;
+      //! True if the ports are connected (unused)
+      // TODO: Do we need to use this / keep it synchronized?
+      bool connected;
 
       // TODO: Make these Input/OuputPortInterfaces instead of just PortInterfaces
       //! The source (output) port
@@ -101,10 +106,12 @@ namespace conman {
     struct VertexProperties {
       //! The control and/or estimation block 
       RTT::TaskContext *block;
-      conman::HookService::Ptr hook;
-      RTT::os::TimeService::nsecs 
-        last_estimation_time,
-        last_control_time;
+      //! The conman Hook service for this block (cached pointer)
+      boost::shared_ptr<conman::Hook> hook;
+      //! The last time estimation was computed for this block
+      RTT::os::TimeService::nsecs last_estimation_time;
+      //! The last time control was computed for this block
+      RTT::os::TimeService::nsecs last_control_time;
     };
 
     //! Boost Graph Type
@@ -124,7 +131,7 @@ namespace conman {
     typedef std::vector<conman::graph::CausalVertex> CausalOrdering;
 
     //! Iterator for iterating over all vertices in no particular order
-    typedef boost::graph_traits<conman::CausalGraph>::vertex_iterator VertexIterator;
+    typedef boost::graph_traits<conman::graph::CausalGraph>::vertex_iterator VertexIterator;
   }
 
   /** \brief Exclusivity modes describe how a given port can be accessed. **/

@@ -3,7 +3,6 @@
 #define __CONMAN_SCHEME_H
 
 #include <conman_proto/conman.h>
-#include <conman_proto/block.h>
 
 namespace conman
 {
@@ -246,7 +245,6 @@ namespace conman
      * already been added to the graph will be generated.
      */
     static bool regenerate_graph(
-        RTT::TaskContext *new_block,
         conman::graph::CausalGraph &graph,
         conman::graph::CausalOrdering &ordering,
         const std::string &layer);

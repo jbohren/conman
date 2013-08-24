@@ -2,9 +2,15 @@
 #ifndef __CONMAN_HOOK_SERVICE_H
 #define __CONMAN_HOOK_SERVICE_H
 
+#include <rtt/RTT.hpp>
+#include <rtt/Service.hpp>
+#include <rtt/Logger.hpp>
+#include <rtt/plugin/PluginLoader.hpp>
+
 #include <conman_proto/conman.h>
 
 namespace conman {
+  
   /* \brief The Hook Service is used to attach RTT TaskContexts to a ConMan Scheme.
    *
    * In confidence tricks, a "Hook" is an apparent advantage for the victim to
@@ -19,27 +25,6 @@ namespace conman {
     //! Shared constant pointer type for convenience 
     typedef boost::shared_ptr<const HookService> ConstPtr;
 
-    //! Functor signature for execution hooks
-    typedef boost::function<void(RTT::os::TimeService::Seconds, RTT::os::TimeService::Seconds)> ExecutionHook;
-
-    //!Load the conman block service and return the service
-    static HookService::Ptr Load(RTT::TaskContext *tc)
-    {
-      // Load rosparam service
-      if(!RTT::plugin::PluginLoader::Instance()->loadService("conman", tc)) {
-        RTT::log(RTT::Error) << "Could not load conman block service!" << RTT::endlog;
-        return HookService::Ptr;
-      }
-      // Return the service
-      return tc->getProvider<HookService>("conman");
-    }
-
-    //! Checks if an RTT task has the necessary ConMan RTT interfaces
-    static bool Present(RTT::TaskContext *task)
-    {
-      return task->getProvider<HookService>("conman").get() != NULL;
-    }
-
     //! Construct a conman hook service
     HookService(RTT::TaskContext* owner);
 
@@ -50,22 +35,22 @@ namespace conman {
     //\{
 
     //! Set the scheme layer for an output port
-    RTT::base::PortInterface& setOutputLayer(
+    RTT::base::PortInterface* setOutputLayer(
         const std::string &layer_name,
-        RTT::base::PortInterface &port);
+        RTT::base::PortInterface *port);
 
     //! Set the exclusivity mode for an input port
-    RTT::base::PortInterface& setInputExclusivity(
+    RTT::base::PortInterface* setInputExclusivity(
         const ExclusivityMode mode,
-        RTT::base::PortInterface &port);
+        RTT::base::PortInterface *port);
 
     //! Get the exclusivity mode for an input port
-    const conman::ExclusivityMode getInputExclusivity(
-        RTT::base::PortInterface const *port);
+    conman::ExclusivityMode getInputExclusivity(
+        RTT::base::PortInterface *port);
 
     //! Get the scheme layer for an output port
-    const std::string& getOutputLayer(
-        RTT::base::PortInterface const *port);
+    std::string getOutputLayer(
+        RTT::base::PortInterface *port);
 
     //! Get all the output ports on a given scheme layer
     void getOutputPortsOnLayer(
@@ -82,10 +67,10 @@ namespace conman {
      */
     //\{
 
-    bool setHardwareReadHook(ExecutionHook func);
+    bool setReadHardwareHook(ExecutionHook func);
     bool setComputeEstimationHook(ExecutionHook func);
     bool setComputeControlHook(ExecutionHook func);
-    bool setHardwareWriteHook(ExecutionHook func);
+    bool setWriteHardwareHook(ExecutionHook func);
 
     //\}
   
@@ -102,7 +87,7 @@ namespace conman {
     //! Compute state estimation and write to ports in the "estimation" layer.
     void computeEstimation( RTT::os::TimeService::Seconds time, RTT::os::TimeService::Seconds period);
     //! Compute control commands and write to ports in the "control" layer.
-    void computeControl( RTT::os::TimeService::Seconds time, RTT::os::TimeService::Seconds period;) 
+    void computeControl( RTT::os::TimeService::Seconds time, RTT::os::TimeService::Seconds period); 
     //! Write to lower-level hardware API
     void writeHardware(RTT::os::TimeService::Seconds time, RTT::os::TimeService::Seconds period);
 
