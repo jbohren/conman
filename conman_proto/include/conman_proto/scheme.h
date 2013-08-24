@@ -206,16 +206,14 @@ namespace conman
 
     //! \name Graph structures
     //\{
-    conman::graph::CausalGraph
-      estimation_graph_,
-      control_graph_;
+    std::vector<conman::graph::CausalGraph> graphs_;
+
+    std::vector<conman::graph::VertexMap> vertex_maps_;
     //\}
 
     //! \name Topologically-sorted structures
     //\{
-    conman::graph::CausalOrdering
-      estimation_serialization_,
-      control_serialization_;
+    std::vector<conman::graph::CausalOrdering> causal_ordering_;
     //\}
 
     //! Maps blocks onto lists of conflicting blocks for quick access
@@ -230,11 +228,9 @@ namespace conman
      * This is an internal function. For adding a block from
      * the public API, see \ref add_block.
      */
-    static bool add_block_to_graph(
+    bool add_block_to_graph(
         RTT::TaskContext *new_block,
-        conman::graph::CausalGraph &graph,
-        conman::graph::CausalOrdering &ordering,
-        const std::string &layer);
+        const conman::graph::Layer::ID &layer);
 
     /* \brief Generates an internal model of the RTT port connections
      *
@@ -244,10 +240,8 @@ namespace conman
      * This only adds edges. Note that only edges between two blocks which have
      * already been added to the graph will be generated.
      */
-    static bool regenerate_graph(
-        conman::graph::CausalGraph &graph,
-        conman::graph::CausalOrdering &ordering,
-        const std::string &layer);
+    bool regenerate_graph(
+        const conman::graph::Layer::ID &layer);
   };
 }
 

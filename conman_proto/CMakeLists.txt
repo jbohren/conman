@@ -8,6 +8,8 @@ include(${OROCOS-RTT_USE_FILE_PATH}/UseOROCOS-RTT.cmake )
 
 include_directories(include)
 
+set(CMAKE_BUILD_TYPE Debug)
+
 catkin_package(
   INCLUDE_DIRS include
   #LIBRARIES conman_proto

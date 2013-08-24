@@ -2,6 +2,9 @@
 #ifndef __CONMAN_HOOK_SERVICE_H
 #define __CONMAN_HOOK_SERVICE_H
 
+#include <vector>
+#include <set>
+
 #include <rtt/RTT.hpp>
 #include <rtt/Service.hpp>
 #include <rtt/Logger.hpp>
@@ -20,11 +23,6 @@ namespace conman {
   class HookService : public RTT::Service 
   {
   public:
-    //! Shared pointer type for convenience
-    typedef boost::shared_ptr<HookService> Ptr;
-    //! Shared constant pointer type for convenience 
-    typedef boost::shared_ptr<const HookService> ConstPtr;
-
     //! Construct a conman hook service
     HookService(RTT::TaskContext* owner);
 
@@ -37,7 +35,7 @@ namespace conman {
     //! Set the scheme layer for an output port
     bool setOutputLayer(
         const std::string &port_name,
-        const std::string &layer_name);
+        const conman::graph::Layer::ID layer);
 
     //! Set the exclusivity mode for an input port
     bool setInputExclusivity(
@@ -49,12 +47,12 @@ namespace conman {
         const std::string &port_name);
 
     //! Get the scheme layer for an output port
-    std::string getOutputLayer(
+    conman::graph::Layer::ID getOutputLayer(
         const std::string &port_name);
 
     //! Get all the output ports on a given scheme layer
     void getOutputPortsOnLayer(
-        const std::string &layer_name,
+        const conman::graph::Layer::ID layer,
         std::vector<RTT::base::PortInterface*> &ports);
 
     //\}
@@ -108,7 +106,7 @@ namespace conman {
     };
 
     struct OutputProperties {
-      std::string layer;
+      conman::graph::Layer::ID layer;
     };
 
     //! Minimum execution period for this component
@@ -119,7 +117,7 @@ namespace conman {
     std::map<std::string, OutputProperties> output_ports_;
 
     //! Map conman graph layers (control, estimation) onto a set of output ports
-    std::map<std::string, std::set<RTT::base::PortInterface*> > output_ports_by_layer_;
+    std::vector<std::set<RTT::base::PortInterface*> > output_ports_by_layer_;
 
     /* \name Execution Hooks */
     //\{

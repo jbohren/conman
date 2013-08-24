@@ -10,7 +10,8 @@ ORO_SERVICE_NAMED_PLUGIN(conman::HookService, "conman");
 HookService::HookService(RTT::TaskContext* owner) :
   RTT::Service("conman",owner),
   // Property Initialization
-  execution_period_(0.0)
+  execution_period_(0.0),
+  output_ports_by_layer_(conman::graph::Layer::N_LAYERS)
 { 
   // ConMan Properties
   this->addProperty("executionPeriod",execution_period_)
@@ -45,7 +46,7 @@ RTT::os::TimeService::Seconds HookService::getPeriod() {
 
 bool HookService::setOutputLayer(
     const std::string &port_name,
-    const std::string &layer_name) 
+    const conman::graph::Layer::ID layer) 
 {
   // Get the port
   RTT::base::PortInterface *port = this->getOwnerPort(port_name);
@@ -53,11 +54,12 @@ bool HookService::setOutputLayer(
   // Make sure that the port is an output port
   if(dynamic_cast<RTT::base::OutputPortInterface*>(port)) {
     // Add to the output port map
-    output_ports_[port_name].layer = layer_name; 
+    output_ports_[port_name].layer = layer; 
     // Add to the layer map
-    output_ports_by_layer_[layer_name].insert(port);
+    output_ports_by_layer_[layer].insert(port);
 
-    RTT::log(RTT::Debug) << "Added port \""<<port_name<<"\" to the \""<<layer_name<<"\" layer." << RTT::endlog();
+    RTT::log(RTT::Debug) << "Added port \""<<port_name<<"\" to the"
+      "\""<<conman::graph::Layer::Name(layer)<<"\" layer." << RTT::endlog();
   } else {
     // Complain
     RTT::log(RTT::Error) << "Tried to set output layer for an input port."
@@ -105,7 +107,7 @@ conman::ExclusivityMode HookService::getInputExclusivity(const std::string &port
   return UNDEFINED;
 }
 
-std::string HookService::getOutputLayer(const std::string &port_name)
+conman::graph::Layer::ID HookService::getOutputLayer(const std::string &port_name)
 {
   // Get the port properties
   std::map<std::string,OutputProperties>::const_iterator props = output_ports_.find(port_name);
@@ -115,20 +117,18 @@ std::string HookService::getOutputLayer(const std::string &port_name)
   }
 
   // Return empty string if the port isn't registered
-  return "";
+  return conman::graph::Layer::UNDEFINED;
 }
 
 void HookService::getOutputPortsOnLayer(
-    const std::string &layer_name,
+    const conman::graph::Layer::ID layer,
     std::vector<RTT::base::PortInterface*> &ports)  
 {
-  // Get the layer
-  std::map<std::string, std::set<RTT::base::PortInterface*> >::iterator layer = 
-    output_ports_by_layer_.find(layer_name);
-
   // Copy the port pointers
-  if(layer != output_ports_by_layer_.end()) {
-    ports.assign(layer->second.begin(), layer->second.end());
+  if(layer < conman::graph::Layer::N_LAYERS) {
+    ports.assign(
+        output_ports_by_layer_[layer].begin(), 
+        output_ports_by_layer_[layer].end());
   }
 }
 

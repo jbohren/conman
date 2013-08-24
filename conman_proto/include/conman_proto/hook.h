@@ -57,15 +57,15 @@ namespace conman {
 
     RTT::OperationCaller<RTT::os::TimeService::Seconds(void)>
       getPeriod;
-    RTT::OperationCaller<bool(const std::string&, const std::string&)>
+    RTT::OperationCaller<bool(const std::string&, const conman::graph::Layer::ID)>
       setOutputLayer;
     RTT::OperationCaller<bool(const std::string&, const ExclusivityMode)>
       setInputExclusivity;
     RTT::OperationCaller<conman::ExclusivityMode(const std::string&)>
       getInputExclusivity;
-    RTT::OperationCaller<std::string(const std::string&)>
+    RTT::OperationCaller<conman::graph::Layer::ID(const std::string&)>
       getOutputLayer;
-    RTT::OperationCaller<void(const std::string&, std::vector<RTT::base::PortInterface*>&)>
+    RTT::OperationCaller<void(const conman::graph::Layer::ID, std::vector<RTT::base::PortInterface*>&)>
       getOutputPortsOnLayer;
     RTT::OperationCaller<bool(const std::string&)>
       setReadHardwareHook;

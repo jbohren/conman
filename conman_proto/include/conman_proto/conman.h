@@ -104,6 +104,8 @@ namespace conman {
 
     //! Boost Graph Vertex Metadata
     struct VertexProperties {
+      //! An index for use in topological sort
+      unsigned int index;
       //! The control and/or estimation block 
       RTT::TaskContext *block;
       //! The conman Hook service for this block (cached pointer)
@@ -115,14 +117,14 @@ namespace conman {
     };
 
     //! Boost Graph Type
-    typedef boost::labeled_graph<
+    typedef 
       boost::adjacency_list< 
         boost::listS, 
-        boost::vecS, 
+        boost::listS, 
         boost::directedS, 
         VertexProperties, 
-        EdgeProperties>,
-      RTT::TaskContext*> CausalGraph;
+        EdgeProperties>
+          CausalGraph;
 
     //! Boost Vertex Descriptor Type
     typedef boost::graph_traits<CausalGraph>::vertex_descriptor CausalVertex;
@@ -132,6 +134,30 @@ namespace conman {
 
     //! Iterator for iterating over all vertices in no particular order
     typedef boost::graph_traits<conman::graph::CausalGraph>::vertex_iterator VertexIterator;
+
+    //! Vertex map
+    typedef std::map<RTT::TaskContext*,conman::graph::CausalGraph::vertex_descriptor> VertexMap;
+    
+    //! Graph layer
+    struct Layer {
+      enum ID {
+        UNDEFINED = 0,
+        ESTIMATION,
+        CONTROL,
+        N_LAYERS
+      };
+
+      //! Get the layer name as a string
+      static std::string Name(const ID id)
+      {
+        switch(id) {
+          case ESTIMATION: return "ESTIMATION";
+          case CONTROL: return "CONTROL";
+        };
+        return "UNDEFINED";
+      }
+    };
+
   }
 
   /** \brief Exclusivity modes describe how a given port can be accessed. **/

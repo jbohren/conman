@@ -7,7 +7,10 @@ ORO_LIST_COMPONENT_TYPE(conman::Scheme);
 using namespace conman;
 
 Scheme::Scheme(std::string name) 
- : RTT::TaskContext(name)
+ : RTT::TaskContext(name),
+   graphs_(conman::graph::Layer::N_LAYERS),
+   vertex_maps_(conman::graph::Layer::N_LAYERS),
+   causal_ordering_(conman::graph::Layer::N_LAYERS)
 {
   // Add operations
   this->addOperation("addBlock", 
@@ -45,6 +48,8 @@ Scheme::Scheme(std::string name)
 
 bool Scheme::add_block(RTT::TaskContext *new_block)
 {
+  using namespace conman::graph;
+
   RTT::Logger::In in("Scheme::add_block(task)");
 
   // Nulls are bad
@@ -71,12 +76,12 @@ bool Scheme::add_block(RTT::TaskContext *new_block)
   const std::string block_name = new_block->getName();
 
   // Connect the block in the appropriate ports in the estimation and control layers
-  if(!add_block_to_graph(new_block, estimation_graph_, estimation_serialization_, "estimation")) {
+  if(!add_block_to_graph(new_block, Layer::ESTIMATION)) {
     RTT::log() << RTT::Logger::Error << "Could not add TaskContext \""<< block_name <<"\" to scheme estimation layer." << RTT::endlog();
     return false;
   }
 
-  if(!add_block_to_graph(new_block, control_graph_, control_serialization_, "control")) {
+  if(!add_block_to_graph(new_block, Layer::CONTROL)) {
     RTT::log() << RTT::Logger::Error << "Could not add TaskContext \""<< block_name <<"\" to scheme control layer." << RTT::endlog();
     return false;
   }
@@ -87,11 +92,11 @@ bool Scheme::add_block(RTT::TaskContext *new_block)
   // Print out the ordering
   {
   RTT::log(RTT::Info) << "New ordering: [ ";
-  for(conman::graph::CausalOrdering::iterator it = control_serialization_.begin();
-      it != control_serialization_.end();
+  for(CausalOrdering::iterator it = causal_ordering_[Layer::CONTROL].begin();
+      it != causal_ordering_[Layer::CONTROL].end();
       ++it) 
   {
-    RTT::log(RTT::Info) << control_graph_.graph()[*it].block->getName() << ", ";
+    RTT::log(RTT::Info) << graphs_[Layer::CONTROL][*it].block->getName() << ", ";
   }
   RTT::log(RTT::Info) << " ] " << RTT::endlog();
   }
@@ -131,12 +136,9 @@ bool Scheme::add_block(const std::string &block_name)
   return this->add_block(new_block);
 }
 
-
 bool Scheme::add_block_to_graph(
     RTT::TaskContext *new_block,
-    conman::graph::CausalGraph &graph,
-    conman::graph::CausalOrdering &ordering,
-    const std::string &layer)
+    const conman::graph::Layer::ID &layer)
 {
   using namespace conman::graph;
 
@@ -155,53 +157,97 @@ bool Scheme::add_block_to_graph(
     return false;
   }
 
+  // Make sure the layer is valid
+  if(layer >= conman::graph::Layer::N_LAYERS) {
+    RTT::log(RTT::Error) 
+      << "Tried to add block to invalid layer: "<< layer << RTT::endlog();
+    return false;
+  }
+
+  // Get references to the graph structures
+  CausalGraph &graph = graphs_[layer];
+  CausalOrdering &ordering = causal_ordering_[layer];
+  VertexMap &vertex_map = vertex_maps_[layer];
+
   // Add this block to the graph
   std::string new_block_name = new_block->getName();
 
-  graph.add_vertex(new_block);
-  VertexProperties &new_vertex = graph[new_block];
+  CausalGraph::vertex_descriptor new_block_descriptor = boost::add_vertex(graph);
+
+  // Store the vertex descriptor in the map
+  vertex_map[new_block] = new_block_descriptor;
+
+  // Populate the vertex properties
+  VertexProperties &new_vertex = graph[new_block_descriptor];
+  new_vertex.index = boost::num_vertices(graph)-1;
   new_vertex.block = new_block;
   new_vertex.hook = conman::Hook::GetHook(new_block);
 
+  RTT::log(RTT::Debug) << "Created vertex: "<< new_vertex.index <<" ("<< new_block_descriptor<<")" << RTT::endlog();
+
   // Regenerate the topological ordering
-  if(!regenerate_graph(graph, ordering, layer)) {
+  if(!regenerate_graph(layer)) {
     // Report error (if this block's connections add cycles)
     RTT::log(RTT::Error) << "Cannot connect block "
-      "\""<<new_block_name<<"\" in conman scheme \""<<layer<<"\" layer." <<
-      RTT::endlog();
+      "\""<<new_block_name<<"\" in conman scheme \""<<Layer::Name(layer)<<"\""
+      "layer." << RTT::endlog();
 
-    // Remove the vertex by label
-    graph.remove_vertex(new_block);
+    // Remove the edges connected to this vertex
+    boost::clear_vertex(new_block_descriptor, graph);
+    RTT::log(RTT::Debug) << "Cleared vertex edges." << RTT::endlog();
+
+    // Remove the vertex 
+    boost::remove_vertex(new_block_descriptor, graph);
+    RTT::log(RTT::Debug) << "Removed vertex: "<< new_block_descriptor << RTT::endlog();
+
+    // Remove the vertex from the map
+    vertex_map.erase(new_block);
 
     // Regenerate the graph without the vertex
-    return regenerate_graph(graph, ordering, layer);
+    // This should never fail!
+    regenerate_graph(layer);
+
+    return false;
   }
 
   return true;
 }
 
 bool Scheme::regenerate_graph(
-    conman::graph::CausalGraph &graph,
-    conman::graph::CausalOrdering &ordering,
-    const std::string &layer)
+    const conman::graph::Layer::ID &layer)
 {
   using namespace conman::graph;
 
   RTT::Logger::In in("Scheme::regenerate_graph()");
+
+  // Make sure the layer is valid
+  if(layer >= conman::graph::Layer::N_LAYERS) {
+    RTT::log(RTT::Error) 
+      << "Tried to add block to invalid layer: "<< Layer::Name(layer) << RTT::endlog();
+    return false;
+  }
+
+  // Get references to the graph structures
+  CausalGraph &graph = graphs_[layer];
+  CausalOrdering &ordering = causal_ordering_[layer];
+  VertexMap &vertex_map = vertex_maps_[layer];
 
   // Iterate over all vertices in this graph layer
   for(std::pair<VertexIterator, VertexIterator> vert_it = boost::vertices(graph);
       vert_it.first != vert_it.second;
       ++vert_it.first) 
   {
+
+    RTT::log(RTT::Debug) << "Connecting block with vertex descriptor: "<<*(vert_it.first)<<RTT::endlog();
+
     // Temporary variable for readability
-    conman::graph::VertexProperties &block_vertex = graph.graph()[*vert_it.first];
+    conman::graph::VertexProperties &block_vertex = graph[*(vert_it.first)];
 
     // Get the registered output ports for a given layer
     std::vector<RTT::base::PortInterface*> layer_ports;
     block_vertex.hook->getOutputPortsOnLayer(layer, layer_ports);
 
-    RTT::log(RTT::Debug) << "Block \""<<block_vertex.block->getName()<<"\" has "<<layer_ports.size()<<" ports in the \""<<layer<<"\" layer." << RTT::endlog();
+    RTT::log(RTT::Debug) << "Block \""<<block_vertex.block->getName()<<"\" has "<<layer_ports.size()<<" ports in the \""<<Layer::Name(layer)<<"\" layer." << RTT::endlog();
 
     // Create graph arcs for each port between blocks
     for(std::vector<RTT::base::PortInterface*>::iterator port_it = layer_ports.begin();
@@ -240,11 +286,13 @@ bool Scheme::regenerate_graph(
             sink_name = sink_port->getInterface()->getOwner()->getName();
 
           // Make sure both blocks are in the graph
-          if(graph.vertex(source_block) != graph.null_vertex() && graph.vertex(sink_block) != graph.null_vertex()) {
+          if( vertex_map.find(source_block) != vertex_map.end() && 
+              vertex_map.find(sink_block) != vertex_map.end()) 
+          {
             // Create a new edge representing this connection
             conman::graph::EdgeProperties edge_props = {true, source_port, sink_port};
             // Add the edge to the graph
-            boost::add_edge_by_label(source_block, sink_block, edge_props, graph);
+            boost::add_edge(vertex_map[source_block], vertex_map[sink_block], edge_props, graph);
           }
         }
       }
@@ -253,17 +301,26 @@ bool Scheme::regenerate_graph(
   
   // Recompute topological sort (and require that this layer is still a DAG)
   try {
-    // Clear the topologically-sorted ordering and recompute the sort
+    // Clear the topologically-sorted ordering 
     ordering.clear();
-    boost::topological_sort( graph.graph(), std::back_inserter(ordering));
+    // Recompute the topological sort
+    // NOTE: We need to use an external vertex index property for this
+    // algorithm to work since our adjacency_list uses a list as the underlying
+    // vertex data structure.
+    boost::topological_sort( 
+        graph, 
+        std::back_inserter(ordering),
+        boost::vertex_index_map(boost::get(&VertexProperties::index,graph)));
   } catch(std::exception &ex) {
     // Complain
     RTT::log(RTT::Error)
       << "Cannot regenerate topological ordering in conman scheme "
-      "\""<<layer<<"\" layer because: " << ex.what() << RTT::endlog();
+      "\""<<Layer::Name(layer)<<"\" layer because: " << ex.what() << RTT::endlog();
 
     return false;
   }
+
+  RTT::log(RTT::Debug) << "Regenerated topological ordering." << RTT::endlog();
 
   return true;
 }
@@ -421,6 +478,8 @@ bool Scheme::startHook()
 
 void Scheme::updateHook() 
 {
+  using namespace conman::graph;
+
   // What time is it
   RTT::os::TimeService::nsecs now = RTT::os::TimeService::Instance()->getNSecs();
   RTT::os::TimeService::Seconds 
@@ -433,12 +492,12 @@ void Scheme::updateHook()
   last_update_time_ = now;
 
   // Iterate through estimation graph
-  for(graph::CausalOrdering::iterator it = estimation_serialization_.begin();
-      it != estimation_serialization_.end();
+  for(CausalOrdering::iterator it = causal_ordering_[Layer::ESTIMATION].begin();
+      it != causal_ordering_[Layer::ESTIMATION].end();
       ++it)
   {
     // Temporary variable for readability
-    conman::graph::VertexProperties &block_vertex = estimation_graph_.graph()[*it];
+    VertexProperties &block_vertex = graphs_[Layer::ESTIMATION][*it];
 
     // Get the state of the task
     const RTT::base::TaskCore::TaskState block_state = block_vertex.block->getTaskState();
@@ -455,12 +514,12 @@ void Scheme::updateHook()
   }
   
   // Iterate through control graph
-  for(graph::CausalOrdering::iterator it = control_serialization_.begin();
-      it != control_serialization_.end();
+  for(CausalOrdering::iterator it = causal_ordering_[Layer::CONTROL].begin();
+      it != causal_ordering_[Layer::CONTROL].end();
       ++it)
   {
     // Temporary variable for readability
-    conman::graph::VertexProperties &block_vertex = control_graph_.graph()[*it];
+    VertexProperties &block_vertex = graphs_[Layer::CONTROL][*it];
     
     // Get the state of the task
     const RTT::base::TaskCore::TaskState block_state = block_vertex.block->getTaskState();
