@@ -7,20 +7,20 @@ TestEffortController::TestEffortController(std::string const& name) :
   RTT::TaskContext(name)
 {
   using namespace conman;
-
-  // Create block interface
-  boost::shared_ptr<conman::Hook> conman_hook = conman::GetHook(this);
-  
   // Create RTT ports
   this->addPort("effort_in", effort_in_).doc("Effort input.");
   this->addPort("effort_out", effort_out_).doc("Effort output := input + 1.");
 
+  // Load block interface
+  boost::shared_ptr<conman::Hook> conman_hook = conman::Hook::GetHook(this);
+
   // Add the ports to conman
-  conman_hook->setInputExclusivity(EXCLUSIVE, &effort_in_);
-  conman_hook->setOutputLayer("control", &effort_out_);
+  conman_hook->setInputExclusivity("effort_in", EXCLUSIVE);
+  conman_hook->setOutputLayer("effort_out", "control");
 
   // Register the conman execution hooks
-  conman_hook->setComputeControlHook(boost::bind(&TestEffortController::computeControlHook,this,_1));
+  this->addOperation("computeControlHook",&TestEffortController::computeControlHook, this);
+  conman_hook->setComputeControlHook("computeControlHook");
 }
 
 bool TestEffortController::configureHook() {

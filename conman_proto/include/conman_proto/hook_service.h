@@ -35,22 +35,22 @@ namespace conman {
     //\{
 
     //! Set the scheme layer for an output port
-    RTT::base::PortInterface* setOutputLayer(
-        const std::string &layer_name,
-        RTT::base::PortInterface *port);
+    bool setOutputLayer(
+        const std::string &port_name,
+        const std::string &layer_name);
 
     //! Set the exclusivity mode for an input port
-    RTT::base::PortInterface* setInputExclusivity(
-        const ExclusivityMode mode,
-        RTT::base::PortInterface *port);
+    bool setInputExclusivity(
+        const std::string &port_name,
+        const ExclusivityMode mode);
 
     //! Get the exclusivity mode for an input port
     conman::ExclusivityMode getInputExclusivity(
-        RTT::base::PortInterface *port);
+        const std::string &port_name);
 
     //! Get the scheme layer for an output port
     std::string getOutputLayer(
-        RTT::base::PortInterface *port);
+        const std::string &port_name);
 
     //! Get all the output ports on a given scheme layer
     void getOutputPortsOnLayer(
@@ -67,10 +67,10 @@ namespace conman {
      */
     //\{
 
-    bool setReadHardwareHook(ExecutionHook func);
-    bool setComputeEstimationHook(ExecutionHook func);
-    bool setComputeControlHook(ExecutionHook func);
-    bool setWriteHardwareHook(ExecutionHook func);
+    bool setReadHardwareHook(const std::string &operation_name);
+    bool setComputeEstimationHook(const std::string &operation_name);
+    bool setComputeControlHook(const std::string &operation_name);
+    bool setWriteHardwareHook(const std::string &operation_name);
 
     //\}
   
@@ -83,13 +83,21 @@ namespace conman {
     //\{
     
     //! Read from lower-level hardware API
-    void readHardware( RTT::os::TimeService::Seconds time, RTT::os::TimeService::Seconds period);
+    void readHardware(
+        RTT::os::TimeService::Seconds time,
+        RTT::os::TimeService::Seconds period);
     //! Compute state estimation and write to ports in the "estimation" layer.
-    void computeEstimation( RTT::os::TimeService::Seconds time, RTT::os::TimeService::Seconds period);
+    void computeEstimation(
+        RTT::os::TimeService::Seconds time,
+        RTT::os::TimeService::Seconds period);
     //! Compute control commands and write to ports in the "control" layer.
-    void computeControl( RTT::os::TimeService::Seconds time, RTT::os::TimeService::Seconds period); 
+    void computeControl(
+        RTT::os::TimeService::Seconds time,
+        RTT::os::TimeService::Seconds period); 
     //! Write to lower-level hardware API
-    void writeHardware(RTT::os::TimeService::Seconds time, RTT::os::TimeService::Seconds period);
+    void writeHardware(
+        RTT::os::TimeService::Seconds time,
+        RTT::os::TimeService::Seconds period);
 
     //\}
 
@@ -106,22 +114,38 @@ namespace conman {
     //! Minimum execution period for this component
     RTT::os::TimeService::Seconds execution_period_;
 
-    //! Map ports onto port annotations
-    std::map<RTT::base::PortInterface*, InputProperties> input_ports_;
-    std::map<RTT::base::PortInterface*, OutputProperties> output_ports_;
+    //! Map port names onto port annotations
+    std::map<std::string, InputProperties> input_ports_;
+    std::map<std::string, OutputProperties> output_ports_;
 
     //! Map conman graph layers (control, estimation) onto a set of output ports
     std::map<std::string, std::set<RTT::base::PortInterface*> > output_ports_by_layer_;
 
     /* \name Execution Hooks */
     //\{
-
-    ExecutionHook read_hardware_hook_;
-    ExecutionHook compute_estimation_hook_;
-    ExecutionHook compute_control_hook_;
-    ExecutionHook write_hardware_hook_;
+    
+    RTT::OperationCaller<void(RTT::os::TimeService::Seconds, RTT::os::TimeService::Seconds)> read_hardware_hook_;
+    RTT::OperationCaller<void(RTT::os::TimeService::Seconds, RTT::os::TimeService::Seconds)> compute_estimation_hook_;
+    RTT::OperationCaller<void(RTT::os::TimeService::Seconds, RTT::os::TimeService::Seconds)> compute_control_hook_;
+    RTT::OperationCaller<void(RTT::os::TimeService::Seconds, RTT::os::TimeService::Seconds)> write_hardware_hook_;
 
     //\}
+
+    /* \brief Get a port by name
+     *
+     * Currently, just a pass-through to the owning TaskContext's getPort(), but
+     * in the future may allow for parsing dot-separated ports on sub-services.
+     */
+    RTT::base::PortInterface* getOwnerPort(const std::string &port_name); 
+
+    /* \brief Get an operation caller by name
+     *
+     * Currently, just a pass-through to the owning TaskContext's
+     * getOperation(), but in the future may allow for parsing dot-separated
+     * operations on sub-services.
+     */
+    RTT::OperationInterfacePart* getOwnerOperation(const std::string &name);
+
   };
 }
 

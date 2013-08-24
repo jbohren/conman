@@ -55,7 +55,7 @@ bool Scheme::add_block(RTT::TaskContext *new_block)
   }
 
   // Make sure the block has the conman hook service
-  if(!conman::HasHook(new_block)) {
+  if(!conman::Hook::HasHook(new_block)) {
     RTT::log(RTT::Error) 
       << "Requested block to add does not have the conman hook service." << RTT::endlog();
     return false;
@@ -149,7 +149,7 @@ bool Scheme::add_block_to_graph(
   }
 
   // Make sure the block has the conman hook service
-  if(!conman::HasHook(new_block)) {
+  if(!conman::Hook::HasHook(new_block)) {
     RTT::log(RTT::Error) 
       << "Requested block to add does not have the conman hook service." << RTT::endlog();
     return false;
@@ -161,7 +161,7 @@ bool Scheme::add_block_to_graph(
   graph.add_vertex(new_block);
   VertexProperties &new_vertex = graph[new_block];
   new_vertex.block = new_block;
-  new_vertex.hook = conman::GetHook(new_block);
+  new_vertex.hook = conman::Hook::GetHook(new_block);
 
   // Regenerate the topological ordering
   if(!regenerate_graph(graph, ordering, layer)) {
