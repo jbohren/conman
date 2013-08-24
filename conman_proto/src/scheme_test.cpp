@@ -30,10 +30,10 @@ int ORO_main(int argc, char** argv) {
     deployer.import("conman_proto");
 
   TestEffortController 
-    left_1("left_1"),
-    left_2("left_2"),
-    right_1("right_1"),
-    right_2("right_2");
+    A("A"),
+    B("B"),
+    C("C"),
+    D("D");
 
     conman::Scheme scheme("Scheme"); 
     scheme.connectPeers(&deployer);
@@ -41,16 +41,17 @@ int ORO_main(int argc, char** argv) {
 
     // Connect some stuff
     // left_2 --> left_1 --> right_1 --X--> left_2
-    left_2.getPort("effort_out")->connectTo( left_1.getPort("effort_in"));
-    left_1.getPort("effort_out")->connectTo( right_1.getPort("effort_in"));
-    right_1.getPort("effort_out")->connectTo( right_2.getPort("effort_in"));
-    right_1.getPort("effort_out")->connectTo( left_2.getPort("effort_in"));
+    D.getPort("effort_out")->connectTo(A.getPort("effort_in"));
+    A.getPort("effort_out")->connectTo(B.getPort("effort_in"));
+    A.getPort("effort_out")->connectTo(C.getPort("effort_in"));
+    B.getPort("effort_out")->connectTo(C.getPort("effort_in"));
+    C.getPort("effort_out")->connectTo(D.getPort("effort_in"));
 
     // Add the blocks
-    scheme.add_block(&left_1);
-    scheme.add_block(&right_1);
-    scheme.add_block(&left_2);
-    scheme.add_block(&right_2);
+    scheme.add_block(&C);
+    scheme.add_block(&D);
+    scheme.add_block(&B);
+    scheme.add_block(&A);
 
     //RTT::Logger::log() << RTT::Logger::Info << "Control groups: " << RTT::endlog();
 

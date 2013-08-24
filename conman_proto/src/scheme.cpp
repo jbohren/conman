@@ -268,8 +268,8 @@ bool Scheme::regenerate_graph(
 
         // Pointers to the endpoints of this connection
         RTT::base::PortInterface  
-          *source_port = connection->getOutputEndPoint()->getPort(), 
-          *sink_port = connection->getInputEndPoint()->getPort();
+          *source_port = connection->getInputEndPoint()->getPort(), 
+          *sink_port = connection->getOutputEndPoint()->getPort();
 
         // Make sure the ports and components are not null
         if( source_port != NULL && source_port->getInterface() != NULL
@@ -293,6 +293,8 @@ bool Scheme::regenerate_graph(
             conman::graph::EdgeProperties edge_props = {true, source_port, sink_port};
             // Add the edge to the graph
             boost::add_edge(vertex_map[source_block], vertex_map[sink_block], edge_props, graph);
+
+            RTT::log(RTT::Debug) << "Created edge "<<source_name<<" --> "<<sink_name<< RTT::endlog();
           }
         }
       }
@@ -309,7 +311,7 @@ bool Scheme::regenerate_graph(
     // vertex data structure.
     boost::topological_sort( 
         graph, 
-        std::back_inserter(ordering),
+        std::front_inserter(ordering),
         boost::vertex_index_map(boost::get(&VertexProperties::index,graph)));
   } catch(std::exception &ex) {
     // Complain

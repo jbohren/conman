@@ -206,14 +206,14 @@ namespace conman
 
     //! \name Graph structures
     //\{
+
+    //! Graphs for each layer representing data port network
     std::vector<conman::graph::CausalGraph> graphs_;
-
+    //! Mappings from TaskContext pointers to boost vertex descriptors
     std::vector<conman::graph::VertexMap> vertex_maps_;
-    //\}
-
-    //! \name Topologically-sorted structures
-    //\{
+    //! Topologically sorted ordering of each graph
     std::vector<conman::graph::CausalOrdering> causal_ordering_;
+
     //\}
 
     //! Maps blocks onto lists of conflicting blocks for quick access

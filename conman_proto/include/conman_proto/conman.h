@@ -130,7 +130,7 @@ namespace conman {
     typedef boost::graph_traits<CausalGraph>::vertex_descriptor CausalVertex;
 
     //! Topological Ordering Structure
-    typedef std::vector<conman::graph::CausalVertex> CausalOrdering;
+    typedef std::list<conman::graph::CausalVertex> CausalOrdering;
 
     //! Iterator for iterating over all vertices in no particular order
     typedef boost::graph_traits<conman::graph::CausalGraph>::vertex_iterator VertexIterator;
