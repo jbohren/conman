@@ -57,11 +57,11 @@ namespace conman {
 
     RTT::OperationCaller<RTT::os::TimeService::Seconds(void)>
       getPeriod;
-    RTT::OperationCaller<RTT::base::PortInterface*(const std::string&, const std::string&)>
+    RTT::OperationCaller<bool(const std::string&, const std::string&)>
       setOutputLayer;
-    RTT::OperationCaller<RTT::base::PortInterface*(const std::string&, const ExclusivityMode)>
+    RTT::OperationCaller<bool(const std::string&, const ExclusivityMode)>
       setInputExclusivity;
-    RTT::OperationCaller<conman::ExclusivityMode( RTT::base::PortInterface *)>
+    RTT::OperationCaller<conman::ExclusivityMode(const std::string&)>
       getInputExclusivity;
     RTT::OperationCaller<std::string(const std::string&)>
       getOutputLayer;
@@ -93,12 +93,8 @@ namespace conman {
     //! Get the conman Hook service and return 
     static boost::shared_ptr<Hook> GetHook(RTT::TaskContext *tc)
     {
-      if(HasHook(tc)) {
-        // Return the service
-        return tc->getProvider<Hook>("conman");
-      }
-
-      return boost::shared_ptr<Hook>();
+      // Return the service
+      return tc->getProvider<Hook>("conman");
     }
   };
 

@@ -1,7 +1,11 @@
 
+#include <rtt/plugin/ServicePlugin.hpp>
+
 #include <conman_proto/hook_service.h>
 
 using namespace conman;
+
+ORO_SERVICE_NAMED_PLUGIN(conman::HookService, "conman");
 
 HookService::HookService(RTT::TaskContext* owner) :
   RTT::Service("conman",owner),
@@ -21,6 +25,16 @@ HookService::HookService(RTT::TaskContext* owner) :
   this->addOperation("computeEstimation",&HookService::computeEstimation,this, RTT::ClientThread);
   this->addOperation("computeControl",&HookService::computeControl,this, RTT::ClientThread);
   this->addOperation("writeHardware",&HookService::writeHardware,this, RTT::ClientThread);
+
+  this->addOperation("setOutputLayer",&HookService::setOutputLayer,this,RTT::ClientThread);
+  this->addOperation("setInputExclusivity",&HookService::setInputExclusivity,this,RTT::ClientThread);
+  this->addOperation("getInputExclusivity",&HookService::getInputExclusivity,this,RTT::ClientThread);
+  this->addOperation("getOutputLayer",&HookService::getOutputLayer,this,RTT::ClientThread);
+  this->addOperation("getOutputPortsOnLayer",&HookService::getOutputPortsOnLayer,this,RTT::ClientThread);
+  this->addOperation("setReadHardwareHook",&HookService::setReadHardwareHook,this,RTT::ClientThread);
+  this->addOperation("setComputeEstimationHook",&HookService::setComputeEstimationHook,this,RTT::ClientThread);
+  this->addOperation("setComputeControlHook",&HookService::setComputeControlHook,this,RTT::ClientThread);
+  this->addOperation("setWriteHardwareHook",&HookService::setWriteHardwareHook,this,RTT::ClientThread);
 }
 
 
@@ -42,6 +56,8 @@ bool HookService::setOutputLayer(
     output_ports_[port_name].layer = layer_name; 
     // Add to the layer map
     output_ports_by_layer_[layer_name].insert(port);
+
+    RTT::log(RTT::Debug) << "Added port \""<<port_name<<"\" to the \""<<layer_name<<"\" layer." << RTT::endlog();
   } else {
     // Complain
     RTT::log(RTT::Error) << "Tried to set output layer for an input port."

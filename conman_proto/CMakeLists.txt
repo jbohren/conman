@@ -27,10 +27,19 @@ orocos_use_package( ocl-logging )
 #orocos_plugin(conman_test_plugins src/conman_test_plugins.cpp)
 
 #orocos_executable(port_dag src/port_dag.cpp)
-add_definitions(-DRTT_STATIC)
-orocos_library(conman_proto src/scheme.cpp src/hook_service.cpp src/conman.cpp src/conman_test_plugins.cpp)
+add_definitions(-DRTT_COMPONENT)
+orocos_plugin(conman 
+  src/scheme.cpp 
+  src/conman.cpp 
+  src/hook_service.cpp )
+
+orocos_component(conman_test_components
+  src/conman_test_plugins.cpp)
+
 orocos_executable(scheme_test src/scheme_test.cpp)
-target_link_libraries(scheme_test conman_proto)
+target_link_libraries(scheme_test conman conman_test_components)
+
+orocos_generate_package()
 
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations

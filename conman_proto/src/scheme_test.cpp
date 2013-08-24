@@ -21,33 +21,36 @@ int ORO_main(int argc, char** argv) {
 
   RTT::Logger::log().setStdStream(std::cerr);
   RTT::Logger::log().mayLogStdOut(true);
-  RTT::Logger::log().setLogLevel(RTT::Logger::Info);
+  RTT::Logger::log().setLogLevel(RTT::Logger::Debug);
 
   RTT::Logger::In in("Prototype");
+
+  {
+    OCL::DeploymentComponent deployer("Deployer");
+    deployer.import("conman_proto");
 
   TestEffortController 
     left_1("left_1"),
     left_2("left_2"),
     right_1("right_1");
 
-  {
     conman::Scheme scheme("Scheme"); 
 
     // Connect some stuff
+    // left_2 --> left_1 --> 
     left_2.getPort("effort_out")->connectTo( left_1.getPort("effort_in"));
     left_1.getPort("effort_out")->connectTo( right_1.getPort("effort_in"));
     right_1.getPort("effort_out")->connectTo( left_2.getPort("effort_in"));
 
     // Add the blocks
     scheme.add_block(&left_1);
-    scheme.add_block(&left_2);
     scheme.add_block(&right_1);
+    scheme.add_block(&left_2);
 
     //RTT::Logger::log() << RTT::Logger::Info << "Control groups: " << RTT::endlog();
 
     //manager.connect("c0.control.out.left_arm.joint_effort","c1.control.in.left_arm.joint_effort",RTT::ConnPolicy());
 
-    OCL::DeploymentComponent deployer("Deployer");
     scheme.connectPeers(&deployer);
 
     OCL::TaskBrowser task_browser(&scheme);

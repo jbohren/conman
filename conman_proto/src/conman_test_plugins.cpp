@@ -1,7 +1,8 @@
+
+#include <rtt/Component.hpp>
+
 #include <conman_proto/conman_test_plugins.h>
 #include <conman_proto/hook.h>
-
-ORO_LIST_COMPONENT_TYPE(TestEffortController)
 
 TestEffortController::TestEffortController(std::string const& name) :
   RTT::TaskContext(name)
@@ -45,3 +46,6 @@ void TestEffortController::computeControlHook(
   effort_in_.read(effort);
   effort_out_.write(effort + 1);
 }
+
+ORO_LIST_COMPONENT_TYPE(TestEffortController)
+ORO_CREATE_COMPONENT_LIBRARY()

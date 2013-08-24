@@ -86,14 +86,14 @@ bool Scheme::add_block(RTT::TaskContext *new_block)
 
   // Print out the ordering
   {
-  RTT::log(RTT::Debug) << "New ordering: [ ";
+  RTT::log(RTT::Info) << "New ordering: [ ";
   for(conman::graph::CausalOrdering::iterator it = control_serialization_.begin();
       it != control_serialization_.end();
       ++it) 
   {
-    RTT::log() << RTT::Logger::Info << control_graph_.graph()[*it].block->getName() << ", ";
+    RTT::log(RTT::Info) << control_graph_.graph()[*it].block->getName() << ", ";
   }
-  RTT::log() << RTT::Logger::Info << " ] " << RTT::endlog();
+  RTT::log(RTT::Info) << " ] " << RTT::endlog();
   }
 
   return true;
@@ -200,6 +200,8 @@ bool Scheme::regenerate_graph(
     // Get the registered output ports for a given layer
     std::vector<RTT::base::PortInterface*> layer_ports;
     block_vertex.hook->getOutputPortsOnLayer(layer, layer_ports);
+
+    RTT::log(RTT::Debug) << "Block \""<<block_vertex.block->getName()<<"\" has "<<layer_ports.size()<<" ports in the \""<<layer<<"\" layer." << RTT::endlog();
 
     // Create graph arcs for each port between blocks
     for(std::vector<RTT::base::PortInterface*>::iterator port_it = layer_ports.begin();
