@@ -15,13 +15,19 @@ TestEffortController::TestEffortController(std::string const& name) :
   // Load block interface
   boost::shared_ptr<conman::Hook> conman_hook = conman::Hook::GetHook(this);
 
-  // Add the ports to conman
-  conman_hook->setInputExclusivity("effort_in", Exclusivity::EXCLUSIVE);
-  conman_hook->setOutputLayer("effort_out", Layer::CONTROL);
+  if(conman_hook.get()) {
 
-  // Register the conman execution hooks
-  this->addOperation("computeControlHook",&TestEffortController::computeControlHook, this);
-  conman_hook->setComputeControlHook("computeControlHook");
+    // Add the ports to conman
+    conman_hook->setInputExclusivity("effort_in", Exclusivity::EXCLUSIVE);
+    conman_hook->setOutputLayer("effort_out", Layer::CONTROL);
+
+    // Register the conman execution hooks
+    this->addOperation("computeControlHook",&TestEffortController::computeControlHook, this);
+    conman_hook->setComputeControlHook("computeControlHook");
+
+  } else {
+    RTT::log(RTT::Fatal) << "Could not load conman hook." << RTT::endlog();
+  }
 }
 
 bool TestEffortController::configureHook() {
