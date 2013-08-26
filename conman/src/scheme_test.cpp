@@ -52,15 +52,15 @@ int ORO_main(int argc, char** argv) {
     //C.getPort("effort_out")->connectTo(D.getPort("effort_in"));
 
     // Add the blocks
-    scheme.add_block(&C);
-    scheme.add_block(&D);
-    scheme.add_block(&B);
-    scheme.add_block(&A);
+    scheme.addBlock(&C);
+    scheme.addBlock(&D);
+    scheme.addBlock(&B);
+    scheme.addBlock(&A);
 
     std::vector<std::string> group_bc;
     group_bc.push_back("B");
     group_bc.push_back("C");
-    scheme.create_group("BC",group_bc);
+    scheme.createGroup("BC",group_bc);
 
     //RTT::Logger::log() << RTT::Logger::Info << "Control groups: " << RTT::endlog();
 

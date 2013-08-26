@@ -152,7 +152,7 @@ namespace conman
     //! Disable all Conman blocks simultaneously
     bool disableBlocks(const bool strict);
     //! Disable multiple Conman blocks (or groups) by name simultaneously
-    bool disableblocks(
+    bool disableBlocks(
         const std::vector<std::string> &block_names,
         const bool strict);
 
@@ -179,7 +179,7 @@ namespace conman
      * then calling \ref enable_blocks for a list of blocks,
      *
      * NOTE: This function does not provide a "force" option like \ref
-     * enableBlock or switch_blocks, because the only conflicts that are
+     * enableBlock or switchBlocks, because the only conflicts that are
      * possible are in the list of blocks to be enabled, and the caller should
      * know whether or not these are in conflict.
      *

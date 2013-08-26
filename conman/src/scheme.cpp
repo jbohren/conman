@@ -1,7 +1,3 @@
-/** Copyright (c) 2013, Jonathan Bohren, all rights reserved. 
- * This software is released under the BSD 3-clause license, for the details of
- * this license, please see LICENSE.txt at the root of this repository. 
- */
 
 #include <boost/bind.hpp>
 
@@ -39,7 +35,7 @@ Scheme::Scheme(std::string name)
     .doc("Remove a conman block from this scheme.");
 
   this->addOperation("getBlocks", 
-      &Scheme::get_blocks, this, 
+      &Scheme::getBlocks, this, 
       RTT::OwnThread)
     .doc("Get the list of all blocks.");
 
@@ -50,17 +46,17 @@ Scheme::Scheme(std::string name)
     .doc("Enable a block in this scheme.");
 
   this->addOperation("disableBlock", 
-      (bool (Scheme::*)(const std::string&))&Scheme::enableBlock, this, 
+      (bool (Scheme::*)(const std::string&))&Scheme::disableBlock, this, 
       RTT::OwnThread)
     .doc("Disable a block in this scheme.");
 
   this->addOperation("switchBlocks", 
-      &Scheme::switch_blocks, this, 
+      &Scheme::switchBlocks, this, 
       RTT::OwnThread)
     .doc("Simultaneousy enable and disable a list of blocks, any block not in either list will remain in its current state.");
 
   this->addOperation("setEnabledBlocks", 
-      &Scheme::set_enabled_blocks, this, 
+      &Scheme::setEnabledBlocks, this, 
       RTT::OwnThread)
     .doc("Set the list running blocks, any block not on the list will be disabled.");
 }
@@ -68,7 +64,7 @@ Scheme::Scheme(std::string name)
 
 ///////////////////////////////////////////////////////////////////////////////
 
-std::vector<std::string> Scheme::get_blocks() 
+std::vector<std::string> Scheme::getBlocks() 
 {
   using namespace conman::graph;
 
@@ -169,7 +165,7 @@ bool Scheme::addBlock(RTT::TaskContext *new_block)
   {
     const Layer::ID &layer = *layer_it;
 
-    if(!add_block_to_graph(new_vertex, layer)) {
+    if(!addBlockToGraph(new_vertex, layer)) {
       success = false;
       break;
     }
@@ -214,13 +210,13 @@ bool Scheme::addBlock(RTT::TaskContext *new_block)
   return success;
 }
 
-bool Scheme::add_block_to_graph(
+bool Scheme::addBlockToGraph(
     conman::graph::VertexProperties::Ptr new_vertex,
     const conman::Layer::ID &layer)
 {
   using namespace conman::graph;
 
-  RTT::Logger::In in("Scheme::add_block_to_graph");
+  RTT::Logger::In in("Scheme::addBlockToGraph");
 
   // Make sure the vertex isn't null
   if(new_vertex.get() == NULL) {
@@ -262,14 +258,14 @@ bool Scheme::add_block_to_graph(
     flow_vertex_map[new_block]<<")" << RTT::endlog();
 
   // Regenerate the topological ordering
-  if(!regenerate_graph(layer)) {
+  if(!regenerateGraph(layer)) {
     // Report error (if this block's connections add cycles)
     RTT::log(RTT::Error) << "Cannot connect block \"" << new_block->getName()
       << "\" in conman scheme \"" << Layer::Name(layer) << "\"" "layer." <<
       RTT::endlog();
 
     // Clean up this graph (but not the others, yet)
-    this->remove_block_from_graph(new_vertex, layer);
+    this->removeBlockFromGraph(new_vertex, layer);
 
     return false;
   }
@@ -339,7 +335,7 @@ bool Scheme::removeBlock(
       // Get the vertex properties pointer
       VertexProperties::Ptr vertex = flow_graph[flow_vertex_map[block]];
       // Remove the vertex from the graph
-      if(!this->remove_block_from_graph(vertex,layer)) {
+      if(!this->removeBlockFromGraph(vertex,layer)) {
         // Complain
         RTT::log(RTT::Fatal) << "Failed to remove block \"" << block->getName()
           << "\" from scheme " << Layer::Name(layer) << " layer." <<
@@ -377,13 +373,13 @@ bool Scheme::removeBlock(
   return success;
 }
 
-bool Scheme::remove_block_from_graph(
+bool Scheme::removeBlockFromGraph(
     conman::graph::VertexProperties::Ptr vertex,
     const conman::Layer::ID &layer)
 {
   using namespace conman::graph;
 
-  RTT::Logger::In in("Scheme::remove_block_from_graph");
+  RTT::Logger::In in("Scheme::removeBlockFromGraph");
 
   // Get references to the graph structures
   BlockGraph &flow_graph = flow_graphs_[layer];
@@ -402,19 +398,19 @@ bool Scheme::remove_block_from_graph(
   flow_vertex_map.erase(vertex->block);
 
   // Regenerate the graph without the vertex
-  if(!regenerate_graph(layer)) {
+  if(!regenerateGraph(layer)) {
     return false;
   }
 
   return true;
 }
 
-bool Scheme::regenerate_graph(
+bool Scheme::regenerateGraph(
     const conman::Layer::ID &layer)
 {
   using namespace conman::graph;
 
-  RTT::Logger::In in("Scheme::regenerate_graph");
+  RTT::Logger::In in("Scheme::regenerateGraph");
 
   // Make sure the layer is valid
   if(layer >= conman::Layer::ids.size()) {
@@ -674,7 +670,7 @@ bool Scheme::disbandGroup( const std::string &group_name)
   return true; 
 }
 
-bool Scheme::get_group(
+bool Scheme::getGroup(
     const std::string &group_name,
     std::vector<std::string> &grouped_blocks) 
 {
@@ -799,7 +795,7 @@ bool Scheme::enableBlock(const std::string &block_name, const bool force)
   if(group != block_groups_.end()) {
 
     // Enable the blocks in this group
-    return this->enable_blocks(
+    return this->enableBlocks(
         std::vector<std::string>(group->second.begin(),group->second.end()),
         true,
         force);
@@ -862,7 +858,7 @@ bool Scheme::enableBlock(RTT::TaskContext *block, const bool force)
           << RTT::endlog();
 
         // Make sure we can actually disable it
-        if(this->enableBlock(conflict_block) == false) {
+        if(this->disableBlock(conflict_block) == false) {
           RTT::log(RTT::Error) << "Could not disable block \"" <<
             conflict_block->getName() << "\"" << RTT::endlog();
           return false;
@@ -886,7 +882,7 @@ bool Scheme::enableBlock(RTT::TaskContext *block, const bool force)
   return true;
 }
 
-bool Scheme::enableBlock(const std::string &block_name)
+bool Scheme::disableBlock(const std::string &block_name)
 {
   // First check if this block is a group
   std::map<std::string, std::set<std::string> >::iterator group = 
@@ -894,16 +890,16 @@ bool Scheme::enableBlock(const std::string &block_name)
 
   if(group != block_groups_.end()) {
     // Enable the blocks in this group
-    return this->disable_blocks(
+    return this->disableBlocks(
         std::vector<std::string>(group->second.begin(),group->second.end()),
         true);
   }
 
   // Disable the block by name
-  return this->enableBlock(this->getPeer(block_name));
+  return this->disableBlock(this->getPeer(block_name));
 }
 
-bool Scheme::enableBlock(RTT::TaskContext* block) 
+bool Scheme::disableBlock(RTT::TaskContext* block) 
 {
   if(block == NULL) { return false; }
 
@@ -920,7 +916,7 @@ bool Scheme::enableBlock(RTT::TaskContext* block)
   return true;
 }
 
-bool Scheme::enable_blocks(
+bool Scheme::enableBlocks(
     const std::vector<std::string> &block_names,
     const bool strict,
     const bool force)
@@ -940,7 +936,7 @@ bool Scheme::enable_blocks(
   return success;
 }
 
-bool Scheme::disable_blocks(const bool strict)
+bool Scheme::disableBlocks(const bool strict)
 {
   bool success = true;
 
@@ -949,7 +945,7 @@ bool Scheme::disable_blocks(const bool strict)
       ++it)
   {
     // Try to disable the block
-    success &= this->enableBlock(it->second->block);
+    success &= this->disableBlock(it->second->block);
 
     // Break on failure if strict
     if(!success && strict) { return false; }
@@ -958,7 +954,7 @@ bool Scheme::disable_blocks(const bool strict)
   return success;
 }
 
-bool Scheme::disable_blocks(
+bool Scheme::disableBlocks(
     const std::vector<std::string> &block_names,
     const bool strict)
 {
@@ -969,7 +965,7 @@ bool Scheme::disable_blocks(
       ++it)
   {
     // Try to disable the block
-    success &= this->enableBlock(*it);
+    success &= this->disableBlock(*it);
 
     // Break on failure if strict
     if(!success && strict) { return false; }
@@ -978,7 +974,7 @@ bool Scheme::disable_blocks(
   return success;
 }
 
-bool Scheme::switch_blocks(
+bool Scheme::switchBlocks(
     const std::vector<std::string> &disable_block_names,
     const std::vector<std::string> &enable_block_names,
     const bool strict,
@@ -987,16 +983,16 @@ bool Scheme::switch_blocks(
   // First disable blocks, so that "force" can be used appropriately when
   // enabling blocks. Also note that we used & instead of && in order to prevent
   // short-circuiting.
-  return disable_blocks(disable_block_names, strict) & 
-    enable_blocks(enable_block_names, strict, force);
+  return disableBlocks(disable_block_names, strict) & 
+    enableBlocks(enable_block_names, strict, force);
 }
 
-bool Scheme::set_enabled_blocks(
+bool Scheme::setEnabledBlocks(
     const std::vector<std::string> &enabled_block_names,
     const bool strict)
 {
-  return this->disable_blocks(strict) & 
-    this->enable_blocks(enabled_block_names, strict, false);
+  return this->disableBlocks(strict) & 
+    this->enableBlocks(enabled_block_names, strict, false);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
