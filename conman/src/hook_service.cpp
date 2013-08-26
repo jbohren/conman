@@ -1,3 +1,7 @@
+/** Copyright (c) 2013, Jonathan Bohren, all rights reserved. 
+ * This software is released under the BSD 3-clause license, for the details of
+ * this license, please see LICENSE.txt at the root of this repository. 
+ */
 
 #include <rtt/plugin/ServicePlugin.hpp>
 
@@ -5,10 +9,10 @@
 
 using namespace conman;
 
-ORO_SERVICE_NAMED_PLUGIN(conman::HookService, "conman");
+ORO_SERVICE_NAMED_PLUGIN(conman::HookService, "conman_hook");
 
 HookService::HookService(RTT::TaskContext* owner) :
-  RTT::Service("conman",owner),
+  RTT::Service("conman_hook",owner),
   // Property Initialization
   execution_period_(0.0),
   output_ports_by_layer_(conman::Layer::ids.size())

@@ -1,3 +1,8 @@
+/** Copyright (c) 2013, Jonathan Bohren, all rights reserved. 
+ * This software is released under the BSD 3-clause license, for the details of
+ * this license, please see LICENSE.txt at the root of this repository. 
+ */
+
 #ifndef __CONMAN_HOOK_H
 #define __CONMAN_HOOK_H
 
@@ -24,7 +29,7 @@ namespace conman {
     typedef boost::shared_ptr<const Hook> ConstPtr;
 
     Hook(RTT::TaskContext *owner) :
-      RTT::ServiceRequester("conman", owner),
+      RTT::ServiceRequester("conman_hook", owner),
       // :'<,'>s/      \(.\+\)/      \1("\1"),/g
       getPeriod("getPeriod"),
       setOutputLayer("setOutputLayer"),
@@ -91,14 +96,14 @@ namespace conman {
     //! Checks if an RTT task has the conman Hook RTT service
     static bool HasHook(RTT::TaskContext *task)
     {
-      return task->provides()->hasService("conman");
+      return task->provides()->hasService("conman_hook");
     }
 
     //! Get the conman Hook service and return 
     static boost::shared_ptr<Hook> GetHook(RTT::TaskContext *tc)
     {
       // Return the service
-      return tc->getProvider<Hook>("conman");
+      return tc->getProvider<Hook>("conman_hook");
     }
   };
 

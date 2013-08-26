@@ -1,3 +1,7 @@
+/** Copyright (c) 2013, Jonathan Bohren, all rights reserved. 
+ * This software is released under the BSD 3-clause license, for the details of
+ * this license, please see LICENSE.txt at the root of this repository. 
+ */
 
 #ifndef __CONMAN_SCHEME_H
 #define __CONMAN_SCHEME_H
@@ -17,28 +21,28 @@ namespace conman
     //\{
 
     //! Get the names of all the blocks in this scheme
-    std::vector<std::string> get_blocks();
+    std::vector<std::string> getBlocks();
 
     /*** \brief Add a block which is already a peer of this component by name.
      *
      * The block with this name must already be a peer of this Scheme.
      */
-    bool add_block(const std::string &name);
+    bool addBlock(const std::string &name);
 
     /*** \brief Add a block that has already been constructed
      *
      * After calling add_block, new_block will be a peer of this Scheme.
      *
      */
-    bool add_block(RTT::TaskContext *new_block);
+    bool addBlock(RTT::TaskContext *new_block);
 
     /** \brief Remove a block from the scheme by name
      */
-    bool remove_block(const std::string &name);
+    bool removeBlock(const std::string &name);
 
     /** \brief Remove a block from the scheme
      */
-    bool remove_block(RTT::TaskContext *block);
+    bool removeBlock(RTT::TaskContext *block);
 
     //\}
 
@@ -59,25 +63,25 @@ namespace conman
     //\{
 
     //! Add blocks to a group 
-    bool create_group(
+    bool createGroup(
         const std::string &group_name,
         const std::vector<std::string> &grouped_blocks);
 
     //! Add a single block to a group
-    bool add_to_group(
+    bool addToGroup(
         const std::string &group_name,
         const std::string &new_block);
 
     //! Remove a single block from a group
-    bool remove_from_group(
+    bool removeFromGroup(
         const std::string &group_name,
         const std::string &block);
 
     //! Remove the blocks from a group, and then remove the group
-    bool disband_group(const std::string &group_name);
+    bool disbandGroup(const std::string &group_name);
 
     //! Get the blocks in a given group
-    bool get_group(
+    bool getGroup(
         const std::string &group_name,
         std::vector<std::string> &grouped_blocks);
 
@@ -92,13 +96,13 @@ namespace conman
     //\{
     
     //! Compute the conflicts between all blocks in the scheme
-    void compute_conflicts();
+    void computeConflicts();
     //! Compute the conflicts with a single block in the scheme
-    void compute_conflicts(RTT::TaskContext *block);
+    void computeConflicts(RTT::TaskContext *block);
     //! Compute the conflicts with a single block in the scheme by name
-    void compute_conflicts(const std::string &block_name);
+    void computeConflicts(const std::string &block_name);
     //! Compute the conflicts with a list of blocks in the scheme by name
-    void compute_conflicts(const std::vector<std::string> &block_names);
+    void computeConflicts(const std::vector<std::string> &block_names);
 
     //\}
 
@@ -118,7 +122,7 @@ namespace conman
      * blocks will be disabled, themselves.
      *
      * This attempts to start() the block, which requires that the block be
-     * configured before enable_block() is called. This is because calls to
+     * configured before enableBlock() is called. This is because calls to
      * configure() may block for unacceptable lengths of time.
      *
      *
@@ -132,23 +136,23 @@ namespace conman
     //\{
 
     //! Enable a single conman Block
-    bool enable_block(RTT::TaskContext *block, const bool force);
+    bool enableBlock(RTT::TaskContext *block, const bool force);
     //! Enable a single Conman block (or group) by name
-    bool enable_block(const std::string &block_name, const bool force);
+    bool enableBlock(const std::string &block_name, const bool force);
     //! Enable multiple Conman blocks (or groups) by name simultaneously
-    bool enable_blocks(
+    bool enableBlocks(
         const std::vector<std::string> &block_names, 
         const bool strict,
         const bool force);
 
     //! Disable a single conman Block
-    bool disable_block(RTT::TaskContext *block);
+    bool disableBlock(RTT::TaskContext *block);
     //! Disable a single Conman block (or group) by name
-    bool disable_block(const std::string &block_name);
+    bool disableBlock(const std::string &block_name);
     //! Disable all Conman blocks simultaneously
-    bool disable_blocks(const bool strict);
+    bool disableBlocks(const bool strict);
     //! Disable multiple Conman blocks (or groups) by name simultaneously
-    bool disable_blocks(
+    bool disableblocks(
         const std::vector<std::string> &block_names,
         const bool strict);
 
@@ -162,7 +166,7 @@ namespace conman
      * of all blocks listed even if some fail.
      *
      */
-    bool switch_blocks(
+    bool switchBlocks(
         const std::vector<std::string> &disable_block_names,
         const std::vector<std::string> &enable_block_names, 
         const bool strict, 
@@ -175,14 +179,14 @@ namespace conman
      * then calling \ref enable_blocks for a list of blocks,
      *
      * NOTE: This function does not provide a "force" option like \ref
-     * enable_block or switch_blocks, because the only conflicts that are
+     * enableBlock or switch_blocks, because the only conflicts that are
      * possible are in the list of blocks to be enabled, and the caller should
      * know whether or not these are in conflict.
      *
-     * \param strict Break on error if true, otherwise, try to enable all blocks
-     * on the list even if some can't be enabled.
+     * \param strict Break on error if true, otherwise, try to enable all
+     * blocks on the list even if some can't be enabled.
      */
-    bool set_enabled_blocks(
+    bool setEnabledBlocks(
         const std::vector<std::string> &enabled_block_names, 
         const bool strict);
 
@@ -218,7 +222,9 @@ namespace conman
      */
     RTT::os::TimeService::nsecs last_update_time_;
 
-    //! A map from block names onto flow graph vertex properties (for fast access)
+    /** \brief A map from block names onto flow graph vertex properties (for
+     * fast access)
+     */
     std::map<std::string,conman::graph::VertexProperties::Ptr> blocks_;
 
     //! A list of blocks ordered by index (for linear re-indexing)
@@ -257,7 +263,7 @@ namespace conman
      * This is an internal function. For adding a block from
      * the public API, see \ref add_block.
      */
-    bool add_block_to_graph(
+    bool addBlockToGraph(
         conman::graph::VertexProperties::Ptr new_vertex,
         const conman::Layer::ID &layer);
 
@@ -269,7 +275,7 @@ namespace conman
      * This is an internal function. For adding a block from
      * the public API, see \ref remove_block.
      */
-    bool remove_block_from_graph(
+    bool removeBlockFromGraph(
         conman::graph::VertexProperties::Ptr vertex,
         const conman::Layer::ID &layer);
 
@@ -281,7 +287,7 @@ namespace conman
      * This only modifies edges. Note that only edges between two blocks which
      * have already been added to the graph will be generated.
      */
-    bool regenerate_graph(
+    bool regenerateGraph(
         const conman::Layer::ID &layer);
   };
 }

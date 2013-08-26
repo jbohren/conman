@@ -1,3 +1,7 @@
+/** Copyright (c) 2013, Jonathan Bohren, all rights reserved. 
+ * This software is released under the BSD 3-clause license, for the details of
+ * this license, please see LICENSE.txt at the root of this repository. 
+ */
 
 #include <boost/bind.hpp>
 
@@ -25,12 +29,12 @@ Scheme::Scheme(std::string name)
 {
   // Add operations
   this->addOperation("addBlock", 
-      (bool (Scheme::*)(const std::string&))&Scheme::add_block, this, 
+      (bool (Scheme::*)(const std::string&))&Scheme::addBlock, this, 
       RTT::OwnThread)
     .doc("Add a conman block into this scheme.");
   
   this->addOperation("removeBlock", 
-      (bool (Scheme::*)(const std::string&))&Scheme::remove_block, this, 
+      (bool (Scheme::*)(const std::string&))&Scheme::removeBlock, this, 
       RTT::OwnThread)
     .doc("Remove a conman block from this scheme.");
 
@@ -41,12 +45,12 @@ Scheme::Scheme(std::string name)
 
   // Block runtime management
   this->addOperation("enableBlock", 
-      (bool (Scheme::*)(const std::string&, bool))&Scheme::enable_block, this, 
+      (bool (Scheme::*)(const std::string&, bool))&Scheme::enableBlock, this, 
       RTT::OwnThread)
     .doc("Enable a block in this scheme.");
 
   this->addOperation("disableBlock", 
-      (bool (Scheme::*)(const std::string&))&Scheme::disable_block, this, 
+      (bool (Scheme::*)(const std::string&))&Scheme::enableBlock, this, 
       RTT::OwnThread)
     .doc("Disable a block in this scheme.");
 
@@ -83,9 +87,9 @@ std::vector<std::string> Scheme::get_blocks()
   return block_names;
 }
 
-bool Scheme::add_block(const std::string &block_name)
+bool Scheme::addBlock(const std::string &block_name)
 {
-  RTT::Logger::In in("Scheme::add_block(string)");
+  RTT::Logger::In in("Scheme::addBlock(string)");
 
   // Make sure the block exists as a peer of the scheme
   if(!this->hasPeer(block_name)) {
@@ -112,14 +116,14 @@ bool Scheme::add_block(const std::string &block_name)
   RTT::TaskContext *new_block = this->getPeer(block_name);
 
   // Add the block to the graphs
-  return this->add_block(new_block);
+  return this->addBlock(new_block);
 }
 
-bool Scheme::add_block(RTT::TaskContext *new_block)
+bool Scheme::addBlock(RTT::TaskContext *new_block)
 {
   using namespace conman::graph;
 
-  RTT::Logger::In in("Scheme::add_block");
+  RTT::Logger::In in("Scheme::addBlock");
 
   // Nulls are bad
   if(new_block == NULL) {
@@ -172,13 +176,13 @@ bool Scheme::add_block(RTT::TaskContext *new_block)
   }
 
   // Recompute conflicts for this block
-  this->compute_conflicts(new_block);
+  this->computeConflicts(new_block);
 
   // Cleanup
   if(!success) {
     RTT::log() << RTT::Logger::Error << "Could not add TaskContext \""<< block_name <<"\" to the scheme." << RTT::endlog();
     // Remove the block
-    if(!this->remove_block(new_block)) {
+    if(!this->removeBlock(new_block)) {
       // This is 
       RTT::log(RTT::Fatal) << "Could not clean up block \"" << block_name <<
         "\" when trying to remove it. Something is terribly wrong." <<
@@ -273,9 +277,9 @@ bool Scheme::add_block_to_graph(
   return true;
 }
 
-bool Scheme::remove_block(const std::string &block_name)
+bool Scheme::removeBlock(const std::string &block_name)
 {
-  RTT::Logger::In in("Scheme::remove_block(string)");
+  RTT::Logger::In in("Scheme::removeBlock(string)");
 
   // Make sure the block exists as a peer of the scheme
   if(!this->hasPeer(block_name)) {
@@ -302,15 +306,15 @@ bool Scheme::remove_block(const std::string &block_name)
   RTT::TaskContext *block = this->getPeer(block_name);
 
   // Add the block to the graphs
-  return this->remove_block(block);
+  return this->removeBlock(block);
 }
 
-bool Scheme::remove_block(
+bool Scheme::removeBlock(
     RTT::TaskContext *block)
 {
   using namespace conman::graph;
 
-  RTT::Logger::In in("Scheme::remove_block");
+  RTT::Logger::In in("Scheme::removeBlock");
 
   // Succeed if the block isn't already in the scheme
   if(blocks_.find(block->getName()) == blocks_.end()) {
@@ -567,11 +571,11 @@ bool Scheme::regenerate_graph(
 
 ///////////////////////////////////////////////////////////////////////////////
 
-bool Scheme::create_group(
+bool Scheme::createGroup(
     const std::string &group_name,
     const std::vector<std::string> &grouped_blocks) 
 { 
-  RTT::Logger::In in("Scheme::create_group");
+  RTT::Logger::In in("Scheme::createGroup");
 
   // Check if the group name collides with a real block
   if(blocks_.find(group_name) != blocks_.end())
@@ -610,11 +614,11 @@ bool Scheme::create_group(
   return true; 
 }
 
-bool Scheme::add_to_group(
+bool Scheme::addToGroup(
     const std::string &group_name,
     const std::string &new_block) 
 {
-  RTT::Logger::In in("Scheme::add_to_group");
+  RTT::Logger::In in("Scheme::addToGroup");
 
   // Check if the group exists
   std::map<std::string, std::set<std::string> >::iterator group =
@@ -636,7 +640,7 @@ bool Scheme::add_to_group(
   return true; 
 }
 
-bool Scheme::remove_from_group(
+bool Scheme::removeFromGroup(
     const std::string &group_name,
     const std::string &block) 
 {
@@ -660,7 +664,7 @@ bool Scheme::remove_from_group(
   return true; 
 }
 
-bool Scheme::disband_group( const std::string &group_name) 
+bool Scheme::disbandGroup( const std::string &group_name) 
 {
   // Check if the group exists
   if(block_groups_.find(group_name) != block_groups_.end()) {
@@ -690,32 +694,32 @@ bool Scheme::get_group(
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void Scheme::compute_conflicts() 
+void Scheme::computeConflicts() 
 {
   for(std::map<std::string,graph::VertexProperties::Ptr>::iterator it=blocks_.begin();
       it != blocks_.end();
       ++it)
   {
-    this->compute_conflicts(it->second->block);
+    this->computeConflicts(it->second->block);
   }
 }
 
-void Scheme::compute_conflicts(const std::string &block_name) 
+void Scheme::computeConflicts(const std::string &block_name) 
 {
-  this->compute_conflicts(this->getPeer(block_name));
+  this->computeConflicts(this->getPeer(block_name));
 }
 
-void Scheme::compute_conflicts(const std::vector<std::string> &block_names)
+void Scheme::computeConflicts(const std::vector<std::string> &block_names)
 {
   for(std::vector<std::string>::const_iterator it = block_names.begin();
       it != block_names.end();
       ++it)
   {
-    this->compute_conflicts(*it);
+    this->computeConflicts(*it);
   }
 }
 
-void Scheme::compute_conflicts(RTT::TaskContext *block)
+void Scheme::computeConflicts(RTT::TaskContext *block)
 {
   using namespace conman::graph;
 
@@ -787,7 +791,7 @@ void Scheme::compute_conflicts(RTT::TaskContext *block)
 
 ///////////////////////////////////////////////////////////////////////////////
 
-bool Scheme::enable_block(const std::string &block_name, const bool force)
+bool Scheme::enableBlock(const std::string &block_name, const bool force)
 {
   // First check if this block is a group
   std::map<std::string, std::set<std::string> >::iterator group = 
@@ -802,14 +806,14 @@ bool Scheme::enable_block(const std::string &block_name, const bool force)
   }
 
   // Enable the block by name
-  return this->enable_block(this->getPeer(block_name), force);
+  return this->enableBlock(this->getPeer(block_name), force);
 }
 
-bool Scheme::enable_block(RTT::TaskContext *block, const bool force)
+bool Scheme::enableBlock(RTT::TaskContext *block, const bool force)
 {
   using namespace conman::graph;
 
-  RTT::Logger::In in("Scheme::enable_block");
+  RTT::Logger::In in("Scheme::enableBlock");
 
   if(block == NULL) { 
     return false; 
@@ -858,7 +862,7 @@ bool Scheme::enable_block(RTT::TaskContext *block, const bool force)
           << RTT::endlog();
 
         // Make sure we can actually disable it
-        if(this->disable_block(conflict_block) == false) {
+        if(this->enableBlock(conflict_block) == false) {
           RTT::log(RTT::Error) << "Could not disable block \"" <<
             conflict_block->getName() << "\"" << RTT::endlog();
           return false;
@@ -882,7 +886,7 @@ bool Scheme::enable_block(RTT::TaskContext *block, const bool force)
   return true;
 }
 
-bool Scheme::disable_block(const std::string &block_name)
+bool Scheme::enableBlock(const std::string &block_name)
 {
   // First check if this block is a group
   std::map<std::string, std::set<std::string> >::iterator group = 
@@ -896,10 +900,10 @@ bool Scheme::disable_block(const std::string &block_name)
   }
 
   // Disable the block by name
-  return this->disable_block(this->getPeer(block_name));
+  return this->enableBlock(this->getPeer(block_name));
 }
 
-bool Scheme::disable_block(RTT::TaskContext* block) 
+bool Scheme::enableBlock(RTT::TaskContext* block) 
 {
   if(block == NULL) { return false; }
 
@@ -927,7 +931,7 @@ bool Scheme::enable_blocks(
       ++it)
   {
     // Try to start the block
-    success &= this->enable_block(*it,force);
+    success &= this->enableBlock(*it,force);
 
     // Break on failure if strict
     if(!success && strict) { return false; }
@@ -945,7 +949,7 @@ bool Scheme::disable_blocks(const bool strict)
       ++it)
   {
     // Try to disable the block
-    success &= this->disable_block(it->second->block);
+    success &= this->enableBlock(it->second->block);
 
     // Break on failure if strict
     if(!success && strict) { return false; }
@@ -965,7 +969,7 @@ bool Scheme::disable_blocks(
       ++it)
   {
     // Try to disable the block
-    success &= this->disable_block(*it);
+    success &= this->enableBlock(*it);
 
     // Break on failure if strict
     if(!success && strict) { return false; }
