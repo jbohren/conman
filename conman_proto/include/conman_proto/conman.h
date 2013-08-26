@@ -23,9 +23,6 @@ namespace conman {
   //! Forward declarations
   class Hook;
 
-  //! Functor signature for execution hooks
-  typedef boost::function<void(RTT::os::TimeService::Seconds, RTT::os::TimeService::Seconds)> ExecutionHook;
-
   namespace graph {
 
     //! Boost Graph Vertex Metadata
