@@ -14,7 +14,7 @@
 
 namespace conman {
   
-  /** \brief The Hook Service is used to attach RTT TaskContexts to a ConMan Scheme.
+  /** \brief The Hook Service is used to attach RTT TaskContexts to a Conman Scheme.
    *
    * In confidence tricks, a "Hook" is an apparent advantage for the victim to
    * encourage them to take part in the scam.
@@ -29,7 +29,7 @@ namespace conman {
     //! Get the minimum execution period
     RTT::os::TimeService::Seconds getPeriod();
 
-    /** \name ConMan Port Management */
+    /** \name Conman Port Management */
     //\{
 
     //! Set the scheme layer for an output port
@@ -74,7 +74,7 @@ namespace conman {
   
     /** \name Execution
      *
-     * These functions are called by a ConMan Scheme at the appropriate times.
+     * These functions are called by a Conman Scheme at the appropriate times.
      * They are essentially pass-throughs to the "execution hook" function
      * objects supplied by the user.
      */

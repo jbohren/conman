@@ -13,7 +13,7 @@ HookService::HookService(RTT::TaskContext* owner) :
   execution_period_(0.0),
   output_ports_by_layer_(conman::Layer::ids.size())
 { 
-  // ConMan Properties
+  // Conman Properties
   this->addProperty("executionPeriod",execution_period_)
     .doc("The desired execution period for this block, in seconds. By default, "
         "this is 0 and it will run as fast as the scheme period.");
@@ -31,10 +31,10 @@ HookService::HookService(RTT::TaskContext* owner) :
  *  }
  */
 
-  // ConMan Introspection interface
+  // Conman Introspection interface
   this->addOperation("getPeriod",&HookService::getPeriod, this, RTT::ClientThread);
 
-  // ConMan Execution interface
+  // Conman Execution interface
   this->addOperation("readHardware",&HookService::readHardware,this, RTT::ClientThread);
   this->addOperation("computeEstimation",&HookService::computeEstimation,this, RTT::ClientThread);
   this->addOperation("computeControl",&HookService::computeControl,this, RTT::ClientThread);
