@@ -49,6 +49,22 @@ HookService::HookService(RTT::TaskContext* owner) :
   this->addOperation("setComputeEstimationHook",&HookService::setComputeEstimationHook,this,RTT::ClientThread);
   this->addOperation("setComputeControlHook",&HookService::setComputeControlHook,this,RTT::ClientThread);
   this->addOperation("setWriteHardwareHook",&HookService::setWriteHardwareHook,this,RTT::ClientThread);
+
+  // Try to connect with default client hooks
+  if(owner != NULL) {
+    if(this->setReadHardwareHook("readHardwareHook")) {
+      RTT::log(RTT::Info) << "Binding to default readHardwareHook for block \"" << owner->getName() << "\"" << RTT::endlog();
+    }
+    if(this->setReadHardwareHook("computeEstimationHook")) {
+      RTT::log(RTT::Info) << "Binding to default computeEstimationHook for block \"" << owner->getName() << "\"" << RTT::endlog();
+    }
+    if(this->setComputeControlHook("computeControlHook")) {
+      RTT::log(RTT::Info) << "Binding to default computeControlHook for block \"" << owner->getName() << "\"" << RTT::endlog();
+    }
+    if(this->setReadHardwareHook("writeHardwareHook")) { 
+      RTT::log(RTT::Info) << "Binding to default writeHardwareHook for block \"" << owner->getName() << "\"" << RTT::endlog();
+    }
+  }
 }
 
 
@@ -150,20 +166,36 @@ void HookService::getOutputPortsOnLayer(
 
 
 bool HookService::setReadHardwareHook(const std::string &operation_name) {
-  read_hardware_hook_ = this->getOwnerOperation(operation_name);
-  return true;
+  RTT::OperationInterfacePart *caller = this->getOwnerOperation(operation_name);
+  if(caller != NULL) {
+    read_hardware_hook_ = caller;
+    return true;
+  }
+  return false;
 }
 bool HookService::setComputeEstimationHook(const std::string &operation_name) {
-  compute_estimation_hook_ = this->getOwnerOperation(operation_name);
-  return true;
+  RTT::OperationInterfacePart *caller = this->getOwnerOperation(operation_name);
+  if(caller != NULL) {
+    compute_estimation_hook_ = caller;
+    return true;
+  }
+  return false;
 }
 bool HookService::setComputeControlHook(const std::string &operation_name) {
-  compute_control_hook_ = this->getOwnerOperation(operation_name);
-  return true;
+  RTT::OperationInterfacePart *caller = this->getOwnerOperation(operation_name);
+  if(caller != NULL) {
+    compute_control_hook_ = caller;
+    return true;
+  }
+  return false;
 }
 bool HookService::setWriteHardwareHook(const std::string &operation_name) {
-  write_hardware_hook_ = this->getOwnerOperation(operation_name);
-  return true;
+  RTT::OperationInterfacePart *caller = this->getOwnerOperation(operation_name);
+  if(caller != NULL) {
+    write_hardware_hook_ = caller;
+    return true;
+  }
+  return false;
 }
 
 

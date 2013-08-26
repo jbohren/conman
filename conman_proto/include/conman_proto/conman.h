@@ -17,52 +17,6 @@
 #include <boost/graph/topological_sort.hpp>
 #include <boost/graph/labeled_graph.hpp>
 
-/**
- * Conman Controller Manager
- *
- * Dataflow
- *  Conman dataflow interfaces are normal Orocos RTT ports, except the ports are
- *  connected with a publish/subscribe paradigm. Similar to ROS topics, any two
- *  components reading and writing to the same service/port URI will be
- *  connected to each-other.
- *  We need to associate
- *  additional metadata with the conman ports, however, to satisfy the following
- *  requirements:
- *    - Determine the exclusivity of a port (one or many connections)
- *    - Determine if a port is an input or an output (or we could just try to
- *      over-connect)
- *
- *  Conman places no hard requirements on the names of ports, but instead we
- *  standardize on a set of conventions:
- *    * Hard standardization on datatypes (decided at build time)
- *    * Soft standardization on port names (decided at build or runtime)
- *  
- *  Standard convention is to remap port names from block-relative naming to
- *  runtime-relaative naming. For example, there might be several blocks with
- *  <JointArrayAcc> ports performing joint-level state estimation. In this case,
- *  each block might have "joint_state_unfiltered" and "joint_state_filtered"
- *  ports. These blocks should be able to be remapped in a standard way to allow
- *  pipelining of state estimation filters.
- *
- *  .estimation.left_arm.visual_pose
- *  .control.left_arm.effort_command
- *   --> ekf -->
- *  .estimation.left_arm.joint_state_filtered  
- *
- *  TODO: check ports after each call to make sure they aren't being written to
- *  outside of the appropriate compute-control or compute-estimation hooks
- *  
- * Resources
- *  RTT Ports are the only resources in conman. Reading resources is
- *  unrestricted, but writing to a resource can be controlled. Access is
- *  controlled when the BlockManager enables and disables various control
- *  components, and not when it sets up the RTT Port network. This means that
- *  RTT Ports may be connected in such a way that violates the maximum numvber
- *  of connections. TODO: Should we instead connect and disconnect components
- *  at rumtime?
- *
- **/
-
 //! Conman Controller Manager
 namespace conman {
 
@@ -72,21 +26,6 @@ namespace conman {
   //! Functor signature for execution hooks
   typedef boost::function<void(RTT::os::TimeService::Seconds, RTT::os::TimeService::Seconds)> ExecutionHook;
 
-  /** \brief Causal block graph description
-   * Causal block graph for topologically sorting control and estimation
-   * networks. This graph contains vertices which correspond to blocks, and
-   * edges which correspond to port connections between blocks.
-   *
-   * Vertex Type: listS
-   *  - Allows for low-time-complexity adding/removing edges
-   *
-   * Edge Type: listS
-   *  - Low time complexity
-   *  - Permits parallel edges to describe multiple links between blocks
-   *
-   * Directed: true
-   * 
-   */
   namespace graph {
 
     //! Boost Graph Vertex Metadata
@@ -119,12 +58,30 @@ namespace conman {
       RTT::base::PortInterface *sink_port;
     };
 
-    //! Boost graph for representing the data flow graph between components
+    /* \brief Boost graph for representing the data flow graph between components
+     * The block flow graph is used to topologically sort control and estimation
+     * networks so that they can be executed causally. This graph contains
+     * vertices which correspond to blocks, and edges which correspond to port
+     * connections between blocks. It models the abstract data flow graph of the
+     * RTT components which have been added to a \ref conman::Scheme.
+     *
+     * Vertex Type: listS
+     *  - Allows for low-time-complexity adding/removing edges
+     *
+     * Edge Type: listS
+     *  - Low time complexity
+     *  - Permits parallel edges to describe multiple links between blocks
+     *
+     * Directed Type: bidirectionalS
+     *  - Edges have direction
+     *  - Allows querying of both in- and out- edges (directedS does not provide
+     *  this capability.
+     */
     typedef 
       boost::adjacency_list< 
         boost::listS, 
         boost::listS, 
-        boost::bidirectionalS,//directedS, 
+        boost::bidirectionalS, 
         VertexProperties::Ptr, 
         EdgeProperties::Ptr>
           BlockGraph;
@@ -169,7 +126,23 @@ namespace conman {
     }
 
 
-    //! Boost graph for representing the conflicts between components
+    /* \brief Boost graph for representing the conflicts between components
+     *
+     * Vertices in this graph correspond to blocks, and edges correspond to
+     * conflict relationships between those blocks. I.e. if two blocks are
+     * adjacent in this graph, then they cannot be run at the same time without
+     * causing a resource exclusivity violation.
+     * 
+     * Vertex Type: listS
+     *  - Allows for low-time-complexity adding/removing edges
+     *
+     * Edge Type: listS
+     *  - Low time complexity
+     *  - Permits parallel edges to describe multiple links between blocks
+     *
+     * Directed Type: undirectedS
+     *  - The "conflict" relationship is symmetric
+     */
     typedef 
       boost::adjacency_list< 
         boost::listS, 
@@ -198,6 +171,7 @@ namespace conman {
 
     typedef std::vector<ID>::const_iterator const_iterator;
 
+    //! The vector of layer IDs and the order in which they should be computed
     static const std::vector<ID> ids;
     static const std::map<ID,std::string> names;
 
@@ -205,7 +179,8 @@ namespace conman {
     static bool Valid(const ID id) {
       return static_cast<int>(id) < ids.size();
     }
-
+    
+    //! Get the name from a layer ID
     static const std::string& Name(const ID id) {
       return names.find(id)->second;
     }

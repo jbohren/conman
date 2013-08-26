@@ -21,9 +21,8 @@ TestEffortController::TestEffortController(std::string const& name) :
     conman_hook->setInputExclusivity("effort_in", Exclusivity::EXCLUSIVE);
     conman_hook->setOutputLayer("effort_out", Layer::CONTROL);
 
-    // Register the conman execution hooks
+    // Register the conman execution hooks (use default name)
     this->addOperation("computeControlHook",&TestEffortController::computeControlHook, this);
-    conman_hook->setComputeControlHook("computeControlHook");
 
   } else {
     RTT::log(RTT::Fatal) << "Could not load conman hook." << RTT::endlog();

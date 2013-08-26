@@ -21,10 +21,15 @@ ROS-independent framework, tools for ROS integration are provided in the
 *Conman* not trying to solve the world. *Conman* is just trying to get rich
 quick. As such, it is designed with the following goals:
 
-* Provide a common interface for running Orocos components for robot state estimation and control.
+* Provide a common interface for running Orocos components for robot state
+  estimation and control.
+* Provide a more-constrained modeling paradigm for robot state estimation and
+  control.
 * Handle the computational scheduling of these blocks.
 * Provide a special component, not a special framework.
-* Enable external manipulation of the running set of estimators and controllers.
+* Enable external manipulation of the running set of estimators and controllers
+  so that single blocks and groups of blocks can be enabled and disabled at
+  runtime.
 
 ### Approach
 
@@ -397,3 +402,45 @@ framework, you write a "controller" which only reads the state, but doesn't
 control anything. There is just one level of dynamically-loadable plugins, and
 they cannot be pipelined or easily composed.
 
+
+ *
+ * ConMan is a framework for building real-time-safe state estimators and
+ * controllers with Orocos RTT 
+ *
+ * Dataflow
+ *  Conman dataflow interfaces are normal Orocos RTT ports, except the ports are
+ *  connected with a publish/subscribe paradigm.
+ *  We need to associate additional metadata with the conman ports, however, to
+ *
+ *  satisfy the following requirements:
+ *    - Determine the exclusivity of a port (one or many connections)
+ *    - Determine if a port is an input or an output (or we could just try to
+ *      over-connect)
+ *
+ *  Conman places no hard requirements on the names of ports, but instead we
+ *  standardize on a set of conventions:
+ *    * Hard standardization on datatypes (decided at build time)
+ *    * Soft standardization on port names (decided at build or runtime)
+ *  
+ *  Standard convention is to remap port names from block-relative naming to
+ *  runtime-relaative naming. For example, there might be several blocks with
+ *  <JointArrayAcc> ports performing joint-level state estimation. In this case,
+ *  each block might have "joint_state_unfiltered" and "joint_state_filtered"
+ *  ports. These blocks should be able to be remapped in a standard way to allow
+ *  pipelining of state estimation filters.
+ *
+ *  .estimation.left_arm.visual_pose
+ *  .control.left_arm.effort_command
+ *   --> ekf -->
+ *  .estimation.left_arm.joint_state_filtered  
+ *
+ *  TODO: check ports after each call to make sure they aren't being written to
+ *  outside of the appropriate compute-control or compute-estimation hooks
+ *  
+ * Resources
+ *  RTT Ports are the only resources in conman. Reading resources is
+ *  unrestricted, but writing to a resource can be controlled. Access is
+ *  controlled when the Scheme enables and disables various control
+ *  components, and not when it sets up the RTT Port network. This means that
+ *  RTT Ports may be connected in such a way that violates the maximum numvber
+ *  of connections.  

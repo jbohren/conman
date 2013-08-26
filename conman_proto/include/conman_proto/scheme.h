@@ -6,7 +6,7 @@
 
 namespace conman
 {
-  //! Manager for loading/unloading and starting/stopping Blocks
+  //! Manager for scheduling execution and starting/stopping blocks
   class Scheme : public RTT::TaskContext
   {
   public:
