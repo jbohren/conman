@@ -29,6 +29,11 @@ Scheme::Scheme(std::string name)
       RTT::OwnThread)
     .doc("Add a conman block into this scheme.");
   
+  this->addOperation("removeBlock", 
+      (bool (Scheme::*)(const std::string&))&Scheme::remove_block, this, 
+      RTT::OwnThread)
+    .doc("Remove a conman block from this scheme.");
+
   this->addOperation("getBlocks", 
       &Scheme::get_blocks, this, 
       RTT::OwnThread)
@@ -558,6 +563,128 @@ bool Scheme::regenerate_graph(
   return true;
 }
 
+///////////////////////////////////////////////////////////////////////////////
+
+bool Scheme::create_group(
+    const std::string &group_name,
+    const std::vector<std::string> &grouped_blocks) 
+{ 
+  RTT::Logger::In in("Scheme::create_group");
+
+  // Check if the group name collides with a real block
+  if(blocks_.find(group_name) != blocks_.end())
+  {
+    RTT::log(RTT::Error) << "Block group named \"" << group_name << "\""
+      "cannot be created because a block with the same name already exists."
+      << RTT::endlog();
+    return false;
+  }
+
+  // Make sure all the blocks are in the scheme
+  for(std::vector<std::string>::const_iterator it=grouped_blocks.begin();
+      it != grouped_blocks.end();
+      ++it)
+  {
+    // Check if the block is in the scheme
+    if( blocks_.find(*it) == blocks_.end() &&
+        block_groups_.find(*it) == block_groups_.end())
+    {
+      RTT::log(RTT::Error) << "Block named \"" << *it << "\""
+        "is not in the scheme." << RTT::endlog();
+      return false;
+    }
+  }
+
+  // Check if the group already exists
+  if(block_groups_.find(group_name) != block_groups_.end()) {
+    RTT::log(RTT::Warning) << "Block group named \"" << group_name << "\""
+      " already exists. Over-writing." << RTT::endlog();
+  }
+
+  // Store the group
+  block_groups_[group_name] = 
+    std::set<std::string>(grouped_blocks.begin(), grouped_blocks.end());
+
+  return true; 
+}
+
+bool Scheme::add_to_group(
+    const std::string &group_name,
+    const std::string &new_block) 
+{
+  RTT::Logger::In in("Scheme::add_to_group");
+
+  // Check if the group exists
+  std::map<std::string, std::set<std::string> >::iterator group =
+    block_groups_.find(group_name);
+  if(group == block_groups_.end()) {
+    return false;
+  }
+
+  // Check if the block is in the scheme
+  if( blocks_.find(new_block) == blocks_.end()) {
+    RTT::log(RTT::Error) << "Block named \"" << new_block << "\" is not in the"
+      " scheme." << RTT::endlog();
+    return false;
+  }
+
+  // Return the group constituents
+  group->second.insert(new_block);
+
+  return true; 
+}
+
+bool Scheme::remove_from_group(
+    const std::string &group_name,
+    const std::string &block) 
+{
+  // Check if the group exists
+  std::map<std::string, std::set<std::string> >::iterator group = 
+    block_groups_.find(group_name);
+
+  if(group == block_groups_.end()) {
+    return false;
+  }
+
+  // Check if the block is in the group
+  if( group->second.find(block) == group->second.end()) {
+    // It's already gone
+    return true;
+  }
+
+  // Remove the block from the group
+  group->second.erase(block);
+
+  return true; 
+}
+
+bool Scheme::disband_group( const std::string &group_name) 
+{
+  // Check if the group exists
+  if(block_groups_.find(group_name) != block_groups_.end()) {
+    block_groups_.erase(group_name);
+  }
+  
+  return true; 
+}
+
+bool Scheme::get_group(
+    const std::string &group_name,
+    std::vector<std::string> &grouped_blocks) 
+{
+  // Check if the group exists
+  std::map<std::string, std::set<std::string> >::iterator group = 
+    block_groups_.find(group_name);
+
+  if(group == block_groups_.end()) {
+    return false;
+  }
+
+  // Return the group constituents
+  grouped_blocks.assign(group->second.begin(), group->second.end());
+
+  return true; 
+}
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -660,7 +787,19 @@ void Scheme::compute_conflicts(RTT::TaskContext *block)
 
 bool Scheme::enable_block(const std::string &block_name, const bool force)
 {
-  // Get the block by name
+  // First check if this block is a group
+  std::map<std::string, std::set<std::string> >::iterator group = 
+    block_groups_.find(block_name);
+  if(group != block_groups_.end()) {
+
+    // Enable the blocks in this group
+    return this->enable_blocks(
+        std::vector<std::string>(group->second.begin(),group->second.end()),
+        true,
+        force);
+  }
+
+  // Enable the block by name
   return this->enable_block(this->getPeer(block_name), force);
 }
 
@@ -770,7 +909,6 @@ bool Scheme::enable_blocks(
     const bool force)
 {
   bool success = true;
-
   for(std::vector<std::string>::const_iterator it = block_names.begin();
       it != block_names.end();
       ++it)

@@ -49,22 +49,37 @@ namespace conman
      * switched on and off by name. A block can belong to no groups, or it can
      * belong to many groups.
      *
-     * Unlike normal blocks, since meta blocks aren't represented by TaskContext
-     * pointers, they can on be enabled or disabled by name.
+     * Note that block group names must not be the same as normal block names.
      *
+     * Unlike normal blocks, they can only be enabled or disabled by name since
+     * groups aren't represented by TaskContext pointers.
+     *
+     * Groups can also be composed of other groups.
      */
     //\{
 
     //! Add blocks to a group 
-    bool crete_group(
+    bool create_group(
         const std::string &group_name,
-        std::vector<RTT::TaskContext*> &grouped_blocks) { return false; }
+        const std::vector<std::string> &grouped_blocks);
+
+    //! Add a single block to a group
+    bool add_to_group(
+        const std::string &group_name,
+        const std::string &new_block);
+
+    //! Remove a single block from a group
+    bool remove_from_group(
+        const std::string &group_name,
+        const std::string &block);
+
     //! Remove the blocks from a group, and then remove the group
-    bool disband_group( const std::string &group_name) { return false; }
+    bool disband_group(const std::string &group_name);
+
     //! Get the blocks in a given group
     bool get_group(
         const std::string &group_name,
-        std::vector<RTT::TaskContext*> &grouped_blocks) { return false; }
+        std::vector<std::string> &grouped_blocks);
 
     //\}
     
@@ -118,9 +133,9 @@ namespace conman
 
     //! Enable a single conman Block
     bool enable_block(RTT::TaskContext *block, const bool force);
-    //! Enable a single Conman block by name
+    //! Enable a single Conman block (or group) by name
     bool enable_block(const std::string &block_name, const bool force);
-    //! Enable multiple Conman blocks by name simultaneously
+    //! Enable multiple Conman blocks (or groups) by name simultaneously
     bool enable_blocks(
         const std::vector<std::string> &block_names, 
         const bool strict,
@@ -128,16 +143,17 @@ namespace conman
 
     //! Disable a single conman Block
     bool disable_block(RTT::TaskContext *block);
-    //! Disable a single Conman block by name
+    //! Disable a single Conman block (or group) by name
     bool disable_block(const std::string &block_name);
-    //! Disable all Conman blocks  simultaneously
+    //! Disable all Conman blocks simultaneously
     bool disable_blocks(const bool strict);
-    //! Disable multiple Conman blocks by name simultaneously
+    //! Disable multiple Conman blocks (or groups) by name simultaneously
     bool disable_blocks(
         const std::vector<std::string> &block_names,
         const bool strict);
 
-    /*** \brief Try to disable a set of blocks and enable another set of blocks
+    /*** \brief Try to disable a set of blocks (or groups) and enable another
+     * set of blocks (or groups)
      *
      * NOTE: This function first disables the blocks on the disable list, and
      * then it enables blocks on the enable list.
@@ -207,6 +223,9 @@ namespace conman
 
     //! A list of blocks ordered by index (for linear re-indexing)
     std::list<conman::graph::VertexProperties::Ptr> block_indices_;
+
+    //! A map of block group names to block names
+    std::map<std::string, std::set<std::string> > block_groups_;
 
     //! \name Graph structures
     //\{
