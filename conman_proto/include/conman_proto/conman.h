@@ -102,7 +102,6 @@ namespace conman {
       //! The last time this block was executed
       RTT::os::TimeService::nsecs last_control_time;
       RTT::os::TimeService::nsecs last_estimation_time;
-
     };
 
     //! Boost Graph Edge Metadata

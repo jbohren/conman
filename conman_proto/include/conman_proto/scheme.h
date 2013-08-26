@@ -16,6 +16,9 @@ namespace conman
     //! \name Scheme Construction
     //\{
 
+    //! Get the names of all the blocks in this scheme
+    std::vector<std::string> get_blocks();
+
     /** \brief Add a block which is already a peer of this component by name.
      *
      * The block with this name must already be a peer of this Scheme.
@@ -29,17 +32,13 @@ namespace conman
      */
     bool add_block(RTT::TaskContext *new_block);
 
+    /* \brief Remove a block from the scheme by name
+     */
+    bool remove_block(const std::string &name);
+
     /* \brief Remove a block from the scheme
      */
     bool remove_block(RTT::TaskContext *block);
-
-    //! Get the names of all the blocks in this scheme
-    std::vector<std::string> get_blocks() {
-      std::vector<std::string> block_names(
-          block_names_.begin(), 
-          block_names_.end());
-      return block_names;
-    }
 
     //\}
 
@@ -207,7 +206,10 @@ namespace conman
     RTT::os::TimeService::nsecs last_update_time_;
 
     //! A list of block names (for fast access)
-    std::set<std::string> block_names_;
+    std::map<std::string,conman::graph::VertexProperties::Ptr> blocks_;
+
+    //! A list of blocks ordered by index (for linear re-indexing)
+    std::list<conman::graph::VertexProperties::Ptr> block_indices_;
 
     //! \name Graph structures
     //\{

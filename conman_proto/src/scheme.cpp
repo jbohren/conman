@@ -59,6 +59,23 @@ Scheme::Scheme(std::string name)
 
 ///////////////////////////////////////////////////////////////////////////////
 
+std::vector<std::string> Scheme::get_blocks() 
+{
+  using namespace conman::graph;
+
+  std::vector<std::string> block_names(blocks_.size());
+
+  std::vector<std::string>::iterator str_it = block_names.begin();
+  std::map<std::string,VertexProperties::Ptr>::iterator block_it = blocks_.begin();
+
+  for(; str_it != block_names.end() && block_it != blocks_.end(); ++str_it, ++block_it)
+  {
+    *str_it = block_it->first;
+  }
+
+  return block_names;
+}
+
 bool Scheme::add_block(const std::string &block_name)
 {
   RTT::Logger::In in("Scheme::add_block(string)");
@@ -99,21 +116,20 @@ bool Scheme::add_block(RTT::TaskContext *new_block)
 
   // Nulls are bad
   if(new_block == NULL) {
-    RTT::log(RTT::Error) 
-      << "Requested block to add is NULL." << RTT::endlog();
+    RTT::log(RTT::Error) << "Requested block to add is NULL." << RTT::endlog();
     return false;
   }
 
   // Make sure the block has the conman hook service
   if(!conman::Hook::HasHook(new_block)) {
-    RTT::log(RTT::Error) 
-      << "Requested block to add does not have the conman hook service." << RTT::endlog();
+    RTT::log(RTT::Error) << "Requested block to add does not have the conman"
+      " hook service." << RTT::endlog();
     return false;
   }
 
   // Try to add this block as a peer
   if(!this->connectPeers(new_block)) {
-    RTT::log() << RTT::Logger::Error << "Could not connect peer: "<<
+    RTT::log() << RTT::Logger::Error << "Could not connect peer: " <<
       new_block->getName() << RTT::endlog();
   }
   
@@ -122,12 +138,14 @@ bool Scheme::add_block(RTT::TaskContext *new_block)
 
   // Create the vertex properties
   VertexProperties::Ptr new_vertex = boost::make_shared<VertexProperties>();
-  new_vertex->index = block_names_.size();
+  new_vertex->index = blocks_.size();
   new_vertex->block = new_block;
   new_vertex->hook = conman::Hook::GetHook(new_block);
 
-  // Add this block to the set of block names
-  block_names_.insert(block_name);
+  // Add this block to the set of blocks
+  blocks_[block_name] = new_vertex;
+  // Add this block to the block index (used for re-indexing)
+  block_indices_.push_back(new_vertex);
 
   // Add this block to the conflict graph / map
   conflict_vertex_map_[new_block] = boost::add_vertex(new_vertex,conflict_graph_);
@@ -245,37 +263,36 @@ bool Scheme::add_block_to_graph(
   return true;
 }
 
-
-bool Scheme::remove_block_from_graph(
-    conman::graph::VertexProperties::Ptr vertex,
-    const conman::Layer::ID &layer)
+bool Scheme::remove_block(const std::string &block_name)
 {
-  using namespace conman::graph;
+  RTT::Logger::In in("Scheme::remove_block(string)");
 
-  RTT::Logger::In in("Scheme::remove_block_from_graph");
+  // Make sure the block exists as a peer of the scheme
+  if(!this->hasPeer(block_name)) {
+    RTT::TaskContext::PeerList peers = this->getPeerList();
 
-  // Get references to the graph structures
-  BlockGraph &flow_graph = flow_graphs_[layer];
-  BlockVertexMap &flow_vertex_map = flow_vertex_maps_[layer];
+    RTT::log(RTT::Error)
+      << "Requested block to remove named \"" << block_name << "\" was not a peer"
+      "of this Scheme." << std::endl
+      << "  Available blocks include:" << std::endl;
 
-  // Succeed if the vertex already doesn't exist
-  if(flow_vertex_map.find(vertex->block) == flow_vertex_map.end()) {
-    return true;
-  }
+    for(RTT::TaskContext::PeerList::iterator it = peers.begin();
+        it != peers.end();
+        ++it) 
+    {
+      RTT::log(RTT::Error) << "    " << *it << std::endl;
+    }
 
-  // Remove the edges connected to this vertex 
-  boost::clear_vertex(flow_vertex_map[vertex->block], flow_graph);
-  // Remove the vertex 
-  boost::remove_vertex(flow_vertex_map[vertex->block], flow_graph);
-  // Remove the vertex from the map
-  flow_vertex_map.erase(vertex->block);
+    RTT::log(RTT::Error) << RTT::endlog();
 
-  // Regenerate the graph without the vertex
-  if(!regenerate_graph(layer)) {
     return false;
   }
 
-  return true;
+  // Get the newly loaded block
+  RTT::TaskContext *block = this->getPeer(block_name);
+
+  // Add the block to the graphs
+  return this->remove_block(block);
 }
 
 bool Scheme::remove_block(
@@ -286,7 +303,7 @@ bool Scheme::remove_block(
   RTT::Logger::In in("Scheme::remove_block");
 
   // Succeed if the block isn't already in the scheme
-  if(block_names_.find(block->getName()) == block_names_.end()) {
+  if(blocks_.find(block->getName()) == blocks_.end()) {
     return true;
   }
 
@@ -324,10 +341,58 @@ bool Scheme::remove_block(
   boost::remove_vertex(conflict_vertex_map_[block], conflict_graph_);
   conflict_vertex_map_.erase(block);
 
-  // Remove the block from the list of block names
-  block_names_.erase(block->getName());
+  // Remove the block from the block map
+  blocks_.erase(block->getName());
+
+  // Re-index the vertices 
+  unsigned int i=0;
+  std::list<VertexProperties::Ptr>::iterator it = block_indices_.begin();
+  for(; it != block_indices_.end(); )
+  {
+    // Remove the block when we get to it
+    if((*it)->block == block) {
+      it = block_indices_.erase(it);
+    } else {
+      // Update index of the blocks we don't remove
+      (*it)->index = i;
+      ++it;
+      ++i;
+    }
+  }
 
   return success;
+}
+
+bool Scheme::remove_block_from_graph(
+    conman::graph::VertexProperties::Ptr vertex,
+    const conman::Layer::ID &layer)
+{
+  using namespace conman::graph;
+
+  RTT::Logger::In in("Scheme::remove_block_from_graph");
+
+  // Get references to the graph structures
+  BlockGraph &flow_graph = flow_graphs_[layer];
+  BlockVertexMap &flow_vertex_map = flow_vertex_maps_[layer];
+
+  // Succeed if the vertex already doesn't exist
+  if(flow_vertex_map.find(vertex->block) == flow_vertex_map.end()) {
+    return true;
+  }
+
+  // Remove the edges connected to this vertex 
+  boost::clear_vertex(flow_vertex_map[vertex->block], flow_graph);
+  // Remove the vertex 
+  boost::remove_vertex(flow_vertex_map[vertex->block], flow_graph);
+  // Remove the vertex from the map
+  flow_vertex_map.erase(vertex->block);
+
+  // Regenerate the graph without the vertex
+  if(!regenerate_graph(layer)) {
+    return false;
+  }
+
+  return true;
 }
 
 bool Scheme::regenerate_graph(
@@ -483,15 +548,16 @@ bool Scheme::regenerate_graph(
   return true;
 }
 
+
 ///////////////////////////////////////////////////////////////////////////////
 
 void Scheme::compute_conflicts() 
 {
-  for(std::set<std::string>::iterator it=block_names_.begin();
-      it != block_names_.end();
+  for(std::map<std::string,graph::VertexProperties::Ptr>::iterator it=blocks_.begin();
+      it != blocks_.end();
       ++it)
   {
-    this->compute_conflicts(*it);
+    this->compute_conflicts(it->second->block);
   }
 }
 
@@ -594,7 +660,7 @@ bool Scheme::enable_block(RTT::TaskContext *block, const bool force)
 
   const std::string &block_name = block->getName();
 
-  if(block_names_.find(block_name) != block_names_.end()) {
+  if(blocks_.find(block_name) != blocks_.end()) {
     RTT::log(RTT::Error) << "Could not enable block \""<< block_name << "\""
       "because it has not been added to the scheme." << RTT::endlog();
     return false;
@@ -699,12 +765,12 @@ bool Scheme::disable_blocks(const bool strict)
 {
   bool success = true;
 
-  for(std::set<std::string>::const_iterator it = block_names_.begin();
-      it != block_names_.end();
+  for(std::map<std::string,graph::VertexProperties::Ptr>::const_iterator it = blocks_.begin();
+      it != blocks_.end();
       ++it)
   {
     // Try to disable the block
-    success &= this->disable_block(*it);
+    success &= this->disable_block(it->second->block);
 
     // Break on failure if strict
     if(!success && strict) { return false; }
