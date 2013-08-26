@@ -14,7 +14,7 @@
 
 namespace conman {
   
-  /* \brief The Hook Service is used to attach RTT TaskContexts to a ConMan Scheme.
+  /** \brief The Hook Service is used to attach RTT TaskContexts to a ConMan Scheme.
    *
    * In confidence tricks, a "Hook" is an apparent advantage for the victim to
    * encourage them to take part in the scam.
@@ -29,7 +29,7 @@ namespace conman {
     //! Get the minimum execution period
     RTT::os::TimeService::Seconds getPeriod();
 
-    /* \name ConMan Port Management */
+    /** \name ConMan Port Management */
     //\{
 
     //! Set the scheme layer for an output port
@@ -57,7 +57,7 @@ namespace conman {
 
     //\}
 
-    /* \name Execution Hook Registration 
+    /** \name Execution Hook Registration 
      *
      * These functions are used to register hooks for different types of conman
      * events. The functions are each called with time of the latest event
@@ -72,7 +72,7 @@ namespace conman {
 
     //\}
   
-    /* \name Execution
+    /** \name Execution
      *
      * These functions are called by a ConMan Scheme at the appropriate times.
      * They are essentially pass-throughs to the "execution hook" function
@@ -101,11 +101,15 @@ namespace conman {
 
   private:
 
+    //! Internal properties describing an input port in a conman scheme
     struct InputProperties {
+      //! The exclusivity of the port
       Exclusivity::Mode exclusivity;
     };
 
+    //! Internal properties describing an output port in a conman scheme
     struct OutputProperties {
+      //! The layer in which a connection from this port should be
       conman::Layer::ID layer;
     };
 
@@ -119,7 +123,7 @@ namespace conman {
     //! Map conman graph layers (control, estimation) onto a set of output ports
     std::vector<std::set<RTT::base::PortInterface*> > output_ports_by_layer_;
 
-    /* \name Execution Hooks */
+    /** \name Execution Hooks */
     //\{
     
     RTT::OperationCaller<void(RTT::os::TimeService::Seconds, RTT::os::TimeService::Seconds)> read_hardware_hook_;
@@ -129,14 +133,14 @@ namespace conman {
 
     //\}
 
-    /* \brief Get a port by name
+    /** \brief Get a port by name
      *
      * Currently, just a pass-through to the owning TaskContext's getPort(), but
      * in the future may allow for parsing dot-separated ports on sub-services.
      */
     RTT::base::PortInterface* getOwnerPort(const std::string &port_name); 
 
-    /* \brief Get an operation caller by name
+    /** \brief Get an operation caller by name
      *
      * Currently, just a pass-through to the owning TaskContext's
      * getOperation(), but in the future may allow for parsing dot-separated

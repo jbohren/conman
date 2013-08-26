@@ -10,7 +10,7 @@
 
 namespace conman {
 
-  /* \brief ServiceRequester for using the conman HookServiec in C++
+  /** \brief ServiceRequester for using the conman HookServiec in C++
    *
    * This ServiceRequester will connect to the conman::HookService of a given
    * RTT TaskContext for easier use in C++.

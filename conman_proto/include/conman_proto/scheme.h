@@ -19,34 +19,31 @@ namespace conman
     //! Get the names of all the blocks in this scheme
     std::vector<std::string> get_blocks();
 
-    /** \brief Add a block which is already a peer of this component by name.
+    /*** \brief Add a block which is already a peer of this component by name.
      *
      * The block with this name must already be a peer of this Scheme.
      */
     bool add_block(const std::string &name);
 
-    /** \brief Add a block that has already been constructed
+    /*** \brief Add a block that has already been constructed
      *
      * After calling add_block, new_block will be a peer of this Scheme.
      *
      */
     bool add_block(RTT::TaskContext *new_block);
 
-    /* \brief Remove a block from the scheme by name
+    /** \brief Remove a block from the scheme by name
      */
     bool remove_block(const std::string &name);
 
-    /* \brief Remove a block from the scheme
+    /** \brief Remove a block from the scheme
      */
     bool remove_block(RTT::TaskContext *block);
 
     //\}
 
     ///////////////////////////////////////////////////////////////////////////
-    /* \name Scheme Block Group Management
-     *
-     * TODO: Rename 'group to 'meta_block'?
-     * TODO: Implement this
+    /** \name Scheme Block Group Management
      *
      * Block groups can be treated like "meta blocks" in that they can be
      * switched on and off by name. A block can belong to no groups, or it can
@@ -59,20 +56,20 @@ namespace conman
     //\{
 
     //! Add blocks to a group 
-    bool define_group(
+    bool crete_group(
         const std::string &group_name,
         std::vector<RTT::TaskContext*> &grouped_blocks) { return false; }
+    //! Remove the blocks from a group, and then remove the group
+    bool disband_group( const std::string &group_name) { return false; }
     //! Get the blocks in a given group
     bool get_group(
         const std::string &group_name,
         std::vector<RTT::TaskContext*> &grouped_blocks) { return false; }
-    //! 
-    bool disband_group( const std::string &group_name) { return false; }
 
     //\}
     
     ///////////////////////////////////////////////////////////////////////////
-    /* \name Block conflict computation
+    /** \name Block conflict computation
      *
      * Block conflicts are inferred from RTT data port exclusivity, as declared
      * by each given block.
@@ -91,7 +88,7 @@ namespace conman
     //\}
 
     ///////////////////////////////////////////////////////////////////////////
-    /* \name Runtime Scheme Control
+    /** \name Runtime Scheme Control
      *
      * <b> Enabling Blocks </b>
      *
@@ -140,7 +137,7 @@ namespace conman
         const std::vector<std::string> &block_names,
         const bool strict);
 
-    /** \brief Try to disable a set of blocks and enable another set of blocks
+    /*** \brief Try to disable a set of blocks and enable another set of blocks
      *
      * NOTE: This function first disables the blocks on the disable list, and
      * then it enables blocks on the enable list.
@@ -156,7 +153,7 @@ namespace conman
         const bool force);
     
 
-    /** \brief Set the set of enabled and disabled blocks.
+    /*** \brief Set the set of enabled and disabled blocks.
      *
      * This is equivalent to calling \ref disable_blocks for all blocks, and
      * then calling \ref enable_blocks for a list of blocks,
@@ -184,7 +181,7 @@ namespace conman
 
     virtual bool startHook();
 
-    /* \brief Execute one iteration of the Scheme
+    /** \brief Execute one iteration of the Scheme
      *
      * Read from hardware, compute estimation, compute control, and write to
      * hardware.
@@ -197,7 +194,7 @@ namespace conman
 
   protected:
 
-    /* \brief The last time updateHook was called.
+    /** \brief The last time updateHook was called.
      *
      * We maintain a single update time for all blocks so that any blocks
      * running at the same rate are executed in the same update() cycle.
@@ -205,7 +202,7 @@ namespace conman
      */
     RTT::os::TimeService::nsecs last_update_time_;
 
-    //! A list of block names (for fast access)
+    //! A map from block names onto flow graph vertex properties (for fast access)
     std::map<std::string,conman::graph::VertexProperties::Ptr> blocks_;
 
     //! A list of blocks ordered by index (for linear re-indexing)
@@ -221,17 +218,20 @@ namespace conman
     //! Topologically sorted ordering of each graph
     std::vector<conman::graph::BlockOrdering> causal_ordering_;
 
-    /* \brief Graph representing block conflicts 
+    /** \brief Graph representing block conflicts 
      *
      * Adjacent vertices in the ConflictGraph represent components that can't
      * run simultaneously
      */
     conman::graph::BlockConflictGraph conflict_graph_;
+    /** \brief A map from RTT TaskContext pointers to vertex identifiers in the
+     * conflict graph
+     */
     conman::graph::BlockConflictVertexMap conflict_vertex_map_;
     //\}
 
 
-    /* \brief Connect a block in one of the flow graphs
+    /** \brief Connect a block in one of the flow graphs
      *
      * This will add a block to a flow graph, and then regenerate that graph.
      *
@@ -242,7 +242,7 @@ namespace conman
         conman::graph::VertexProperties::Ptr new_vertex,
         const conman::Layer::ID &layer);
 
-    /* \brief Remove a block from one of the flow graphs
+    /** \brief Remove a block from one of the flow graphs
      *
      * This will remove a block from a flow graph, and then regenerate that
      * graph.
@@ -254,7 +254,7 @@ namespace conman
         conman::graph::VertexProperties::Ptr vertex,
         const conman::Layer::ID &layer);
 
-    /* \brief Generates an internal model of the RTT port connection graph
+    /** \brief Generates an internal model of the RTT port connection graph
      *
      * This will generate a grah with RTT TaskContext blocks as vertices, and
      * RTT PortInterfaces as edges. 

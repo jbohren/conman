@@ -58,7 +58,7 @@ namespace conman {
       RTT::base::PortInterface *sink_port;
     };
 
-    /* \brief Boost graph for representing the data flow graph between components
+    /** \brief Boost graph for representing the data flow graph between components
      * The block flow graph is used to topologically sort control and estimation
      * networks so that they can be executed causally. This graph contains
      * vertices which correspond to blocks, and edges which correspond to port
@@ -99,7 +99,7 @@ namespace conman {
     //! Vertex descriptor map for retrieving BlockGraph vertices
     typedef std::map<RTT::TaskContext*,BlockVertexDescriptor> BlockVertexMap;
 
-    /* \brief Function for extracting the vertex index from a block vertex
+    /** \brief Function for extracting the vertex index from a block vertex
      *
      * This function is used in a boost::function_property_map by topological
      * sort because the topological sort algorithm needs an vertex index
@@ -126,7 +126,7 @@ namespace conman {
     }
 
 
-    /* \brief Boost graph for representing the conflicts between components
+    /** \brief Boost graph for representing the conflicts between components
      *
      * Vertices in this graph correspond to blocks, and edges correspond to
      * conflict relationships between those blocks. I.e. if two blocks are
@@ -199,7 +199,7 @@ namespace conman {
 
   
   //! Interface types for ports used to connect Blocks
-  /**TODO: 
+  /***TODO: 
   namespace interfaces {
 
     template<class InterfaceT>
