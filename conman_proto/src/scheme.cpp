@@ -412,18 +412,42 @@ bool Scheme::regenerate_graph(
           if( flow_vertex_map.find(source_block) != flow_vertex_map.end() && 
               flow_vertex_map.find(sink_block) != flow_vertex_map.end()) 
           {
-            // Create a new edge representing this connection
-            EdgeProperties::Ptr edge_props = boost::make_shared<EdgeProperties>();
-            edge_props->connected = true;
-            edge_props->source_port = source_port;
-            edge_props->sink_port = sink_port;
+            // Get the existing edges between these two blocks
+            // NOTE: Using out_edges instead of edge_range because edge_range is buggy
+            BlockOutEdgeIterator existing_edge_it, existing_edge_end;
+            boost::tie(existing_edge_it, existing_edge_end) = 
+              boost::out_edges(flow_vertex_map[source_block], flow_graph);
 
-            // Add the edge to the graph
-            boost::add_edge(flow_vertex_map[source_block], flow_vertex_map[sink_block], edge_props, flow_graph);
+            // Check if this edge already exists (so we don't create duplicate edges)
+            bool edge_exists = false;
+            for(; existing_edge_it != existing_edge_end; ++existing_edge_it) {
+              if( flow_graph[*existing_edge_it]->source_port == source_port &&
+                  flow_graph[*existing_edge_it]->sink_port == sink_port) {
+                // The edge exists
+                edge_exists = true;
+                break;
+              }
+            }
 
-            RTT::log(RTT::Debug) << "Created "<<Layer::Name(layer)<<" edge "
-              <<source_name<<"."<<source_port->getName()<<" --> "
-              <<sink_name<<"."<<sink_port->getName()<< RTT::endlog();
+            // Only create edge if it isn't already there
+            if(!edge_exists) {
+              // Create a new edge representing this connection
+              EdgeProperties::Ptr edge_props = boost::make_shared<EdgeProperties>();
+              edge_props->connected = true;
+              edge_props->source_port = source_port;
+              edge_props->sink_port = sink_port;
+
+              // Add the edge to the graph
+              boost::add_edge(flow_vertex_map[source_block], flow_vertex_map[sink_block], edge_props, flow_graph);
+
+              RTT::log(RTT::Debug) << "Created "<<Layer::Name(layer)<<" edge "
+                <<source_name<<"."<<source_port->getName()<<" --> "
+                <<sink_name<<"."<<sink_port->getName()<< RTT::endlog();
+            } else {
+              RTT::log(RTT::Debug) << "Existis "<<Layer::Name(layer)<<" edge "
+                <<source_name<<"."<<source_port->getName()<<" --> "
+                <<sink_name<<"."<<sink_port->getName()<< RTT::endlog();
+            }
           }
         }
       }

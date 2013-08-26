@@ -77,11 +77,6 @@ namespace conman
      *
      * Block conflicts are inferred from RTT data port exclusivity, as declared
      * by each given block.
-     *
-     * 
-     *
-     * TODO: Use boost::edge_range to get all edges between this block and other
-     * blocks, and enable connect the ports associated with each edge
      */
     //\{
     

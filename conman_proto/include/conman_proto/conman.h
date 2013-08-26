@@ -138,6 +138,8 @@ namespace conman {
     typedef std::list<BlockVertexDescriptor> BlockOrdering;
     //! Iterator for iterating over vertices in the BlockGraph in no particular order
     typedef boost::graph_traits<conman::graph::BlockGraph>::vertex_iterator BlockVertexIterator;
+    //! Iterator for iterating over edges in the BlockGraph in no particular order
+    typedef boost::graph_traits<conman::graph::BlockGraph>::out_edge_iterator BlockOutEdgeIterator;
     //! Vertex descriptor map for retrieving BlockGraph vertices
     typedef std::map<RTT::TaskContext*,BlockVertexDescriptor> BlockVertexMap;
 
