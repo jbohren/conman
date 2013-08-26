@@ -231,15 +231,12 @@ namespace conman
     //\}
 
 
-    /* \brief Connect a block to the appropriate blocks in a given graph
+    /* \brief Connect a block in one of the flow graphs
+     *
+     * This will add a block to a flow graph, and then regenerate that graph.
      *
      * This is an internal function. For adding a block from
      * the public API, see \ref add_block.
-     *
-     * This connects all inputs/outputs of block_a to all outputs/inputs of
-     * block_b, given the groups, inputs, and outputs of block_b
-     *
-     * Once the block is removed, this graph later is re-sorted.
      */
     bool add_block_to_graph(
         conman::graph::VertexProperties::Ptr new_vertex,
@@ -247,10 +244,11 @@ namespace conman
 
     /* \brief Remove a block from one of the flow graphs
      *
+     * This will remove a block from a flow graph, and then regenerate that
+     * graph.
+     *
      * This is an internal function. For adding a block from
      * the public API, see \ref remove_block.
-     *
-     * Once the block is removed, this graph later is re-sorted.
      */
     bool remove_block_from_graph(
         conman::graph::VertexProperties::Ptr vertex,
