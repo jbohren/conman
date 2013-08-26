@@ -11,12 +11,23 @@ HookService::HookService(RTT::TaskContext* owner) :
   RTT::Service("conman",owner),
   // Property Initialization
   execution_period_(0.0),
-  output_ports_by_layer_(conman::graph::Layer::N_LAYERS)
+  output_ports_by_layer_(conman::Layer::ids.size())
 { 
   // ConMan Properties
   this->addProperty("executionPeriod",execution_period_)
     .doc("The desired execution period for this block, in seconds. By default, "
         "this is 0 and it will run as fast as the scheme period.");
+
+  // Enums
+  this->addAttribute("UNRESTRICTED",Exclusivity::UNRESTRICTED);
+  this->addAttribute("EXCLUSIVE",Exclusivity::EXCLUSIVE);
+
+  for(std::vector<Layer::ID>::iterator it = Layer::ids.begin();
+      it != Layer::ids.end();
+      ++it)
+  {
+    this->addAttribute(Layer::names[*it],*id);
+  }
 
   // ConMan Introspection interface
   this->addOperation("getPeriod",&HookService::getPeriod, this, RTT::ClientThread);
@@ -46,7 +57,7 @@ RTT::os::TimeService::Seconds HookService::getPeriod() {
 
 bool HookService::setOutputLayer(
     const std::string &port_name,
-    const conman::graph::Layer::ID layer) 
+    const conman::Layer::ID layer) 
 {
   // Get the port
   RTT::base::PortInterface *port = this->getOwnerPort(port_name);
@@ -59,7 +70,7 @@ bool HookService::setOutputLayer(
     output_ports_by_layer_[layer].insert(port);
 
     RTT::log(RTT::Debug) << "Added port \""<<port_name<<"\" to the"
-      "\""<<conman::graph::Layer::Name(layer)<<"\" layer." << RTT::endlog();
+      "\""<<conman::Layer::Name(layer)<<"\" layer." << RTT::endlog();
   } else {
     // Complain
     RTT::log(RTT::Error) << "Tried to set output layer for an input port."
@@ -74,7 +85,7 @@ bool HookService::setOutputLayer(
 
 bool HookService::setInputExclusivity(
     const std::string &port_name,
-    const ExclusivityMode mode)
+    const Exclusivity::Mode mode)
 {
   // Get the port
   RTT::base::PortInterface *port = this->getOwnerPort(port_name);
@@ -94,7 +105,7 @@ bool HookService::setInputExclusivity(
   return true;
 }
 
-conman::ExclusivityMode HookService::getInputExclusivity(const std::string &port_name)
+conman::Exclusivity::Mode HookService::getInputExclusivity(const std::string &port_name)
 {
   // Get the port
   std::map<std::string,InputProperties>::const_iterator props = input_ports_.find(port_name);
@@ -104,10 +115,10 @@ conman::ExclusivityMode HookService::getInputExclusivity(const std::string &port
   }
 
   // Return undefined if the port isn't registered
-  return UNDEFINED;
+  return conman:::Layer::UNRESTRICTED;
 }
 
-conman::graph::Layer::ID HookService::getOutputLayer(const std::string &port_name)
+conman::Layer::ID HookService::getOutputLayer(const std::string &port_name)
 {
   // Get the port properties
   std::map<std::string,OutputProperties>::const_iterator props = output_ports_.find(port_name);
@@ -117,15 +128,15 @@ conman::graph::Layer::ID HookService::getOutputLayer(const std::string &port_nam
   }
 
   // Return empty string if the port isn't registered
-  return conman::graph::Layer::UNDEFINED;
+  return conman::Layer::UNRESTRICTED;
 }
 
 void HookService::getOutputPortsOnLayer(
-    const conman::graph::Layer::ID layer,
+    const conman::Layer::ID layer,
     std::vector<RTT::base::PortInterface*> &ports)  
 {
   // Copy the port pointers
-  if(layer < conman::graph::Layer::N_LAYERS) {
+  if(layer < conman::Layer::ids.size()) {
     ports.assign(
         output_ports_by_layer_[layer].begin(), 
         output_ports_by_layer_[layer].end());

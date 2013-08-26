@@ -31,8 +31,8 @@ orocos_use_package( ocl-logging )
 #orocos_executable(port_dag src/port_dag.cpp)
 add_definitions(-DRTT_COMPONENT)
 orocos_plugin(conman 
-  src/scheme.cpp 
   src/conman.cpp 
+  src/scheme.cpp 
   src/hook_service.cpp )
 
 orocos_component(conman_test_components

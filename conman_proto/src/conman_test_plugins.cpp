@@ -16,7 +16,7 @@ TestEffortController::TestEffortController(std::string const& name) :
   boost::shared_ptr<conman::Hook> conman_hook = conman::Hook::GetHook(this);
 
   // Add the ports to conman
-  conman_hook->setInputExclusivity("effort_in", EXCLUSIVE);
+  conman_hook->setInputExclusivity("effort_in", Exclusivity::EXCLUSIVE);
   conman_hook->setOutputLayer("effort_out", graph::Layer::CONTROL);
 
   // Register the conman execution hooks

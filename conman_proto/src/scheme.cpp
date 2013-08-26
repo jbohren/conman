@@ -2,15 +2,17 @@
 #include <conman_proto/scheme.h>
 #include <conman_proto/hook.h>
 
+#include "function_property_map.hpp"
+
 ORO_LIST_COMPONENT_TYPE(conman::Scheme);
 
 using namespace conman;
 
 Scheme::Scheme(std::string name) 
  : RTT::TaskContext(name),
-   graphs_(conman::graph::Layer::N_LAYERS),
-   vertex_maps_(conman::graph::Layer::N_LAYERS),
-   causal_ordering_(conman::graph::Layer::N_LAYERS)
+   flow_graphs_(conman::Layer::ids.size()),
+   flow_vertex_maps_(conman::Layer::ids.size()),
+   causal_ordering_(conman::Layer::ids.size())
 {
   // Add operations
   this->addOperation("addBlock", 
@@ -46,63 +48,7 @@ Scheme::Scheme(std::string name)
 }
 
 
-bool Scheme::add_block(RTT::TaskContext *new_block)
-{
-  using namespace conman::graph;
-
-  RTT::Logger::In in("Scheme::add_block(task)");
-
-  // Nulls are bad
-  if(new_block == NULL) {
-    RTT::log(RTT::Error) 
-      << "Requested block to add is NULL." << RTT::endlog();
-    return false;
-  }
-
-  // Make sure the block has the conman hook service
-  if(!conman::Hook::HasHook(new_block)) {
-    RTT::log(RTT::Error) 
-      << "Requested block to add does not have the conman hook service." << RTT::endlog();
-    return false;
-  }
-
-  // Try to add this block as a peer
-  if(!this->connectPeers(new_block)) {
-    RTT::log() << RTT::Logger::Error << "Could not connect peer: "<<
-      new_block->getName() << RTT::endlog();
-  }
-
-  // Get the block name
-  const std::string block_name = new_block->getName();
-
-  // Connect the block in the appropriate ports in the estimation and control layers
-  if(!add_block_to_graph(new_block, Layer::ESTIMATION)) {
-    RTT::log() << RTT::Logger::Error << "Could not add TaskContext \""<< block_name <<"\" to scheme estimation layer." << RTT::endlog();
-    return false;
-  }
-
-  if(!add_block_to_graph(new_block, Layer::CONTROL)) {
-    RTT::log() << RTT::Logger::Error << "Could not add TaskContext \""<< block_name <<"\" to scheme control layer." << RTT::endlog();
-    return false;
-  }
-
-  // Add this block to the list of block names
-  block_names_.push_back(block_name);
-
-  // Print out the ordering
-  {
-  RTT::log(RTT::Info) << "New ordering: [ ";
-  for(CausalOrdering::iterator it = causal_ordering_[Layer::CONTROL].begin();
-      it != causal_ordering_[Layer::CONTROL].end();
-      ++it) 
-  {
-    RTT::log(RTT::Info) << graphs_[Layer::CONTROL][*it].block->getName() << ", ";
-  }
-  RTT::log(RTT::Info) << " ] " << RTT::endlog();
-  }
-
-  return true;
-}
+///////////////////////////////////////////////////////////////////////////////
 
 bool Scheme::add_block(const std::string &block_name)
 {
@@ -136,17 +82,16 @@ bool Scheme::add_block(const std::string &block_name)
   return this->add_block(new_block);
 }
 
-bool Scheme::add_block_to_graph(
-    RTT::TaskContext *new_block,
-    const conman::graph::Layer::ID &layer)
+bool Scheme::add_block(RTT::TaskContext *new_block)
 {
   using namespace conman::graph;
 
-  RTT::Logger::In in("Scheme::add_block_to_graph()");
+  RTT::Logger::In in("Scheme::add_block");
 
-  // Make sure the block isn't null
+  // Nulls are bad
   if(new_block == NULL) {
-    RTT::log(RTT::Error) << "TaskContext is NULL." << RTT::endlog();
+    RTT::log(RTT::Error) 
+      << "Requested block to add is NULL." << RTT::endlog();
     return false;
   }
 
@@ -157,55 +102,133 @@ bool Scheme::add_block_to_graph(
     return false;
   }
 
+  // Try to add this block as a peer
+  if(!this->connectPeers(new_block)) {
+    RTT::log() << RTT::Logger::Error << "Could not connect peer: "<<
+      new_block->getName() << RTT::endlog();
+  }
+  
+  // Get the block name
+  const std::string block_name = new_block->getName();
+
+  // Create the vertex properties
+  VertexProperties::Ptr new_vertex = boost::make_shared<VertexProperties>();
+  new_vertex->index = block_names_.size();
+  new_vertex->block = new_block;
+  new_vertex->hook = conman::Hook::GetHook(new_block);
+
+  // Add this block to the set of block names
+  block_names_.insert(block_name);
+
+  // Add this block to the conflict graph / map
+  conflict_vertex_map_[new_block] = boost::add_vertex(new_vertex,conflict_graph_);
+
+  // Connect the block in the appropriate ports in the estimation and control layers
+  bool success = true;
+  for(conman::Layer::const_iterator layer_it = Layer::ids.begin();
+      layer_it != Layer::ids.end();
+      ++layer_it) 
+  {
+    const Layer::ID &layer = *layer_it;
+
+    if(!add_block_to_graph(new_vertex, layer)) {
+      success = false;
+      break;
+    }
+  }
+
+  // Cleanup
+  if(!success) {
+    RTT::log() << RTT::Logger::Error << "Could not add TaskContext \""<< block_name <<"\" to the scheme." << RTT::endlog();
+    // Remove the block
+    if(!this->remove_block(new_block)) {
+      // This is 
+      RTT::log(RTT::Fatal) << "Could clean up TaskContext \"" << block_name <<
+        "\" when trying to remove it. Something is terribly wrong." <<
+        RTT::endlog();
+      return false;
+    }
+  }
+
+  // Print out the ordering
+  RTT::log(RTT::Info) << "Scheme ordering: [ ";
+  for(conman::Layer::const_iterator layer_it = Layer::ids.begin();
+      layer_it != Layer::ids.end();
+      ++layer_it) 
+  {
+    const Layer::ID &layer = *layer_it;
+
+    // Output the layer name
+    RTT::log(RTT::Info) << conman::Layer::Name(layer) <<": ";
+    // Output the blocks in the layer
+    for(BlockOrdering::iterator it = causal_ordering_[layer].begin();
+        it != causal_ordering_[layer].end();
+        ++it) 
+    {
+      RTT::log(RTT::Info) << flow_graphs_[layer][*it]->block->getName() << ", ";
+    }
+  }
+  RTT::log(RTT::Info) << " ] " << RTT::endlog();
+
+  return success;
+}
+
+bool Scheme::add_block_to_graph(
+    conman::graph::VertexProperties::Ptr new_vertex,
+    const conman::Layer::ID &layer)
+{
+  using namespace conman::graph;
+
+  RTT::Logger::In in("Scheme::add_block_to_graph");
+
+  // Make sure the vertex isn't null
+  if(new_vertex.get() == NULL) {
+    RTT::log(RTT::Error) << "VertexProperties::Ptr is NULL." << RTT::endlog();
+    return false;
+  }
+
   // Make sure the layer is valid
-  if(layer >= conman::graph::Layer::N_LAYERS) {
-    RTT::log(RTT::Error) 
-      << "Tried to add block to invalid layer: "<< layer << RTT::endlog();
+  if(layer >= conman::Layer::ids.size()) {
+    RTT::log(RTT::Error) << "Tried to add block to invalid layer: "<< layer <<
+      RTT::endlog();
+    return false;
+  }
+
+  // Get a reference to the block pointer
+  TaskContext *&new_block = new_vertex->block;
+
+  // Make sure the block isn't null
+  if(new_block == NULL) {
+    RTT::log(RTT::Error) << "TaskContext is NULL." << RTT::endlog();
+    return false;
+  }
+
+  // Make sure the block has the conman hook service
+  if(!conman::Hook::HasHook(new_block)) {
+    RTT::log(RTT::Error) << "Requested block to add does not have the conman"
+      "hook service." << RTT::endlog();
     return false;
   }
 
   // Get references to the graph structures
-  CausalGraph &graph = graphs_[layer];
-  CausalOrdering &ordering = causal_ordering_[layer];
-  VertexMap &vertex_map = vertex_maps_[layer];
+  BlockGraph &flow_graph = flow_graphs_[layer];
+  BlockVertexMap &flow_vertex_map = flow_vertex_maps_[layer];
 
-  // Add this block to the graph
-  std::string new_block_name = new_block->getName();
+  // Add this block to the flow graph
+  flow_vertex_map[new_block] = boost::add_vertex(new_vertex, flow_graph);
 
-  CausalGraph::vertex_descriptor new_block_descriptor = boost::add_vertex(graph);
-
-  // Store the vertex descriptor in the map
-  vertex_map[new_block] = new_block_descriptor;
-
-  // Populate the vertex properties
-  VertexProperties &new_vertex = graph[new_block_descriptor];
-  new_vertex.index = boost::num_vertices(graph)-1;
-  new_vertex.block = new_block;
-  new_vertex.hook = conman::Hook::GetHook(new_block);
-
-  RTT::log(RTT::Debug) << "Created vertex: "<< new_vertex.index <<" ("<< new_block_descriptor<<")" << RTT::endlog();
+  RTT::log(RTT::Debug) << "Created vertex: "<< new_vertex->index <<" ("<<
+    flow_vertex_map[new_block]<<")" << RTT::endlog();
 
   // Regenerate the topological ordering
   if(!regenerate_graph(layer)) {
     // Report error (if this block's connections add cycles)
-    RTT::log(RTT::Error) << "Cannot connect block "
-      "\""<<new_block_name<<"\" in conman scheme \""<<Layer::Name(layer)<<"\""
-      "layer." << RTT::endlog();
+    RTT::log(RTT::Error) << "Cannot connect block \"" << new_block->getName()
+      << "\" in conman scheme \"" << Layer::Name(layer) << "\"" "layer." <<
+      RTT::endlog();
 
-    // Remove the edges connected to this vertex
-    boost::clear_vertex(new_block_descriptor, graph);
-    RTT::log(RTT::Debug) << "Cleared vertex edges." << RTT::endlog();
-
-    // Remove the vertex 
-    boost::remove_vertex(new_block_descriptor, graph);
-    RTT::log(RTT::Debug) << "Removed vertex: "<< new_block_descriptor << RTT::endlog();
-
-    // Remove the vertex from the map
-    vertex_map.erase(new_block);
-
-    // Regenerate the graph without the vertex
-    // This should never fail!
-    regenerate_graph(layer);
+    // Clean up this graph (but not the others, yet)
+    this->remove_block_from_graph(new_vertex, layer);
 
     return false;
   }
@@ -213,41 +236,132 @@ bool Scheme::add_block_to_graph(
   return true;
 }
 
-bool Scheme::regenerate_graph(
-    const conman::graph::Layer::ID &layer)
+
+bool Scheme::remove_block_from_graph(
+    conman::graph::VertexProperties::Ptr vertex,
+    const conman::Layer::ID &layer)
 {
   using namespace conman::graph;
 
-  RTT::Logger::In in("Scheme::regenerate_graph()");
+  RTT::Logger::In in("Scheme::remove_block_from_graph");
+
+  // Get references to the graph structures
+  BlockGraph &flow_graph = flow_graphs_[layer];
+  BlockVertexMap &flow_vertex_map = flow_vertex_maps_[layer];
+
+  // Succeed if the vertex already doesn't exist
+  if(flow_vertex_map.find(vertex->block) == flow_vertex_map.end()) {
+    return true;
+  }
+
+  // Remove the edges connected to this vertex 
+  boost::clear_vertex(flow_vertex_map[vertex->block], flow_graph);
+  // Remove the vertex 
+  boost::remove_vertex(flow_vertex_map[vertex->block], flow_graph);
+  // Remove the vertex from the map
+  flow_vertex_map.erase(vertex->block);
+
+  // Regenerate the graph without the vertex
+  if(!regenerate_graph(layer)) {
+    return false;
+  }
+
+  return true;
+}
+
+bool Scheme::remove_block(
+    RTT::TaskContext *block)
+{
+  using namespace conman::graph;
+
+  RTT::Logger::In in("Scheme::remove_block");
+
+  // Succeed if the block isn't already in the scheme
+  if(block_names_.find(block->getName()) == block_names_.end()) {
+    return true;
+  }
+
+  bool success = true;
+
+  // Remove the block from all of the flow layers
+  for(conman::Layer::const_iterator layer_it = Layer::ids.begin();
+      layer_it != Layer::ids.end();
+      ++layer_it) 
+  {
+    const Layer::ID &layer = *layer_it;
+
+    // Get references to the graph structures
+    BlockGraph &flow_graph = flow_graphs_[layer];
+    BlockVertexMap &flow_vertex_map = flow_vertex_maps_[layer];
+
+    // Check if the block is in this layer
+    if(flow_vertex_map.find(block) != flow_vertex_map.end()) {
+      // Get the vertex properties pointer
+      VertexProperties::Ptr vertex = flow_graph[flow_vertex_map[block]];
+      // Remove the vertex from the graph
+      if(!this->remove_block_from_graph(vertex,layer)) {
+        // Complain
+        RTT::log(RTT::Fatal) << "Failed to remove block \"" << block->getName()
+          << "\" from scheme " << Layer::Name(layer) << " layer." <<
+          RTT::endlog();
+        // Set failure
+        success = false;
+      }
+    }
+  }
+
+  // Remove block from conflict graph / map
+  boost::clear_vertex(conflict_vertex_map_[block], conflict_graph_);
+  boost::remove_vertex(conflict_vertex_map_[block], conflict_graph_);
+  conflict_vertex_map_.erase(block);
+
+  // Remove the block from the list of block names
+  block_names_.erase(block->getName());
+
+  return success;
+}
+
+bool Scheme::regenerate_graph(
+    const conman::Layer::ID &layer)
+{
+  using namespace conman::graph;
+
+  RTT::Logger::In in("Scheme::regenerate_graph");
 
   // Make sure the layer is valid
-  if(layer >= conman::graph::Layer::N_LAYERS) {
+  if(layer >= conman::Layer::ids.size()) {
     RTT::log(RTT::Error) 
       << "Tried to add block to invalid layer: "<< Layer::Name(layer) << RTT::endlog();
     return false;
   }
 
   // Get references to the graph structures
-  CausalGraph &graph = graphs_[layer];
-  CausalOrdering &ordering = causal_ordering_[layer];
-  VertexMap &vertex_map = vertex_maps_[layer];
+  BlockGraph &flow_graph = flow_graphs_[layer];
+  BlockOrdering &ordering = causal_ordering_[layer];
+  BlockVertexMap &flow_vertex_map = flow_vertex_maps_[layer];
 
   // Iterate over all vertices in this graph layer
-  for(std::pair<VertexIterator, VertexIterator> vert_it = boost::vertices(graph);
+  for(std::pair<BlockVertexIterator, BlockVertexIterator> vert_it = boost::vertices(flow_graph);
       vert_it.first != vert_it.second;
       ++vert_it.first) 
   {
 
-    RTT::log(RTT::Debug) << "Connecting block with vertex descriptor: "<<*(vert_it.first)<<RTT::endlog();
+    /*
+     *RTT::log(RTT::Debug) << "Connecting block with vertex descriptor: "<<*(vert_it.first)<<RTT::endlog();
+     */
 
     // Temporary variable for readability
-    conman::graph::VertexProperties &block_vertex = graph[*(vert_it.first)];
+    VertexProperties::Ptr block_vertex = flow_graph[*(vert_it.first)];
 
     // Get the registered output ports for a given layer
     std::vector<RTT::base::PortInterface*> layer_ports;
-    block_vertex.hook->getOutputPortsOnLayer(layer, layer_ports);
+    block_vertex->hook->getOutputPortsOnLayer(layer, layer_ports);
 
-    RTT::log(RTT::Debug) << "Block \""<<block_vertex.block->getName()<<"\" has "<<layer_ports.size()<<" ports in the \""<<Layer::Name(layer)<<"\" layer." << RTT::endlog();
+    /*
+     *RTT::log(RTT::Debug) << "Block \""<<block_vertex->block->getName()<<"\" has"
+     *  <<layer_ports.size()<<" ports in the \""<<Layer::Name(layer)<<"\""
+     *  "layer." << RTT::endlog();
+     */
 
     // Create graph arcs for each port between blocks
     for(std::vector<RTT::base::PortInterface*>::iterator port_it = layer_ports.begin();
@@ -286,15 +400,21 @@ bool Scheme::regenerate_graph(
             sink_name = sink_port->getInterface()->getOwner()->getName();
 
           // Make sure both blocks are in the graph
-          if( vertex_map.find(source_block) != vertex_map.end() && 
-              vertex_map.find(sink_block) != vertex_map.end()) 
+          if( flow_vertex_map.find(source_block) != flow_vertex_map.end() && 
+              flow_vertex_map.find(sink_block) != flow_vertex_map.end()) 
           {
             // Create a new edge representing this connection
-            conman::graph::EdgeProperties edge_props = {true, source_port, sink_port};
-            // Add the edge to the graph
-            boost::add_edge(vertex_map[source_block], vertex_map[sink_block], edge_props, graph);
+            EdgeProperties::Ptr edge_props = boost::make_shared<EdgeProperties>();
+            edge_props->connected = true;
+            edge_props->source_port = source_port;
+            edge_props->sink_port = sink_port;
 
-            RTT::log(RTT::Debug) << "Created edge "<<source_name<<" --> "<<sink_name<< RTT::endlog();
+            // Add the edge to the graph
+            boost::add_edge(flow_vertex_map[source_block], flow_vertex_map[sink_block], edge_props, flow_graph);
+
+            RTT::log(RTT::Debug) << "Created "<<Layer::Name(layer)<<" edge "
+              <<source_name<<"."<<source_port->getName()<<" --> "
+              <<sink_name<<"."<<sink_port->getName()<< RTT::endlog();
           }
         }
       }
@@ -310,9 +430,10 @@ bool Scheme::regenerate_graph(
     // algorithm to work since our adjacency_list uses a list as the underlying
     // vertex data structure.
     boost::topological_sort( 
-        graph, 
+        flow_graph, 
         std::front_inserter(ordering),
-        boost::vertex_index_map(boost::get(&VertexProperties::index,graph)));
+        //boost::vertex_index_map(boost::get(&VertexProperties::index,flow_graph)));
+        boost::vertex_index_map(boost::make_function_property_map<BlockVertexDescriptor>(&VertexProperties::Index)));
   } catch(std::exception &ex) {
     // Complain
     RTT::log(RTT::Error)
@@ -327,6 +448,99 @@ bool Scheme::regenerate_graph(
   return true;
 }
 
+///////////////////////////////////////////////////////////////////////////////
+
+void Scheme::compute_conflicts() 
+{
+  for(std::set<std::string>::iterator it=block_names_.begin();
+      it != block_names_.end();
+      ++it)
+  {
+    this->compute_conflicts(*it);
+  }
+}
+
+void Scheme::compute_conflicts(const std::string &block_name) 
+{
+  this->compute_conflicts(this->getPeer(block_name));
+}
+
+void Scheme::compute_conflicts(const std::vector<std::string> &block_names)
+{
+  for(std::vector<std::string>::const_iterator it = block_names.begin();
+      it != block_names.end();
+      ++it)
+  {
+    this->compute_conflicts(*it);
+  }
+}
+
+void Scheme::compute_conflicts(RTT::TaskContext *block)
+{
+  using namespace conman::graph;
+
+  // Iterator for out edges
+  boost::graph_traits<BlockGraph>::out_edge_iterator out_edge_it, out_edge_end;
+  boost::graph_traits<BlockGraph>::in_edge_iterator in_edge_it, in_edge_end;
+  
+  // For each layer
+  for(conman::Layer::const_iterator layer_it = Layer::ids.begin();
+      layer_it != Layer::ids.end();
+      ++layer_it) 
+  {
+    const Layer::ID &layer = *layer_it;
+
+    // Get references to the graph structures
+    BlockGraph &flow_graph = flow_graphs_[layer];
+    BlockVertexMap &flow_vertex_map = flow_vertex_maps_[layer];
+
+    // Get all output ports on this layer
+    boost::tie(out_edge_it, out_edge_end) = boost::out_edges(flow_vertex_map[block], flow_graph);
+
+    // Handle conflicts resulting from each output port
+    for(;out_edge_it != out_edge_end; ++out_edge_it) {
+      // Get a reference to the edge properties for convenience
+      EdgeProperties::Ptr edge = flow_graph[*out_edge_it];
+
+      // Get a reference to the vertex properties of the sink for convenience
+      BlockVertexDescriptor sink_vertex_descriptor = boost::target(*out_edge_it, flow_graph);
+      VertexProperties::Ptr sink_vertex = flow_graph[sink_vertex_descriptor];
+
+      // Get the exclusivity of this port
+      const conman::Exclusivity::Mode mode = sink_vertex->hook->getInputExclusivity(edge->sink_port->getName());
+
+      // Only exclusive ports can induce conflicts
+      if(mode == conman::Exclusivity::EXCLUSIVE) {
+        // Get input edges for the sink vertex
+        boost::tie(in_edge_it, in_edge_end) = boost::in_edges(sink_vertex_descriptor, flow_graph);
+
+        // Add conflicts with each other block that also has a connection to this input port
+        for(;in_edge_it != in_edge_end; ++in_edge_it) {
+          // Pointer comparison to check if this edge corresponds to the sink port 
+          if(flow_graph[*in_edge_it]->sink_port == edge->sink_port) {
+            // Add conflict between the seed block and the source block for this edge
+            VertexProperties::Ptr conflicting_vertex = flow_graph[boost::source(*in_edge_it,flow_graph)];
+
+            // Make sure the block is in the conflict map
+            if( conflict_vertex_map_.find(block) != conflict_vertex_map_.end() &&
+                conflict_vertex_map_.find(conflicting_vertex->block) != conflict_vertex_map_.end()) 
+            {
+              // Add an edge in the conflict graph
+              add_edge(
+                  conflict_vertex_map_[block],
+                  conflict_vertex_map_[conflicting_vertex->block],
+                  conflict_graph_);
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+
+///////////////////////////////////////////////////////////////////////////////
+
 bool Scheme::enable_block(const std::string &block_name, const bool force)
 {
   // Get the block by name
@@ -335,6 +549,8 @@ bool Scheme::enable_block(const std::string &block_name, const bool force)
 
 bool Scheme::enable_block(RTT::TaskContext *block, const bool force)
 {
+  using namespace conman::graph;
+
   RTT::Logger::In in("Scheme::enable_block");
 
   if(block == NULL) { 
@@ -343,6 +559,12 @@ bool Scheme::enable_block(RTT::TaskContext *block, const bool force)
 
   const std::string &block_name = block->getName();
 
+  if(block_names_.find(block_name) != block_names_.end()) {
+    RTT::log(RTT::Error) << "Could not enable block \""<< block_name << "\""
+      "because it has not been added to the scheme." << RTT::endlog();
+    return false;
+  }
+
   // Make sure the block is configured
   if(!block->isConfigured()) {
     RTT::log(RTT::Error) << "Could not enable block \""<< block_name << "\""
@@ -350,31 +572,35 @@ bool Scheme::enable_block(RTT::TaskContext *block, const bool force)
     return false;
   }
 
-  // Check if conflicting blocks are running
-  std::vector<RTT::TaskContext*> &conflicts = block_conflicts_[block];
+  // Get the blocks that conflict with this block
+  BlockConflictAdjacencyIterator conflict_it, conflict_end;
 
-  for(std::vector<RTT::TaskContext*>::iterator it = conflicts.begin();
-      it != conflicts.end();
-      ++it)
+  boost::tie(conflict_it, conflict_end) =
+    boost::adjacent_vertices(conflict_vertex_map_[block], conflict_graph_);
+
+  // Check if conflicting blocks are running
+  for(; conflict_it != conflict_end; ++conflict_it)
   {
+    RTT::TaskContext *&conflict_block = conflict_graph_[*conflict_it]->block;
+
     // Check if the conflicting block is running
-    if((*it)->getTaskState() == RTT::TaskContext::Running) {
+    if(conflict_block->getTaskState() == RTT::TaskContext::Running) {
       // If force is selected, disable the conflicting block
       if(force) {
         RTT::log(RTT::Info) << "Force-enabling block \""<< block_name << "\""
-          "involves disabling block \"" << (*it)->getName() << "\"" <<
+          "involves disabling block \"" << conflict_block->getName() << "\"" <<
           RTT::endlog();
 
         // Make sure we can actually disable it
-        if(this->disable_block(*it) == false) {
+        if(this->disable_block(conflict_block) == false) {
           RTT::log(RTT::Error) << "Could not disable block \"" <<
-            (*it)->getName() << "\"" << RTT::endlog();
+            conflict_block->getName() << "\"" << RTT::endlog();
           return false;
         }
       } else {
-        RTT::log(RTT::Error) << "Could not enable block \""<< block_name << "\""
-          "because it conflicts with block \"" << (*it)->getName() << "\"" <<
-          RTT::endlog();
+        RTT::log(RTT::Error) << "Could not enable block \""<< block_name <<
+          "\"" "because it conflicts with block \"" <<
+          conflict_block->getName() << "\"" << RTT::endlog();
         return false;
       }
     }
@@ -413,7 +639,10 @@ bool Scheme::disable_block(RTT::TaskContext* block)
   return true;
 }
 
-bool Scheme::enable_blocks(const std::vector<std::string> &block_names, const bool strict, const bool force)
+bool Scheme::enable_blocks(
+    const std::vector<std::string> &block_names,
+    const bool strict,
+    const bool force)
 {
   bool success = true;
 
@@ -431,7 +660,27 @@ bool Scheme::enable_blocks(const std::vector<std::string> &block_names, const bo
   return success;
 }
 
-bool Scheme::disable_blocks(const std::vector<std::string> &block_names, const bool strict)
+bool Scheme::disable_blocks(const bool strict)
+{
+  bool success = true;
+
+  for(std::set<std::string>::const_iterator it = block_names_.begin();
+      it != block_names_.end();
+      ++it)
+  {
+    // Try to disable the block
+    success &= this->disable_block(*it);
+
+    // Break on failure if strict
+    if(!success && strict) { return false; }
+  }
+
+  return success;
+}
+
+bool Scheme::disable_blocks(
+    const std::vector<std::string> &block_names,
+    const bool strict)
 {
   bool success = true;
 
@@ -458,15 +707,19 @@ bool Scheme::switch_blocks(
   // First disable blocks, so that "force" can be used appropriately when
   // enabling blocks. Also note that we used & instead of && in order to prevent
   // short-circuiting.
-  return disable_blocks(disable_block_names, strict) & enable_blocks(enable_block_names, strict, force);
+  return disable_blocks(disable_block_names, strict) & 
+    enable_blocks(enable_block_names, strict, force);
 }
 
 bool Scheme::set_enabled_blocks(
     const std::vector<std::string> &enabled_block_names,
     const bool strict)
 {
-  return this->switch_blocks(this->block_names_, enabled_block_names, strict, false);
+  return this->disable_blocks(strict) & 
+    this->enable_blocks(enabled_block_names, strict, false);
 }
+
+///////////////////////////////////////////////////////////////////////////////
 
 bool Scheme::configureHook()
 {
@@ -494,46 +747,46 @@ void Scheme::updateHook()
   last_update_time_ = now;
 
   // Iterate through estimation graph
-  for(CausalOrdering::iterator it = causal_ordering_[Layer::ESTIMATION].begin();
+  for(BlockOrdering::iterator it = causal_ordering_[Layer::ESTIMATION].begin();
       it != causal_ordering_[Layer::ESTIMATION].end();
       ++it)
   {
     // Temporary variable for readability
-    VertexProperties &block_vertex = graphs_[Layer::ESTIMATION][*it];
+    VertexProperties::Ptr block_vertex = flow_graphs_[Layer::ESTIMATION][*it];
 
     // Get the state of the task
-    const RTT::base::TaskCore::TaskState block_state = block_vertex.block->getTaskState();
-    const RTT::os::TimeService::Seconds block_period = time - block_vertex.last_estimation_time;
+    const RTT::base::TaskCore::TaskState block_state = block_vertex->block->getTaskState();
+    const RTT::os::TimeService::Seconds block_period = time - block_vertex->last_estimation_time;
 
     // Check if the task is running and needs to be executed
     if( block_state == RTT::base::TaskCore::Running 
-        && block_period >= block_vertex.hook->getPeriod())
+        && block_period >= block_vertex->hook->getPeriod())
     { 
-      block_vertex.hook->readHardware(time, block_period);
-      block_vertex.hook->computeEstimation(time, block_period);
-      block_vertex.last_estimation_time = now;
+      block_vertex->hook->readHardware(time, block_period);
+      block_vertex->hook->computeEstimation(time, block_period);
+      block_vertex->last_estimation_time = now;
     }
   }
   
   // Iterate through control graph
-  for(CausalOrdering::iterator it = causal_ordering_[Layer::CONTROL].begin();
+  for(BlockOrdering::iterator it = causal_ordering_[Layer::CONTROL].begin();
       it != causal_ordering_[Layer::CONTROL].end();
       ++it)
   {
     // Temporary variable for readability
-    VertexProperties &block_vertex = graphs_[Layer::CONTROL][*it];
+    VertexProperties::Ptr block_vertex = flow_graphs_[Layer::CONTROL][*it];
     
     // Get the state of the task
-    const RTT::base::TaskCore::TaskState block_state = block_vertex.block->getTaskState();
-    const RTT::os::TimeService::Seconds block_period = time - block_vertex.last_control_time;
+    const RTT::base::TaskCore::TaskState block_state = block_vertex->block->getTaskState();
+    const RTT::os::TimeService::Seconds block_period = time - block_vertex->last_control_time;
 
     // Check if the task is running and needs to be executed
     if( block_state == RTT::base::TaskCore::Running
-        && block_period >= block_vertex.hook->getPeriod())
+        && block_period >= block_vertex->hook->getPeriod())
     {
-      block_vertex.hook->computeControl(time, block_period);
-      block_vertex.hook->writeHardware(time, block_period);
-      block_vertex.last_control_time = now;
+      block_vertex->hook->computeControl(time, block_period);
+      block_vertex->hook->writeHardware(time, block_period);
+      block_vertex->last_control_time = now;
     }
   }
 }

@@ -77,8 +77,8 @@ namespace conman {
    * networks. This graph contains vertices which correspond to blocks, and
    * edges which correspond to port connections between blocks.
    *
-   * Vertex Type: vecS 
-   *  - Has vertex index property needed for topological sort
+   * Vertex Type: listS
+   *  - Allows for low-time-complexity adding/removing edges
    *
    * Edge Type: listS
    *  - Low time complexity
@@ -89,8 +89,29 @@ namespace conman {
    */
   namespace graph {
 
+    //! Boost Graph Vertex Metadata
+    struct VertexProperties {
+      typedef boost::shared_ptr<VertexProperties> Ptr;
+
+      //! An index for use in topological sort
+      unsigned int index;
+      //! The control and/or estimation block 
+      RTT::TaskContext *block;
+      //! The conman Hook service for this block (cached pointer)
+      boost::shared_ptr<conman::Hook> hook;
+      //! The last time this block was executed
+      RTT::os::TimeService::nsecs last_control_time;
+      RTT::os::TimeService::nsecs last_estimation_time;
+
+      static unsigned int Index(Ptr properties) {
+        return properties->index;
+      }
+    };
+
     //! Boost Graph Edge Metadata
     struct EdgeProperties {
+      typedef boost::shared_ptr<EdgeProperties> Ptr;
+
       //! True if the ports are connected (unused)
       // TODO: Do we need to use this / keep it synchronized?
       bool connected;
@@ -102,72 +123,77 @@ namespace conman {
       RTT::base::PortInterface *sink_port;
     };
 
-    //! Boost Graph Vertex Metadata
-    struct VertexProperties {
-      //! An index for use in topological sort
-      unsigned int index;
-      //! The control and/or estimation block 
-      RTT::TaskContext *block;
-      //! The conman Hook service for this block (cached pointer)
-      boost::shared_ptr<conman::Hook> hook;
-      //! The last time estimation was computed for this block
-      RTT::os::TimeService::nsecs last_estimation_time;
-      //! The last time control was computed for this block
-      RTT::os::TimeService::nsecs last_control_time;
-    };
-
-    //! Boost Graph Type
+    //! Boost graph for representing the data flow graph between components
     typedef 
       boost::adjacency_list< 
         boost::listS, 
         boost::listS, 
-        boost::directedS, 
-        VertexProperties, 
-        EdgeProperties>
-          CausalGraph;
+        boost::bidirectionalS,//directedS, 
+        VertexProperties::Ptr, 
+        EdgeProperties::Ptr>
+          BlockGraph;
 
-    //! Boost Vertex Descriptor Type
-    typedef boost::graph_traits<CausalGraph>::vertex_descriptor CausalVertex;
+    //! Boost Vertex Descriptor Type for BlockGraph
+    typedef boost::graph_traits<BlockGraph>::vertex_descriptor BlockVertexDescriptor;
+    //! Boost Edge Descriptor Type for BlockGraph
+    typedef boost::graph_traits<BlockGraph>::edge_descriptor BlockEdgeDescriptor;
+    //! Topological Ordering container for BlockGraph vertices
+    typedef std::list<BlockVertexDescriptor> BlockOrdering;
+    //! Iterator for iterating over vertices in the BlockGraph in no particular order
+    typedef boost::graph_traits<conman::graph::BlockGraph>::vertex_iterator BlockVertexIterator;
+    //! Vertex descriptor map for retrieving BlockGraph vertices
+    typedef std::map<RTT::TaskContext*,BlockVertexDescriptor> BlockVertexMap;
 
-    //! Topological Ordering Structure
-    typedef std::list<conman::graph::CausalVertex> CausalOrdering;
+    //! Boost graph for representing the conflicts between components
+    typedef 
+      boost::adjacency_list< 
+        boost::listS, 
+        boost::listS, 
+        boost::undirectedS, 
+        VertexProperties::Ptr>
+          BlockConflictGraph;
 
-    //! Iterator for iterating over all vertices in no particular order
-    typedef boost::graph_traits<conman::graph::CausalGraph>::vertex_iterator VertexIterator;
-
-    //! Vertex map
-    typedef std::map<RTT::TaskContext*,conman::graph::CausalGraph::vertex_descriptor> VertexMap;
-    
-    //! Graph layer
-    struct Layer {
-      enum ID {
-        UNDEFINED = 0,
-        ESTIMATION,
-        CONTROL,
-        N_LAYERS
-      };
-
-      //! Get the layer name as a string
-      static std::string Name(const ID id)
-      {
-        switch(id) {
-          case ESTIMATION: return "ESTIMATION";
-          case CONTROL: return "CONTROL";
-        };
-        return "UNDEFINED";
-      }
+    //! Vertex descriptor for the block conflict graph
+    typedef boost::graph_traits<BlockConflictGraph>::vertex_descriptor BlockConflictVertexDescriptor;
+    //! Vertex descriptor map for retrieving BlockGraph vertices
+    typedef std::map<RTT::TaskContext*,BlockConflictVertexDescriptor> BlockConflictVertexMap;
+    //! Iterator for iterating over vertices in the ConflictGraph in no particular order
+    typedef boost::graph_traits<conman::graph::BlockConflictGraph>::vertex_iterator BlockConflictVertexIterator;
+    //! Iterator for iterating over adjacent vertices in the ConflictGraph in no particular order
+    typedef boost::graph_traits<conman::graph::BlockConflictGraph>::adjacency_iterator BlockConflictAdjacencyIterator;
+  }
+  
+  //! Graph layer identification
+  struct Layer {
+    enum ID {
+      ESTIMATION,
+      CONTROL,
     };
 
-  }
+    typedef std::vector<ID>::const_iterator const_iterator;
 
-  /** \brief Exclusivity modes describe how a given port can be accessed. **/
-  enum ExclusivityMode {
-    //! No exclusivity mode set / unknown port.
-    UNDEFINED = 0,
-    //! Any number of connections.
-    UNRESTRICTED,
-    //! Limit to one connection.
-    EXCLUSIVE
+    static const std::vector<ID> ids;
+    static const std::map<ID,std::string> names;
+
+    //! Make sure the layer ID is real
+    static bool Valid(const ID id) {
+      return static_cast<int>(id) < ids.size();
+    }
+
+    static const std::string& Name(const ID id) {
+      return names.find(id)->second;
+    }
+  };
+
+
+  //! Exclusivity modes describe how a given port can be accessed.
+  struct Exclusivity {
+    enum Mode {
+      //! Any number of connections.
+      UNRESTRICTED,
+      //! Limit to one connection.
+      EXCLUSIVE
+    };
   };
 
   

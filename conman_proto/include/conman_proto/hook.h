@@ -13,12 +13,16 @@ namespace conman {
   /* \brief ServiceRequester for using the conman HookServiec in C++
    *
    * This ServiceRequester will connect to the conman::HookService of a given
-   * RTT TaskContext.
+   * RTT TaskContext for easier use in C++.
    *
    */
   class Hook : public RTT::ServiceRequester 
   {
   public:
+
+    typedef boost::shared_ptr<Hook> Ptr;
+    typedef boost::shared_ptr<const Hook> ConstPtr;
+
     Hook(RTT::TaskContext *owner) :
       RTT::ServiceRequester("conman", owner),
       // :'<,'>s/      \(.\+\)/      \1("\1"),/g
@@ -57,15 +61,15 @@ namespace conman {
 
     RTT::OperationCaller<RTT::os::TimeService::Seconds(void)>
       getPeriod;
-    RTT::OperationCaller<bool(const std::string&, const conman::graph::Layer::ID)>
+    RTT::OperationCaller<bool(const std::string&, const conman::Layer::ID)>
       setOutputLayer;
-    RTT::OperationCaller<bool(const std::string&, const ExclusivityMode)>
+    RTT::OperationCaller<bool(const std::string&, const Exclusivity::Mode)>
       setInputExclusivity;
-    RTT::OperationCaller<conman::ExclusivityMode(const std::string&)>
+    RTT::OperationCaller<conman::Exclusivity::Mode(const std::string&)>
       getInputExclusivity;
-    RTT::OperationCaller<conman::graph::Layer::ID(const std::string&)>
+    RTT::OperationCaller<conman::Layer::ID(const std::string&)>
       getOutputLayer;
-    RTT::OperationCaller<void(const conman::graph::Layer::ID, std::vector<RTT::base::PortInterface*>&)>
+    RTT::OperationCaller<void(const conman::Layer::ID, std::vector<RTT::base::PortInterface*>&)>
       getOutputPortsOnLayer;
     RTT::OperationCaller<bool(const std::string&)>
       setReadHardwareHook;

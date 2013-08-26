@@ -35,24 +35,24 @@ namespace conman {
     //! Set the scheme layer for an output port
     bool setOutputLayer(
         const std::string &port_name,
-        const conman::graph::Layer::ID layer);
+        const conman::Layer::ID layer);
 
     //! Set the exclusivity mode for an input port
     bool setInputExclusivity(
         const std::string &port_name,
-        const ExclusivityMode mode);
+        const Exclusivity::Mode mode);
 
     //! Get the exclusivity mode for an input port
-    conman::ExclusivityMode getInputExclusivity(
+    conman::Exclusivity::Mode getInputExclusivity(
         const std::string &port_name);
 
     //! Get the scheme layer for an output port
-    conman::graph::Layer::ID getOutputLayer(
+    conman::Layer::ID getOutputLayer(
         const std::string &port_name);
 
     //! Get all the output ports on a given scheme layer
     void getOutputPortsOnLayer(
-        const conman::graph::Layer::ID layer,
+        const conman::Layer::ID layer,
         std::vector<RTT::base::PortInterface*> &ports);
 
     //\}
@@ -102,11 +102,11 @@ namespace conman {
   private:
 
     struct InputProperties {
-      ExclusivityMode exclusivity;
+      Exclusivity::Mode exclusivity;
     };
 
     struct OutputProperties {
-      conman::graph::Layer::ID layer;
+      conman::Layer::ID layer;
     };
 
     //! Minimum execution period for this component

@@ -15,7 +15,13 @@ namespace conman
     ///////////////////////////////////////////////////////////////////////////
     //! \name Scheme Construction
     //\{
-    
+
+    /** \brief Add a block which is already a peer of this component by name.
+     *
+     * The block with this name must already be a peer of this Scheme.
+     */
+    bool add_block(const std::string &name);
+
     /** \brief Add a block that has already been constructed
      *
      * After calling add_block, new_block will be a peer of this Scheme.
@@ -23,16 +29,14 @@ namespace conman
      */
     bool add_block(RTT::TaskContext *new_block);
 
-    /** \brief Add a block which is already a peer of this component by name.
-     *
-     * The block with this name must already be a peer of this Scheme.
-     *
+    /* \brief Remove a block from the scheme
      */
-    bool add_block(const std::string &name);
+    bool remove_block(RTT::TaskContext *block);
 
     //! Get the names of all the blocks in this scheme
-    const std::vector<std::string> & get_blocks() {
-      return block_names_;
+    std::vector<std::string> get_blocks() {
+      std::vector<std::string> block_names(block_names_.begin(), block_names_.end());
+      return block_names;
     }
 
     //\}
@@ -72,19 +76,21 @@ namespace conman
      * Block conflicts are inferred from RTT data port exclusivity, as declared
      * by each given block.
      *
+     * 
+     *
      * TODO: Use boost::edge_range to get all edges between this block and other
      * blocks, and enable connect the ports associated with each edge
      */
     //\{
     
     //! Compute the conflicts between all blocks in the scheme
-    void compute_conflicts() {};
+    void compute_conflicts();
     //! Compute the conflicts with a single block in the scheme
-    void compute_conflicts(RTT::TaskContext *block) {};
+    void compute_conflicts(RTT::TaskContext *block);
     //! Compute the conflicts with a single block in the scheme by name
-    void compute_conflicts(const std::string &block_name) {};
+    void compute_conflicts(const std::string &block_name);
     //! Compute the conflicts with a list of blocks in the scheme by name
-    void compute_conflicts(const std::vector<std::string> &block_names) {};
+    void compute_conflicts(const std::vector<std::string> &block_names);
 
     //\}
 
@@ -131,6 +137,8 @@ namespace conman
     bool disable_block(RTT::TaskContext *block);
     //! Disable a single Conman block by name
     bool disable_block(const std::string &block_name);
+    //! Disable all Conman blocks  simultaneously
+    bool disable_blocks(const bool strict);
     //! Disable multiple Conman blocks by name simultaneously
     bool disable_blocks(
         const std::vector<std::string> &block_names,
@@ -201,47 +209,64 @@ namespace conman
      */
     RTT::os::TimeService::nsecs last_update_time_;
 
-    //! A list of block names (to distinguish from other peers)
-    std::vector<std::string> block_names_;
+    //! A list of block names (for fast access)
+    std::set<std::string> block_names_;
 
     //! \name Graph structures
     //\{
 
     //! Graphs for each layer representing data port network
-    std::vector<conman::graph::CausalGraph> graphs_;
+    std::vector<conman::graph::BlockGraph> flow_graphs_;
     //! Mappings from TaskContext pointers to boost vertex descriptors
-    std::vector<conman::graph::VertexMap> vertex_maps_;
+    std::vector<conman::graph::BlockVertexMap> flow_vertex_maps_;
     //! Topologically sorted ordering of each graph
-    std::vector<conman::graph::CausalOrdering> causal_ordering_;
+    std::vector<conman::graph::BlockOrdering> causal_ordering_;
 
+    /* \brief Graph representing block conflicts 
+     *
+     * Adjacent vertices in the ConflictGraph represent components that can't
+     * run simultaneously
+     */
+    conman::graph::BlockConflictGraph conflict_graph_;
+    conman::graph::BlockConflictVertexMap conflict_vertex_map_;
     //\}
 
-    //! Maps blocks onto lists of conflicting blocks for quick access
-    std::map<RTT::TaskContext*, std::vector<RTT::TaskContext*> > 
-      block_conflicts_;
 
     /* \brief Connect a block to the appropriate blocks in a given graph
+     *
+     * This is an internal function. For adding a block from
+     * the public API, see \ref add_block.
      *
      * This connects all inputs/outputs of block_a to all outputs/inputs of
      * block_b, given the groups, inputs, and outputs of block_b
      *
-     * This is an internal function. For adding a block from
-     * the public API, see \ref add_block.
+     * Once the block is removed, this graph later is re-sorted.
      */
     bool add_block_to_graph(
-        RTT::TaskContext *new_block,
-        const conman::graph::Layer::ID &layer);
+        conman::graph::VertexProperties::Ptr new_vertex,
+        const conman::Layer::ID &layer);
 
-    /* \brief Generates an internal model of the RTT port connections
+    /* \brief Remove a block from one of the flow graphs
+     *
+     * This is an internal function. For adding a block from
+     * the public API, see \ref remove_block.
+     *
+     * Once the block is removed, this graph later is re-sorted.
+     */
+    bool remove_block_from_graph(
+        conman::graph::VertexProperties::Ptr vertex,
+        const conman::Layer::ID &layer);
+
+    /* \brief Generates an internal model of the RTT port connection graph
      *
      * This will generate a grah with RTT TaskContext blocks as vertices, and
      * RTT PortInterfaces as edges. 
      *
-     * This only adds edges. Note that only edges between two blocks which have
-     * already been added to the graph will be generated.
+     * This only modifies edges. Note that only edges between two blocks which
+     * have already been added to the graph will be generated.
      */
     bool regenerate_graph(
-        const conman::graph::Layer::ID &layer);
+        const conman::Layer::ID &layer);
   };
 }
 
