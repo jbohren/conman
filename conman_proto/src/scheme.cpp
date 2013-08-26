@@ -689,6 +689,14 @@ bool Scheme::enable_block(RTT::TaskContext *block, const bool force)
     return false;
   }
 
+  // Check if the block is already enabled
+  if(block->getTaskState() == RTT::TaskContext::Running) {
+    // If it's already running, then we're going to assume for now that the
+    // user isn't doing anything dirty.
+    // TODO: Keep track of whether or not a block has been properly enabled.
+    return true;
+  }
+
   // Get the blocks that conflict with this block
   BlockConflictAdjacencyIterator conflict_it, conflict_end;
 
