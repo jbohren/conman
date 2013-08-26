@@ -4,7 +4,14 @@
 #include <conman_proto/scheme.h>
 #include <conman_proto/hook.h>
 
+// function_property_map isn't available until version 1.51
+#include <boost/version.hpp>
+#if BOOST_VERSION / 100000 >= 1 && BOOST_VERSION / 100 % 1000 >= 51
+#include <boost/property/function_property_map.hpp>
+#else
 #include "function_property_map.hpp"
+#endif
+
 
 ORO_LIST_COMPONENT_TYPE(conman::Scheme);
 
@@ -430,11 +437,11 @@ bool Scheme::regenerate_graph(
     // Recompute the topological sort
     // NOTE: We need to use an external vertex index property for this
     // algorithm to work since our adjacency_list uses a list as the underlying
-    // vertex data structure.
+    // vertex data structure. See the documentation for BlockVertexIndex for
+    // more info.
     boost::topological_sort( 
         flow_graph, 
         std::front_inserter(ordering),
-        //boost::vertex_index_map(boost::get(&VertexProperties::index,flow_graph)));
         boost::vertex_index_map(
             boost::make_function_property_map<BlockVertexDescriptor>(
               boost::bind(&BlockVertexIndex,_1,flow_graph))));

@@ -141,6 +141,28 @@ namespace conman {
     //! Vertex descriptor map for retrieving BlockGraph vertices
     typedef std::map<RTT::TaskContext*,BlockVertexDescriptor> BlockVertexMap;
 
+    /* \brief Function for extracting the vertex index from a block vertex
+     *
+     * This function is used in a boost::function_property_map by topological
+     * sort because the topological sort algorithm needs an vertex index
+     * property, and we're storing boost::shared_ptrs as vertex properties.
+     *
+     * Normally, one could use boost::get() to get the index property (as shown
+     * below), but in this case, the use of shared_ptr properties precludes
+     * this:
+     *
+     *    boost::vertex_index_map(boost::get(&VertexProperties::index,flow_graph)));
+     *
+     * In this case, we need to do something more complicated to dereference
+     * the shared_ptr:
+     * 
+     *    boost::vertex_index_map(
+     *      boost::make_function_property_map<BlockVertexDescriptor>(
+     *        boost::bind(&BlockVertexIndex,_1,flow_graph))));
+     * 
+     * Note above, we use boost::Bind so that the BlockVertexIndex function
+     * gets the vertex descriptor from the correct graph.
+     */
     static unsigned int BlockVertexIndex(BlockVertexDescriptor vertex, BlockGraph graph) {
       return graph[vertex]->index;
     }
@@ -170,6 +192,7 @@ namespace conman {
     enum ID {
       ESTIMATION,
       CONTROL,
+      INVALID
     };
 
     typedef std::vector<ID>::const_iterator const_iterator;

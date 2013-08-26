@@ -17,11 +17,11 @@ TestEffortController::TestEffortController(std::string const& name) :
 
   // Add the ports to conman
   conman_hook->setInputExclusivity("effort_in", Exclusivity::EXCLUSIVE);
-  conman_hook->setOutputLayer("effort_out", graph::Layer::CONTROL);
+  conman_hook->setOutputLayer("effort_out", Layer::CONTROL);
 
   // Register the conman execution hooks
   this->addOperation("computeControlHook",&TestEffortController::computeControlHook, this);
-  conman_hook->setHook("computeControlHook",graph::Layer::CONTROL);
+  conman_hook->setComputeControlHook("computeControlHook");
 }
 
 bool TestEffortController::configureHook() {

@@ -18,16 +18,18 @@ HookService::HookService(RTT::TaskContext* owner) :
     .doc("The desired execution period for this block, in seconds. By default, "
         "this is 0 and it will run as fast as the scheme period.");
 
-  // Enums
-  this->addAttribute("UNRESTRICTED",Exclusivity::UNRESTRICTED);
-  this->addAttribute("EXCLUSIVE",Exclusivity::EXCLUSIVE);
-
-  for(std::vector<Layer::ID>::iterator it = Layer::ids.begin();
-      it != Layer::ids.end();
-      ++it)
-  {
-    this->addAttribute(Layer::names[*it],*id);
-  }
+  // Enums TODO: expose these to orocos api
+/*
+ *  this->addAttribute("UNRESTRICTED",static_cast<int>(Exclusivity::UNRESTRICTED));
+ *  this->addAttribute("EXCLUSIVE",static_cast<int>(Exclusivity::EXCLUSIVE));
+ *
+ *  for(std::vector<Layer::ID>::iterator it = Layer::ids.begin();
+ *      it != Layer::ids.end();
+ *      ++it)
+ *  {
+ *    this->addAttribute(Layer::names[*it],static_cast<int<(*id));
+ *  }
+ */
 
   // ConMan Introspection interface
   this->addOperation("getPeriod",&HookService::getPeriod, this, RTT::ClientThread);
@@ -105,30 +107,33 @@ bool HookService::setInputExclusivity(
   return true;
 }
 
-conman::Exclusivity::Mode HookService::getInputExclusivity(const std::string &port_name)
+conman::Exclusivity::Mode HookService::getInputExclusivity(
+    const std::string &port_name)
 {
   // Get the port
-  std::map<std::string,InputProperties>::const_iterator props = input_ports_.find(port_name);
+  std::map<std::string,InputProperties>::const_iterator props = 
+    input_ports_.find(port_name);
 
   if(props != input_ports_.end()) {
     return props->second.exclusivity; 
   }
 
   // Return undefined if the port isn't registered
-  return conman:::Layer::UNRESTRICTED;
+  return Exclusivity::UNRESTRICTED;
 }
 
 conman::Layer::ID HookService::getOutputLayer(const std::string &port_name)
 {
   // Get the port properties
-  std::map<std::string,OutputProperties>::const_iterator props = output_ports_.find(port_name);
+  std::map<std::string,OutputProperties>::const_iterator props =
+    output_ports_.find(port_name);
   
   if(props != output_ports_.end()) {
     return props->second.layer; 
   }
 
-  // Return empty string if the port isn't registered
-  return conman::Layer::UNRESTRICTED;
+  // Return invalid layer
+  return conman::Layer::INVALID;
 }
 
 void HookService::getOutputPortsOnLayer(
