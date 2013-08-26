@@ -882,7 +882,18 @@ bool Scheme::enable_block(RTT::TaskContext *block, const bool force)
 
 bool Scheme::disable_block(const std::string &block_name)
 {
-  // Get the block by name
+  // First check if this block is a group
+  std::map<std::string, std::set<std::string> >::iterator group = 
+    block_groups_.find(block_name);
+
+  if(group != block_groups_.end()) {
+    // Enable the blocks in this group
+    return this->disable_blocks(
+        std::vector<std::string>(group->second.begin(),group->second.end()),
+        true);
+  }
+
+  // Disable the block by name
   return this->disable_block(this->getPeer(block_name));
 }
 
