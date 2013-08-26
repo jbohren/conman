@@ -678,14 +678,14 @@ bool Scheme::enable_block(RTT::TaskContext *block, const bool force)
 
   if(blocks_.find(block_name) == blocks_.end()) {
     RTT::log(RTT::Error) << "Could not enable block \""<< block_name << "\""
-      "because it has not been added to the scheme." << RTT::endlog();
+      " because it has not been added to the scheme." << RTT::endlog();
     return false;
   }
 
   // Make sure the block is configured
   if(!block->isConfigured()) {
     RTT::log(RTT::Error) << "Could not enable block \""<< block_name << "\""
-      "because it has not been confiugre()ed." << RTT::endlog();
+      " because it has not been confiugre()ed." << RTT::endlog();
     return false;
   }
 
@@ -705,8 +705,8 @@ bool Scheme::enable_block(RTT::TaskContext *block, const bool force)
       // If force is selected, disable the conflicting block
       if(force) {
         RTT::log(RTT::Info) << "Force-enabling block \""<< block_name << "\""
-          "involves disabling block \"" << conflict_block->getName() << "\"" <<
-          RTT::endlog();
+          " involves disabling block \"" << conflict_block->getName() << "\""
+          << RTT::endlog();
 
         // Make sure we can actually disable it
         if(this->disable_block(conflict_block) == false) {
@@ -716,8 +716,8 @@ bool Scheme::enable_block(RTT::TaskContext *block, const bool force)
         }
       } else {
         RTT::log(RTT::Error) << "Could not enable block \""<< block_name <<
-          "\"" "because it conflicts with block \"" <<
-          conflict_block->getName() << "\"" << RTT::endlog();
+          "\" because it conflicts with block \"" << conflict_block->getName()
+          << "\"" << RTT::endlog();
         return false;
       }
     }
@@ -726,7 +726,7 @@ bool Scheme::enable_block(RTT::TaskContext *block, const bool force)
   // Try to start the block
   if(!block->start()) {
     RTT::log(RTT::Error) << "Could not enable block \""<< block_name << "\""
-      "because it could not be start()ed." << RTT::endlog();
+      " because it could not be start()ed." << RTT::endlog();
     return false;
   }
 
@@ -748,7 +748,7 @@ bool Scheme::disable_block(RTT::TaskContext* block)
     if(!block->stop()) {
       RTT::log(RTT::Error) 
         << "Could not disable block \""<< block->getName() << "\" because it"
-        "could not be stop()ed." << RTT::endlog();
+        " could not be stop()ed." << RTT::endlog();
       return false;
     }
   }
