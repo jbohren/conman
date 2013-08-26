@@ -21,7 +21,7 @@ TestEffortController::TestEffortController(std::string const& name) :
 
   // Register the conman execution hooks
   this->addOperation("computeControlHook",&TestEffortController::computeControlHook, this);
-  conman_hook->setComputeControlHook("computeControlHook");
+  conman_hook->setHook("computeControlHook",graph::Layer::CONTROL);
 }
 
 bool TestEffortController::configureHook() {

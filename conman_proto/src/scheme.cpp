@@ -1,4 +1,6 @@
 
+#include <boost/bind.hpp>
+
 #include <conman_proto/scheme.h>
 #include <conman_proto/hook.h>
 
@@ -433,7 +435,9 @@ bool Scheme::regenerate_graph(
         flow_graph, 
         std::front_inserter(ordering),
         //boost::vertex_index_map(boost::get(&VertexProperties::index,flow_graph)));
-        boost::vertex_index_map(boost::make_function_property_map<BlockVertexDescriptor>(&VertexProperties::Index)));
+        boost::vertex_index_map(
+            boost::make_function_property_map<BlockVertexDescriptor>(
+              boost::bind(&BlockVertexIndex,_1,flow_graph))));
   } catch(std::exception &ex) {
     // Complain
     RTT::log(RTT::Error)

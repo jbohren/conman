@@ -103,9 +103,6 @@ namespace conman {
       RTT::os::TimeService::nsecs last_control_time;
       RTT::os::TimeService::nsecs last_estimation_time;
 
-      static unsigned int Index(Ptr properties) {
-        return properties->index;
-      }
     };
 
     //! Boost Graph Edge Metadata
@@ -143,6 +140,11 @@ namespace conman {
     typedef boost::graph_traits<conman::graph::BlockGraph>::vertex_iterator BlockVertexIterator;
     //! Vertex descriptor map for retrieving BlockGraph vertices
     typedef std::map<RTT::TaskContext*,BlockVertexDescriptor> BlockVertexMap;
+
+    static unsigned int BlockVertexIndex(BlockVertexDescriptor vertex, BlockGraph graph) {
+      return graph[vertex]->index;
+    }
+
 
     //! Boost graph for representing the conflicts between components
     typedef 

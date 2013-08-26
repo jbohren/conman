@@ -35,7 +35,9 @@ namespace conman
 
     //! Get the names of all the blocks in this scheme
     std::vector<std::string> get_blocks() {
-      std::vector<std::string> block_names(block_names_.begin(), block_names_.end());
+      std::vector<std::string> block_names(
+          block_names_.begin(), 
+          block_names_.end());
       return block_names;
     }
 
