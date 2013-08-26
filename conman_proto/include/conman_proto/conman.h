@@ -59,6 +59,7 @@ namespace conman {
     };
 
     /** \brief Boost graph for representing the data flow graph between components
+     *
      * The block flow graph is used to topologically sort control and estimation
      * networks so that they can be executed causally. This graph contains
      * vertices which correspond to blocks, and edges which correspond to port
@@ -108,15 +109,17 @@ namespace conman {
      * Normally, one could use boost::get() to get the index property (as shown
      * below), but in this case, the use of shared_ptr properties precludes
      * this:
-     *
+     * <pre>
      *    boost::vertex_index_map(boost::get(&VertexProperties::index,flow_graph)));
+     * </pre>
      *
      * In this case, we need to do something more complicated to dereference
      * the shared_ptr:
-     * 
+     * <pre>
      *    boost::vertex_index_map(
      *      boost::make_function_property_map<BlockVertexDescriptor>(
      *        boost::bind(&BlockVertexIndex,_1,flow_graph))));
+     * </pre>
      * 
      * Note above, we use boost::Bind so that the BlockVertexIndex function
      * gets the vertex descriptor from the correct graph.
