@@ -45,7 +45,7 @@ int ORO_main(int argc, char** argv) {
     A.getPort("effort_out")->connectTo(B.getPort("effort_in"));
     A.getPort("effort_out")->connectTo(C.getPort("effort_in"));
     B.getPort("effort_out")->connectTo(C.getPort("effort_in"));
-    C.getPort("effort_out")->connectTo(D.getPort("effort_in"));
+    //C.getPort("effort_out")->connectTo(D.getPort("effort_in"));
 
     // Add the blocks
     scheme.add_block(&C);

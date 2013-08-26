@@ -164,13 +164,16 @@ bool Scheme::add_block(RTT::TaskContext *new_block)
     }
   }
 
+  // Recompute conflicts for this block
+  this->compute_conflicts(new_block);
+
   // Cleanup
   if(!success) {
     RTT::log() << RTT::Logger::Error << "Could not add TaskContext \""<< block_name <<"\" to the scheme." << RTT::endlog();
     // Remove the block
     if(!this->remove_block(new_block)) {
       // This is 
-      RTT::log(RTT::Fatal) << "Could clean up TaskContext \"" << block_name <<
+      RTT::log(RTT::Fatal) << "Could not clean up block \"" << block_name <<
         "\" when trying to remove it. Something is terribly wrong." <<
         RTT::endlog();
       return false;
@@ -414,6 +417,8 @@ bool Scheme::regenerate_graph(
   BlockOrdering &ordering = causal_ordering_[layer];
   BlockVertexMap &flow_vertex_map = flow_vertex_maps_[layer];
 
+  bool topology_modified = false;
+
   // Iterate over all vertices in this graph layer
   for(std::pair<BlockVertexIterator, BlockVertexIterator> vert_it = boost::vertices(flow_graph);
       vert_it.first != vert_it.second;
@@ -505,6 +510,9 @@ bool Scheme::regenerate_graph(
               // Add the edge to the graph
               boost::add_edge(flow_vertex_map[source_block], flow_vertex_map[sink_block], edge_props, flow_graph);
 
+              // Set the flag to know we've modified edges
+              topology_modified = true;
+
               RTT::log(RTT::Debug) << "Created "<<Layer::Name(layer)<<" edge "
                 <<source_name<<"."<<source_port->getName()<<" --> "
                 <<sink_name<<"."<<sink_port->getName()<< RTT::endlog();
@@ -519,31 +527,33 @@ bool Scheme::regenerate_graph(
     }
   }
   
-  // Recompute topological sort (and require that this layer is still a DAG)
-  try {
-    // Clear the topologically-sorted ordering 
-    ordering.clear();
-    // Recompute the topological sort
-    // NOTE: We need to use an external vertex index property for this
-    // algorithm to work since our adjacency_list uses a list as the underlying
-    // vertex data structure. See the documentation for BlockVertexIndex for
-    // more info.
-    boost::topological_sort( 
-        flow_graph, 
-        std::front_inserter(ordering),
-        boost::vertex_index_map(
-            boost::make_function_property_map<BlockVertexDescriptor>(
-              boost::bind(&BlockVertexIndex,_1,flow_graph))));
-  } catch(std::exception &ex) {
-    // Complain
-    RTT::log(RTT::Error)
-      << "Cannot regenerate topological ordering in conman scheme "
-      "\""<<Layer::Name(layer)<<"\" layer because: " << ex.what() << RTT::endlog();
+  if(topology_modified) {
+    // Recompute topological sort (and require that this layer is still a DAG)
+    try {
+      // Clear the topologically-sorted ordering 
+      ordering.clear();
+      // Recompute the topological sort
+      // NOTE: We need to use an external vertex index property for this
+      // algorithm to work since our adjacency_list uses a list as the underlying
+      // vertex data structure. See the documentation for BlockVertexIndex for
+      // more info.
+      boost::topological_sort( 
+          flow_graph, 
+          std::front_inserter(ordering),
+          boost::vertex_index_map(
+              boost::make_function_property_map<BlockVertexDescriptor>(
+                boost::bind(&BlockVertexIndex,_1,flow_graph))));
+    } catch(std::exception &ex) {
+      // Complain
+      RTT::log(RTT::Error)
+        << "Cannot regenerate topological ordering in conman scheme "
+        "\""<<Layer::Name(layer)<<"\" layer because: " << ex.what() << RTT::endlog();
 
-    return false;
+      return false;
+    }
+
+    RTT::log(RTT::Debug) << "Regenerated topological ordering." << RTT::endlog();
   }
-
-  RTT::log(RTT::Debug) << "Regenerated topological ordering." << RTT::endlog();
 
   return true;
 }
@@ -622,15 +632,21 @@ void Scheme::compute_conflicts(RTT::TaskContext *block)
             // Add conflict between the seed block and the source block for this edge
             VertexProperties::Ptr conflicting_vertex = flow_graph[boost::source(*in_edge_it,flow_graph)];
 
-            // Make sure the block is in the conflict map
+            // Make sure the block is in the conflict map, and isn't itself
             if( conflict_vertex_map_.find(block) != conflict_vertex_map_.end() &&
-                conflict_vertex_map_.find(conflicting_vertex->block) != conflict_vertex_map_.end()) 
+                conflict_vertex_map_.find(conflicting_vertex->block) != conflict_vertex_map_.end() &&
+                block != conflicting_vertex->block) 
             {
               // Add an edge in the conflict graph
               add_edge(
                   conflict_vertex_map_[block],
                   conflict_vertex_map_[conflicting_vertex->block],
                   conflict_graph_);
+
+              // Debug output
+              RTT::log(RTT::Debug) << "Added conflict between blocks "<<
+                block->getName() << " and " <<
+                conflicting_vertex->block->getName() << RTT::endlog();
             }
           }
         }
@@ -660,7 +676,7 @@ bool Scheme::enable_block(RTT::TaskContext *block, const bool force)
 
   const std::string &block_name = block->getName();
 
-  if(blocks_.find(block_name) != blocks_.end()) {
+  if(blocks_.find(block_name) == blocks_.end()) {
     RTT::log(RTT::Error) << "Could not enable block \""<< block_name << "\""
       "because it has not been added to the scheme." << RTT::endlog();
     return false;
