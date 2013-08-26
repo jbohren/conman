@@ -45,7 +45,7 @@ system implementation:
 
 A *Conman* "scheme" is a set of RTT components, and a pair of directed acyclic
 computational graphs on these components and their RTT ports: the **estimation
-graph** and the **control graph**.  These graphs are meant to be computed
+graph** and the **control graph**. These graphs are meant to be computed
 topologically in realtime, so their respective vertices should either compute
 their results with bounded latency, or asynchronously in a separate thread.
 
@@ -74,6 +74,8 @@ These stages are supported by the corresponding *Conman* RTT operations which
   * Writes to lower-level hardware APIs or external interfaces
 
 #### Common RTT Port Interfaces
+
+***IN PROGRESS***
 
 We do not want to define _yet another_ datatype or message specification.
 Instead, we want to take existing datatypes (Eigen, KDL, ROS, etc) and annotate
@@ -161,13 +163,21 @@ robot control "blocks." Orocos RTT, itself, aims to be such a platform, however,
 with great power comes great flexibility. This means that the many ways that
 Orocos RTT provides to exchange information between components and different
 ways to schedule components makes it hard for developers to come to a consensus
-on how data should move around the system.
+on how and _when_ data should move around the system.
 
 This is the primary motivation of the [Rock](http://rock-robotics.org)
 framework, but this framwork aims to solve far more than this problem. One
 feature of Rock, however, is a notion of component dependency management which
 can allow the system to reason about which components are needed for downstream
-componentns.
+componentns. Rock relies heavily on code generation using the Orogen tool to
+generate programs from more abstract definitions, but these definitions have the
+exact same semantics of Orocos RTT components.
+
+Another project, [Ptolemy](http://ptolemy.eecs.berkeley.edu/), takes a
+completely model-driven approach to designing systems. While this approach makes
+formal system validation easy, it also requires that all aspects of the system
+ar modeled completely. As an aside, ConMan
+performs some of the same roles as a "Director" in Ptolemy. 
 
 #### April 2012 Orocos RTT "Best Practices" Discussion
 
