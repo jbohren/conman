@@ -13,9 +13,9 @@
 #include <boost/graph/adjacency_list.hpp>
 #include <boost/graph/topological_sort.hpp>
 
-#include <conman_proto/conman.h>
-#include <conman_proto/scheme.h>
-#include <conman_proto/conman_test_plugins.h>
+#include <conman/conman.h>
+#include <conman/scheme.h>
+#include <conman/conman_test_plugins.h>
 
 int ORO_main(int argc, char** argv) {
 
@@ -27,7 +27,7 @@ int ORO_main(int argc, char** argv) {
 
   {
     OCL::DeploymentComponent deployer("Deployer");
-    deployer.import("conman_proto");
+    deployer.import("conman");
 
   TestEffortController 
     A("A"),

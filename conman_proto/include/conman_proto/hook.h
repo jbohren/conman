@@ -6,7 +6,7 @@
 #include <rtt/Logger.hpp>
 #include <rtt/plugin/PluginLoader.hpp>
 
-#include <conman_proto/conman.h>
+#include <conman/conman.h>
 
 namespace conman {
 

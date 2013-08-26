@@ -1,7 +1,7 @@
 
 #include <rtt/Component.hpp>
 #include <boost/assign/list_of.hpp>
-#include <conman_proto/scheme.h>
+#include <conman/scheme.h>
 
 //const std::string conman::interfaces::JointState::name = "joint_state";
 //const std::string conman::interfaces::JointEffortCommand::name = "joint_effort_command";

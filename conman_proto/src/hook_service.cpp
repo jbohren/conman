@@ -1,7 +1,7 @@
 
 #include <rtt/plugin/ServicePlugin.hpp>
 
-#include <conman_proto/hook_service.h>
+#include <conman/hook_service.h>
 
 using namespace conman;
 

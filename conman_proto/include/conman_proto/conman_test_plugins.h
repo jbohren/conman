@@ -1,7 +1,7 @@
 #ifndef __CONMAN_TEST_PLUGINS_H
 #define __CONMAN_TEST_PLUGINS_H
 
-#include <conman_proto/conman.h>
+#include <conman/conman.h>
 
 class TestEffortController : public RTT::TaskContext
 {

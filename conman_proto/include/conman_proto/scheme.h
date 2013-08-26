@@ -2,7 +2,7 @@
 #ifndef __CONMAN_SCHEME_H
 #define __CONMAN_SCHEME_H
 
-#include <conman_proto/conman.h>
+#include <conman/conman.h>
 
 namespace conman
 {

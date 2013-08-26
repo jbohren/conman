@@ -1,8 +1,8 @@
 
 #include <boost/bind.hpp>
 
-#include <conman_proto/scheme.h>
-#include <conman_proto/hook.h>
+#include <conman/scheme.h>
+#include <conman/hook.h>
 
 // function_property_map isn't available until version 1.51
 #include <boost/version.hpp>
@@ -71,9 +71,11 @@ std::vector<std::string> Scheme::get_blocks()
   std::vector<std::string> block_names(blocks_.size());
 
   std::vector<std::string>::iterator str_it = block_names.begin();
-  std::map<std::string,VertexProperties::Ptr>::iterator block_it = blocks_.begin();
+  std::map<std::string,VertexProperties::Ptr>::iterator block_it = 
+    blocks_.begin();
 
-  for(; str_it != block_names.end() && block_it != blocks_.end(); ++str_it, ++block_it)
+  for(; str_it != block_names.end() && block_it != blocks_.end();
+      ++str_it, ++block_it)
   {
     *str_it = block_it->first;
   }

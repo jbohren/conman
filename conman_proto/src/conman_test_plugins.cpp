@@ -1,8 +1,8 @@
 
 #include <rtt/Component.hpp>
 
-#include <conman_proto/conman_test_plugins.h>
-#include <conman_proto/hook.h>
+#include <conman/conman_test_plugins.h>
+#include <conman/hook.h>
 
 TestEffortController::TestEffortController(std::string const& name) :
   RTT::TaskContext(name)
