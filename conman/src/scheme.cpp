@@ -254,7 +254,7 @@ bool Scheme::addBlockToGraph(
   // Add this block to the flow graph
   flow_vertex_map[new_block] = boost::add_vertex(new_vertex, flow_graph);
 
-  RTT::log(RTT::Debug) << "Created vertex: "<< new_vertex->index <<" ("<<
+  RTT::log(RTT::Debug) << "Created vertex: "<< new_vertex->index << " (" <<
     flow_vertex_map[new_block]<<")" << RTT::endlog();
 
   // Regenerate the topological ordering
@@ -365,7 +365,9 @@ bool Scheme::removeBlock(
     } else {
       // Update index of the blocks we don't remove
       (*it)->index = i;
+      // Increment the iterator
       ++it;
+      // Increment the index
       ++i;
     }
   }

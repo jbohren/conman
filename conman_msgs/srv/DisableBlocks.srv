@@ -1,0 +1,5 @@
+string[] names
+bool strict
+bool force
+---
+bool success
