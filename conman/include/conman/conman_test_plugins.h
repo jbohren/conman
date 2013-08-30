@@ -14,8 +14,7 @@ public:
   TestEffortController(std::string const& name);
   bool startHook();
   bool configureHook();
-
-  void computeControlHook( RTT::os::TimeService::Seconds secs, RTT::os::TimeService::Seconds period);
+  void updateHook();
 
 private:
 

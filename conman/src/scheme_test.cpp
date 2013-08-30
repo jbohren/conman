@@ -13,6 +13,7 @@
 #include <ocl/TaskBrowser.hpp>
 #include <ocl/LoggingService.hpp>
 #include <rtt/Logger.hpp>
+#include <rtt/extras/SlaveActivity.hpp>
 
 #include <boost/graph/adjacency_list.hpp>
 #include <boost/graph/topological_sort.hpp>
@@ -41,7 +42,12 @@ int ORO_main(int argc, char** argv) {
 
     conman::Scheme scheme("Scheme"); 
     scheme.connectPeers(&deployer);
+    scheme.setActivity( new RTT::Activity(1, 0.5, scheme.engine() ) );
 
+    A.setActivity( new RTT::extras::SlaveActivity(scheme.getActivity(), A.engine() ) );
+    B.setActivity( new RTT::extras::SlaveActivity(scheme.getActivity(), B.engine() ) );
+    C.setActivity( new RTT::extras::SlaveActivity(scheme.getActivity(), C.engine() ) );
+    D.setActivity( new RTT::extras::SlaveActivity(scheme.getActivity(), D.engine() ) );
 
     // Connect some stuff
     // left_2 --> left_1 --> right_1 --X--> left_2

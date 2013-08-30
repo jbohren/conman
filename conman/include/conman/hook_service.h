@@ -60,49 +60,7 @@ namespace conman {
         std::vector<RTT::base::PortInterface*> &ports);
 
     //\}
-
-    /** \name Execution Hook Registration 
-     *
-     * These functions are used to register hooks for different types of conman
-     * events. The functions are each called with time of the latest event
-     * (time) and the time since the last event (period).
-     */
-    //\{
-
-    bool setReadHardwareHook(const std::string &operation_name);
-    bool setComputeEstimationHook(const std::string &operation_name);
-    bool setComputeControlHook(const std::string &operation_name);
-    bool setWriteHardwareHook(const std::string &operation_name);
-
-    //\}
-  
-    /** \name Execution
-     *
-     * These functions are called by a Conman Scheme at the appropriate times.
-     * They are essentially pass-throughs to the "execution hook" function
-     * objects supplied by the user.
-     */
-    //\{
     
-    //! Read from lower-level hardware API
-    void readHardware(
-        RTT::os::TimeService::Seconds time,
-        RTT::os::TimeService::Seconds period);
-    //! Compute state estimation and write to ports in the "estimation" layer.
-    void computeEstimation(
-        RTT::os::TimeService::Seconds time,
-        RTT::os::TimeService::Seconds period);
-    //! Compute control commands and write to ports in the "control" layer.
-    void computeControl(
-        RTT::os::TimeService::Seconds time,
-        RTT::os::TimeService::Seconds period); 
-    //! Write to lower-level hardware API
-    void writeHardware(
-        RTT::os::TimeService::Seconds time,
-        RTT::os::TimeService::Seconds period);
-
-    //\}
-
   private:
 
     //! Internal properties describing an input port in a conman scheme
@@ -126,14 +84,6 @@ namespace conman {
 
     //! Map conman graph layers (control, estimation) onto a set of output ports
     std::vector<std::set<RTT::base::PortInterface*> > output_ports_by_layer_;
-
-    /** \name Execution Hooks */
-    //\{
-    
-    RTT::OperationCaller<void(RTT::os::TimeService::Seconds, RTT::os::TimeService::Seconds)> read_hardware_hook_;
-    RTT::OperationCaller<void(RTT::os::TimeService::Seconds, RTT::os::TimeService::Seconds)> compute_estimation_hook_;
-    RTT::OperationCaller<void(RTT::os::TimeService::Seconds, RTT::os::TimeService::Seconds)> compute_control_hook_;
-    RTT::OperationCaller<void(RTT::os::TimeService::Seconds, RTT::os::TimeService::Seconds)> write_hardware_hook_;
 
     //\}
 

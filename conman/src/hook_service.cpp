@@ -38,37 +38,12 @@ HookService::HookService(RTT::TaskContext* owner) :
   // Conman Introspection interface
   this->addOperation("getPeriod",&HookService::getPeriod, this, RTT::ClientThread);
 
-  // Conman Execution interface
-  this->addOperation("readHardware",&HookService::readHardware,this, RTT::ClientThread);
-  this->addOperation("computeEstimation",&HookService::computeEstimation,this, RTT::ClientThread);
-  this->addOperation("computeControl",&HookService::computeControl,this, RTT::ClientThread);
-  this->addOperation("writeHardware",&HookService::writeHardware,this, RTT::ClientThread);
-
   this->addOperation("setOutputLayer",&HookService::setOutputLayer,this,RTT::ClientThread);
   this->addOperation("setInputExclusivity",&HookService::setInputExclusivity,this,RTT::ClientThread);
   this->addOperation("getInputExclusivity",&HookService::getInputExclusivity,this,RTT::ClientThread);
   this->addOperation("getOutputLayer",&HookService::getOutputLayer,this,RTT::ClientThread);
   this->addOperation("getOutputPortsOnLayer",&HookService::getOutputPortsOnLayer,this,RTT::ClientThread);
-  this->addOperation("setReadHardwareHook",&HookService::setReadHardwareHook,this,RTT::ClientThread);
-  this->addOperation("setComputeEstimationHook",&HookService::setComputeEstimationHook,this,RTT::ClientThread);
-  this->addOperation("setComputeControlHook",&HookService::setComputeControlHook,this,RTT::ClientThread);
-  this->addOperation("setWriteHardwareHook",&HookService::setWriteHardwareHook,this,RTT::ClientThread);
 
-  // Try to connect with default client hooks
-  if(owner != NULL) {
-    if(this->setReadHardwareHook("readHardwareHook")) {
-      RTT::log(RTT::Info) << "Binding to default readHardwareHook for block \"" << owner->getName() << "\"" << RTT::endlog();
-    }
-    if(this->setReadHardwareHook("computeEstimationHook")) {
-      RTT::log(RTT::Info) << "Binding to default computeEstimationHook for block \"" << owner->getName() << "\"" << RTT::endlog();
-    }
-    if(this->setComputeControlHook("computeControlHook")) {
-      RTT::log(RTT::Info) << "Binding to default computeControlHook for block \"" << owner->getName() << "\"" << RTT::endlog();
-    }
-    if(this->setReadHardwareHook("writeHardwareHook")) { 
-      RTT::log(RTT::Info) << "Binding to default writeHardwareHook for block \"" << owner->getName() << "\"" << RTT::endlog();
-    }
-  }
 }
 
 
@@ -166,61 +141,6 @@ void HookService::getOutputPortsOnLayer(
         output_ports_by_layer_[layer].begin(), 
         output_ports_by_layer_[layer].end());
   }
-}
-
-
-bool HookService::setReadHardwareHook(const std::string &operation_name) {
-  RTT::OperationInterfacePart *caller = this->getOwnerOperation(operation_name);
-  if(caller != NULL) {
-    read_hardware_hook_ = caller;
-    return true;
-  }
-  return false;
-}
-bool HookService::setComputeEstimationHook(const std::string &operation_name) {
-  RTT::OperationInterfacePart *caller = this->getOwnerOperation(operation_name);
-  if(caller != NULL) {
-    compute_estimation_hook_ = caller;
-    return true;
-  }
-  return false;
-}
-bool HookService::setComputeControlHook(const std::string &operation_name) {
-  RTT::OperationInterfacePart *caller = this->getOwnerOperation(operation_name);
-  if(caller != NULL) {
-    compute_control_hook_ = caller;
-    return true;
-  }
-  return false;
-}
-bool HookService::setWriteHardwareHook(const std::string &operation_name) {
-  RTT::OperationInterfacePart *caller = this->getOwnerOperation(operation_name);
-  if(caller != NULL) {
-    write_hardware_hook_ = caller;
-    return true;
-  }
-  return false;
-}
-
-
-void HookService::readHardware( RTT::os::TimeService::Seconds time, RTT::os::TimeService::Seconds period) { 
-  this->read_hardware_hook_(time, period); 
-  // TODO: Check no conman ports were written to
-}
-
-void HookService::computeEstimation( RTT::os::TimeService::Seconds time, RTT::os::TimeService::Seconds period) {
-  this->compute_estimation_hook_(time, period); 
-  // TODO: Check no conman control ports were written to
-}
-
-void HookService::computeControl( RTT::os::TimeService::Seconds time, RTT::os::TimeService::Seconds period)  {
-  this->compute_control_hook_(time, period); 
-  // TODO: Check no conman estimation ports were written to
-}
-
-void HookService::writeHardware(RTT::os::TimeService::Seconds time, RTT::os::TimeService::Seconds period)  { 
-  this->write_hardware_hook_(time, period); 
-  // TODO: Check no conman ports were written to
 }
 
 RTT::base::PortInterface* HookService::getOwnerPort(const std::string &name) {

@@ -16,9 +16,6 @@ TestEffortController::TestEffortController(std::string const& name) :
   this->addPort("effort_in", effort_in_).doc("Effort input.");
   this->addPort("effort_out", effort_out_).doc("Effort output := input + 1.");
 
-  // Register the conman execution hooks (use default name)
-  this->addOperation("computeControlHook",&TestEffortController::computeControlHook, this);
-
   // Load block interface
   boost::shared_ptr<conman::Hook> conman_hook = conman::Hook::GetHook(this);
 
@@ -46,14 +43,11 @@ bool TestEffortController::startHook() {
   return ready;
 }
 
-
-void TestEffortController::computeControlHook(
-    RTT::os::TimeService::Seconds secs, 
-    RTT::os::TimeService::Seconds period) 
-{
+void TestEffortController::updateHook() {
   double effort;
   effort_in_.read(effort);
   effort_out_.write(effort + 1);
+  RTT::log(RTT::Debug) << this->getName() << " updateHook." << RTT::endlog();
 }
 
 ORO_LIST_COMPONENT_TYPE(TestEffortController)

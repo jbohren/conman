@@ -1013,6 +1013,8 @@ void Scheme::updateHook()
 {
   using namespace conman::graph;
 
+  RTT::log(RTT::Debug) << this->getName() << " updateHook" << RTT::endlog();
+
   // What time is it
   RTT::os::TimeService::nsecs now = RTT::os::TimeService::Instance()->getNSecs();
   RTT::os::TimeService::Seconds 
@@ -1038,10 +1040,13 @@ void Scheme::updateHook()
 
     // Check if the task is running and needs to be executed
     if( block_state == RTT::base::TaskCore::Running 
-        && block_period >= block_vertex->hook->getPeriod())
+        /*&& block_period >= block_vertex->hook->getPeriod()*/)
     { 
-      block_vertex->hook->readHardware(time, block_period);
-      block_vertex->hook->computeEstimation(time, block_period);
+      //block_vertex->hook->readHardware(time, block_period);
+      //block_vertex->hook->computeEstimation(time, block_period);
+      if(!block_vertex->block->update()) {
+        RTT::log(RTT::Error) << "Unable to update component " << block_vertex->block->getName() << RTT::endlog();
+      }
       block_vertex->last_estimation_time = now;
     }
   }
@@ -1060,10 +1065,13 @@ void Scheme::updateHook()
 
     // Check if the task is running and needs to be executed
     if( block_state == RTT::base::TaskCore::Running
-        && block_period >= block_vertex->hook->getPeriod())
+        /*&& block_period >= block_vertex->hook->getPeriod()*/)
     {
-      block_vertex->hook->computeControl(time, block_period);
-      block_vertex->hook->writeHardware(time, block_period);
+      //block_vertex->hook->computeControl(time, block_period);
+      //block_vertex->hook->writeHardware(time, block_period);
+      if(!block_vertex->block->update()) {
+        RTT::log(RTT::Error) << "Unable to update component " << block_vertex->block->getName() << RTT::endlog();
+      }
       block_vertex->last_control_time = now;
     }
   }
