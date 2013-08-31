@@ -12,6 +12,7 @@
 #include "function_property_map.hpp"
 #endif
 
+#include <rtt/extras/SlaveActivity.hpp>
 
 ORO_LIST_COMPONENT_TYPE(conman::Scheme);
 
@@ -139,6 +140,8 @@ bool Scheme::addBlock(RTT::TaskContext *new_block)
     RTT::log() << RTT::Logger::Error << "Could not connect peer: " <<
       new_block->getName() << RTT::endlog();
   }
+  
+  new_block->setActivity( new RTT::extras::SlaveActivity(this->getActivity(), new_block->engine() ) );
   
   // Get the block name
   const std::string block_name = new_block->getName();

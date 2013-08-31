@@ -44,11 +44,6 @@ int ORO_main(int argc, char** argv) {
     scheme.connectPeers(&deployer);
     scheme.setActivity( new RTT::Activity(1, 0.5, scheme.engine() ) );
 
-    A.setActivity( new RTT::extras::SlaveActivity(scheme.getActivity(), A.engine() ) );
-    B.setActivity( new RTT::extras::SlaveActivity(scheme.getActivity(), B.engine() ) );
-    C.setActivity( new RTT::extras::SlaveActivity(scheme.getActivity(), C.engine() ) );
-    D.setActivity( new RTT::extras::SlaveActivity(scheme.getActivity(), D.engine() ) );
-
     // Connect some stuff
     // left_2 --> left_1 --> right_1 --X--> left_2
     D.getPort("effort_out")->connectTo(A.getPort("effort_in"));
