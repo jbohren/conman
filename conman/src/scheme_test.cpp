@@ -46,10 +46,10 @@ int ORO_main(int argc, char** argv) {
 
     // Connect some stuff
     // left_2 --> left_1 --> right_1 --X--> left_2
-    D.getPort("effort_out")->connectTo(A.getPort("effort_in"));
-    A.getPort("effort_out")->connectTo(B.getPort("effort_in"));
-    A.getPort("effort_out")->connectTo(C.getPort("effort_in"));
-    B.getPort("effort_out")->connectTo(C.getPort("effort_in"));
+    //D.getPort("effort_out")->connectTo(A.getPort("effort_in"));
+    //A.getPort("effort_out")->connectTo(B.getPort("effort_in"));
+    //A.getPort("effort_out")->connectTo(C.getPort("effort_in"));
+    //B.getPort("effort_out")->connectTo(C.getPort("effort_in"));
     //C.getPort("effort_out")->connectTo(D.getPort("effort_in"));
 
     // Add the blocks
@@ -58,6 +58,11 @@ int ORO_main(int argc, char** argv) {
     scheme.addBlock(&B);
     scheme.addBlock(&A);
 
+    scheme.addConnection("D", "effort_out", "A", "effort_in", false);
+    scheme.addConnection("A", "effort_out", "B", "effort_in", false);
+    scheme.addConnection("A", "effort_out", "C", "effort_in", false);
+    scheme.addConnection("B", "effort_out", "C", "effort_in", false);
+    
     std::vector<std::string> group_bc;
     group_bc.push_back("B");
     group_bc.push_back("C");

@@ -44,6 +44,15 @@ namespace conman
      */
     bool removeBlock(RTT::TaskContext *block);
 
+    /** \brief Create connections
+     */
+    bool addConnection(
+        const std::string &source_cmp,
+        const std::string &source_port,
+        const std::string &target_cmp ,
+        const std::string &target_port,
+        bool feedback);
+
     //\}
 
     ///////////////////////////////////////////////////////////////////////////
@@ -236,12 +245,12 @@ namespace conman
     //! \name Graph structures
     //\{
 
-    //! Graphs for each layer representing data port network
-    std::vector<conman::graph::BlockGraph> flow_graphs_;
+    //! Graph representing data port network
+    conman::graph::BlockGraph flow_graphs_;
     //! Mappings from TaskContext pointers to boost vertex descriptors
-    std::vector<conman::graph::BlockVertexMap> flow_vertex_maps_;
-    //! Topologically sorted ordering of each graph
-    std::vector<conman::graph::BlockOrdering> causal_ordering_;
+    conman::graph::BlockVertexMap flow_vertex_maps_;
+    //! Topologically sorted ordering graph
+    conman::graph::BlockOrdering causal_ordering_;
 
     /** \brief Graph representing block conflicts 
      *
@@ -264,8 +273,7 @@ namespace conman
      * the public API, see \ref add_block.
      */
     bool addBlockToGraph(
-        conman::graph::VertexProperties::Ptr new_vertex,
-        const conman::Layer::ID &layer);
+        conman::graph::VertexProperties::Ptr new_vertex);
 
     /** \brief Remove a block from one of the flow graphs
      *
@@ -276,8 +284,7 @@ namespace conman
      * the public API, see \ref remove_block.
      */
     bool removeBlockFromGraph(
-        conman::graph::VertexProperties::Ptr vertex,
-        const conman::Layer::ID &layer);
+        conman::graph::VertexProperties::Ptr vertex);
 
     /** \brief Generates an internal model of the RTT port connection graph
      *
@@ -287,8 +294,7 @@ namespace conman
      * This only modifies edges. Note that only edges between two blocks which
      * have already been added to the graph will be generated.
      */
-    bool regenerateGraph(
-        const conman::Layer::ID &layer);
+    bool regenerateGraph();
   };
 }
 

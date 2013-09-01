@@ -23,7 +23,6 @@ TestEffortController::TestEffortController(std::string const& name) :
 
     // Add the ports to conman
     conman_hook->setInputExclusivity("effort_in", Exclusivity::EXCLUSIVE);
-    conman_hook->setOutputLayer("effort_out", Layer::CONTROL);
 
   } else {
     RTT::log(RTT::Fatal) << "Could not load conman hook." << RTT::endlog();

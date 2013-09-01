@@ -36,11 +36,6 @@ namespace conman {
     /** \name Conman Port Management */
     //\{
 
-    //! Set the scheme layer for an output port
-    bool setOutputLayer(
-        const std::string &port_name,
-        const conman::Layer::ID layer);
-
     //! Set the exclusivity mode for an input port
     bool setInputExclusivity(
         const std::string &port_name,
@@ -49,15 +44,6 @@ namespace conman {
     //! Get the exclusivity mode for an input port
     conman::Exclusivity::Mode getInputExclusivity(
         const std::string &port_name);
-
-    //! Get the scheme layer for an output port
-    conman::Layer::ID getOutputLayer(
-        const std::string &port_name);
-
-    //! Get all the output ports on a given scheme layer
-    void getOutputPortsOnLayer(
-        const conman::Layer::ID layer,
-        std::vector<RTT::base::PortInterface*> &ports);
 
     //\}
     

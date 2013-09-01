@@ -38,11 +38,8 @@ HookService::HookService(RTT::TaskContext* owner) :
   // Conman Introspection interface
   this->addOperation("getPeriod",&HookService::getPeriod, this, RTT::ClientThread);
 
-  this->addOperation("setOutputLayer",&HookService::setOutputLayer,this,RTT::ClientThread);
   this->addOperation("setInputExclusivity",&HookService::setInputExclusivity,this,RTT::ClientThread);
   this->addOperation("getInputExclusivity",&HookService::getInputExclusivity,this,RTT::ClientThread);
-  this->addOperation("getOutputLayer",&HookService::getOutputLayer,this,RTT::ClientThread);
-  this->addOperation("getOutputPortsOnLayer",&HookService::getOutputPortsOnLayer,this,RTT::ClientThread);
 
 }
 
@@ -51,34 +48,6 @@ RTT::os::TimeService::Seconds HookService::getPeriod() {
   return execution_period_;
 }
 
-
-bool HookService::setOutputLayer(
-    const std::string &port_name,
-    const conman::Layer::ID layer) 
-{
-  // Get the port
-  RTT::base::PortInterface *port = this->getOwnerPort(port_name);
-
-  // Make sure that the port is an output port
-  if(dynamic_cast<RTT::base::OutputPortInterface*>(port)) {
-    // Add to the output port map
-    output_ports_[port_name].layer = layer; 
-    // Add to the layer map
-    output_ports_by_layer_[layer].insert(port);
-
-    RTT::log(RTT::Debug) << "Added port \""<<port_name<<"\" to the"
-      "\""<<conman::Layer::Name(layer)<<"\" layer." << RTT::endlog();
-  } else {
-    // Complain
-    RTT::log(RTT::Error) << "Tried to set output layer for an input port."
-      "Input ports inherit the layer from the output port to which they are"
-      "connected." << RTT::endlog();
-
-    return false;
-  }
-
-  return true;
-}
 
 bool HookService::setInputExclusivity(
     const std::string &port_name,
@@ -115,32 +84,6 @@ conman::Exclusivity::Mode HookService::getInputExclusivity(
 
   // Return undefined if the port isn't registered
   return Exclusivity::UNRESTRICTED;
-}
-
-conman::Layer::ID HookService::getOutputLayer(const std::string &port_name)
-{
-  // Get the port properties
-  std::map<std::string,OutputProperties>::const_iterator props =
-    output_ports_.find(port_name);
-  
-  if(props != output_ports_.end()) {
-    return props->second.layer; 
-  }
-
-  // Return invalid layer
-  return conman::Layer::INVALID;
-}
-
-void HookService::getOutputPortsOnLayer(
-    const conman::Layer::ID layer,
-    std::vector<RTT::base::PortInterface*> &ports)  
-{
-  // Copy the port pointers
-  if(layer < conman::Layer::ids.size()) {
-    ports.assign(
-        output_ports_by_layer_[layer].begin(), 
-        output_ports_by_layer_[layer].end());
-  }
 }
 
 RTT::base::PortInterface* HookService::getOwnerPort(const std::string &name) {

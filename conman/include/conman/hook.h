@@ -32,66 +32,22 @@ namespace conman {
       RTT::ServiceRequester("conman_hook", owner),
       // :'<,'>s/      \(.\+\)/      \1("\1"),/g
       getPeriod("getPeriod"),
-      setOutputLayer("setOutputLayer"),
       setInputExclusivity("setInputExclusivity"),
-      getInputExclusivity("getInputExclusivity"),
-      getOutputLayer("getOutputLayer"),
-      getOutputPortsOnLayer("getOutputPortsOnLayer"),
-      setReadHardwareHook("setReadHardwareHook"),
-      setComputeEstimationHook("setComputeEstimationHook"),
-      setComputeControlHook("setComputeControlHook"),
-      setWriteHardwareHook("setWriteHardwareHook"),
-      readHardware("readHardware"),
-      computeEstimation("computeEstimation"),
-      computeControl("computeControl"),
-      writeHardware("writeHardware")
+      getInputExclusivity("getInputExclusivity")
     { 
       this->addOperationCaller(getPeriod);
-      this->addOperationCaller(setOutputLayer);
       this->addOperationCaller(setInputExclusivity);
       this->addOperationCaller(getInputExclusivity);
-      this->addOperationCaller(getOutputLayer);
-      this->addOperationCaller(getOutputPortsOnLayer);
-      this->addOperationCaller(setReadHardwareHook);
-      this->addOperationCaller(setComputeEstimationHook);
-      this->addOperationCaller(setComputeControlHook);
-      this->addOperationCaller(setWriteHardwareHook);
-      this->addOperationCaller(readHardware);
-      this->addOperationCaller(computeEstimation);
-      this->addOperationCaller(computeControl);
-      this->addOperationCaller(writeHardware);
     }
       
     ~Hook() { }
 
     RTT::OperationCaller<RTT::os::TimeService::Seconds(void)>
       getPeriod;
-    RTT::OperationCaller<bool(const std::string&, const conman::Layer::ID)>
-      setOutputLayer;
     RTT::OperationCaller<bool(const std::string&, const Exclusivity::Mode)>
       setInputExclusivity;
     RTT::OperationCaller<conman::Exclusivity::Mode(const std::string&)>
       getInputExclusivity;
-    RTT::OperationCaller<conman::Layer::ID(const std::string&)>
-      getOutputLayer;
-    RTT::OperationCaller<void(const conman::Layer::ID, std::vector<RTT::base::PortInterface*>&)>
-      getOutputPortsOnLayer;
-    RTT::OperationCaller<bool(const std::string&)>
-      setReadHardwareHook;
-    RTT::OperationCaller<bool(const std::string&)>
-      setComputeEstimationHook;
-    RTT::OperationCaller<bool(const std::string&)>
-      setComputeControlHook;
-    RTT::OperationCaller<bool(const std::string&)>
-      setWriteHardwareHook;
-    RTT::OperationCaller<void(RTT::os::TimeService::Seconds, RTT::os::TimeService::Seconds)>
-      readHardware;
-    RTT::OperationCaller<void(RTT::os::TimeService::Seconds, RTT::os::TimeService::Seconds)>
-      computeEstimation;
-    RTT::OperationCaller<void(RTT::os::TimeService::Seconds, RTT::os::TimeService::Seconds)> 
-      computeControl;
-    RTT::OperationCaller<void(RTT::os::TimeService::Seconds, RTT::os::TimeService::Seconds)>
-      writeHardware;
     
     //! Checks if an RTT task has the conman Hook RTT service
     static bool HasHook(RTT::TaskContext *task)
