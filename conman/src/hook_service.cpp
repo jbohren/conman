@@ -22,18 +22,16 @@ HookService::HookService(RTT::TaskContext* owner) :
     .doc("The desired execution period for this block, in seconds. By default, "
         "this is 0 and it will run as fast as the scheme period.");
 
-  // Enums TODO: expose these to orocos api
-/*
- *  this->addAttribute("UNRESTRICTED",static_cast<int>(Exclusivity::UNRESTRICTED));
- *  this->addAttribute("EXCLUSIVE",static_cast<int>(Exclusivity::EXCLUSIVE));
- *
- *  for(std::vector<Layer::ID>::iterator it = Layer::ids.begin();
- *      it != Layer::ids.end();
- *      ++it)
- *  {
- *    this->addAttribute(Layer::names[*it],static_cast<int<(*id));
- *  }
- */
+  // Constants 
+  this->provides("exclusivity")->addConstant("UNRESTRICTED",static_cast<int>(Exclusivity::UNRESTRICTED));
+  this->provides("exclusivity")->addConstant("EXCLUSIVE",static_cast<int>(Exclusivity::EXCLUSIVE));
+
+  for(std::vector<Layer::ID>::const_iterator it = Layer::ids.begin();
+      it != Layer::ids.end();
+      ++it)
+  {
+    this->provides("layer")->addConstant(Layer::names.find(*it)->second,static_cast<int>(*it));
+  }
 
   // Conman Introspection interface
   this->addOperation("getPeriod",&HookService::getPeriod, this, RTT::ClientThread);

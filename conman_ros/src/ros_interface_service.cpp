@@ -32,6 +32,9 @@ ROSInterfaceService::ROSInterfaceService(RTT::TaskContext* owner) :
   // Load the rosservice service
   RTT::plugin::PluginLoader::Instance()->loadService("rosservice",owner);
 
+  rosservice_ = this->provides("rosservice");
+
+  
 }
 
 

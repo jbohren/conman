@@ -42,7 +42,6 @@ the controller types must still be put on the parameter server somehow.
   * *List all block names.*
 * `list_controller_types` `controller_manager_msgs/ListControllerTypes`
   * ***UNIMPLEMENTED*** 
-  * This is specific to the ros\_control plugin manager.
 * `switch_controller` `controller_manager_msgs/SwitchController`
   * *Maps directly to Scheme::switchBlocks with controller names correspond to
     block names.*
@@ -51,7 +50,6 @@ the controller types must still be put on the parameter server somehow.
     calling Scheme::addBlock with a block name.*
 * `reload_controller_libraries` `controller_manager_msgs/ReloadControllerLibraries`
   * ***UNIMPLEMENTED*** 
-  * This is specific to the ros\_control plugin manager.
 * `unload_controller` `controller_manager_msgs/UnloadController`
   * *Removes a block from the Scheme by name. This is equivalent to calling
     Scheme::removeBlock with a block name.*
