@@ -605,7 +605,7 @@ bool Scheme::createGroup(
       " already exists. Over-writing." << RTT::endlog();
   }
 
-  // Store the group
+  // Flatten and store the group 
   block_groups_[group_name] = 
     std::set<std::string>(grouped_blocks.begin(), grouped_blocks.end());
 
@@ -794,8 +794,8 @@ bool Scheme::enableBlock(const std::string &block_name, const bool force)
   // First check if this block is a group
   std::map<std::string, std::set<std::string> >::iterator group = 
     block_groups_.find(block_name);
-  if(group != block_groups_.end()) {
 
+  if(group != block_groups_.end()) {
     // Enable the blocks in this group
     return this->enableBlocks(
         std::vector<std::string>(group->second.begin(),group->second.end()),
@@ -923,7 +923,36 @@ bool Scheme::enableBlocks(
     const bool strict,
     const bool force)
 {
+  using namespace conman::graph;
+
+  // First make sure all the blocks can be enabled
+  if(!force) {
+    for(std::vector<std::string>::const_iterator it = block_names.begin();
+        it != block_names.end();
+        ++it)
+    {
+      // Get the blocks that conflict with this block
+      BlockConflictAdjacencyIterator conflict_it, conflict_end;
+
+      boost::tie(conflict_it, conflict_end) =
+        boost::adjacent_vertices(conflict_vertex_map_[blocks_[*it]->block], conflict_graph_);
+
+      // Check if conflicting blocks are running
+      for(; conflict_it != conflict_end; ++conflict_it)
+      {
+        RTT::TaskContext *&conflict_block = conflict_graph_[*conflict_it]->block;
+
+        // Check if the conflicting block is running
+        if(conflict_block->getTaskState() == RTT::TaskContext::Running) {
+          return false;
+        }
+      }
+    }
+  }
+
+  // Enable the blocks
   bool success = true;
+
   for(std::vector<std::string>::const_iterator it = block_names.begin();
       it != block_names.end();
       ++it)

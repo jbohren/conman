@@ -56,9 +56,11 @@ namespace conman
      * Note that block group names must not be the same as normal block names.
      *
      * Unlike normal blocks, they can only be enabled or disabled by name since
-     * groups aren't represented by TaskContext pointers.
+     * groups aren't represented by single TaskContext pointers.
      *
-     * Groups can also be composed of other groups.
+     * Groups can also be composed of other groups. In this case, the
+     * hierarchical structure of the groups is maintained in conman's internal
+     * representation.
      */
     //\{
 
@@ -139,7 +141,13 @@ namespace conman
     bool enableBlock(RTT::TaskContext *block, const bool force);
     //! Enable a single Conman block (or group) by name
     bool enableBlock(const std::string &block_name, const bool force);
-    //! Enable multiple Conman blocks (or groups) by name simultaneously
+    /** \brief Enable multiple Conman blocks (or groups) by name simultaneously
+     * 
+     * This will enable the blocks in the given vector according to the
+     * provided order. This operation is atomic unless something goes wrong. If
+     * \param force is not set, and any of the blocks in the list conflict with
+     * any running blocks, no blocks will be enabled.
+     */
     bool enableBlocks(
         const std::vector<std::string> &block_names, 
         const bool strict,
