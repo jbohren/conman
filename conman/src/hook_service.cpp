@@ -162,8 +162,8 @@ bool HookService::init(const RTT::Seconds time)
 
 bool HookService::update(const RTT::Seconds time) 
 {
-  // Handle initialization
-  if(init_) {
+  // Handle initialization explicitly or if time resets (like in simulation)
+  if(init_ || time <= last_exec_time_) {
     last_exec_time_ = time - desired_min_exec_period_;
 
     min_exec_period_ = std::numeric_limits<double>::max();
