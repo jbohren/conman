@@ -14,13 +14,14 @@ public:
   TestEffortController(std::string const& name);
   bool startHook();
   bool configureHook();
-
-  void computeControlHook( RTT::os::TimeService::Seconds secs, RTT::os::TimeService::Seconds period);
+  void updateHook();
 
 private:
-
   RTT::InputPort<double> effort_in_;
   RTT::OutputPort<double> effort_out_;
+
+  // Reference to the service requester
+  boost::shared_ptr<conman::Hook> conman_hook_;
 };
 
 #endif // ifndef __CONMAN_TEST_PLUGINS_H

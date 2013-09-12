@@ -30,16 +30,25 @@ namespace conman {
     //! Construct a conman hook service
     HookService(RTT::TaskContext* owner);
 
-    //! Get the minimum execution period
-    RTT::os::TimeService::Seconds getPeriod();
+    /** \name Conman Scheduling Management */
+    //\{
+
+    //! Set the scheme role for the owning component
+    bool setRole(const conman::Role::ID role);
+
+    //! Get the scheme role for the owning component
+    conman::Role::ID getRole();
+
+    //! Set the desired minimum execution period
+    bool setDesiredMinPeriod(const RTT::Seconds period);
+
+    //! Get the desired minimum execution period
+    RTT::Seconds getDesiredMinPeriod();
+
+    //\}
 
     /** \name Conman Port Management */
     //\{
-
-    //! Set the scheme layer for an output port
-    bool setOutputLayer(
-        const std::string &port_name,
-        const conman::Layer::ID layer);
 
     //! Set the exclusivity mode for an input port
     bool setInputExclusivity(
@@ -50,60 +59,55 @@ namespace conman {
     conman::Exclusivity::Mode getInputExclusivity(
         const std::string &port_name);
 
-    //! Get the scheme layer for an output port
-    conman::Layer::ID getOutputLayer(
-        const std::string &port_name);
-
-    //! Get all the output ports on a given scheme layer
-    void getOutputPortsOnLayer(
-        const conman::Layer::ID layer,
-        std::vector<RTT::base::PortInterface*> &ports);
-
     //\}
 
-    /** \name Execution Hook Registration 
-     *
-     * These functions are used to register hooks for different types of conman
-     * events. The functions are each called with time of the latest event
-     * (time) and the time since the last event (period).
-     */
+    /** \name Time Introspection */
     //\{
-
-    bool setReadHardwareHook(const std::string &operation_name);
-    bool setComputeEstimationHook(const std::string &operation_name);
-    bool setComputeControlHook(const std::string &operation_name);
-    bool setWriteHardwareHook(const std::string &operation_name);
-
+    //! Get the current execution time
+    RTT::Seconds getTime();
+    //! Get the period since the last execution time
+    RTT::Seconds getPeriod();
     //\}
-  
-    /** \name Execution
-     *
-     * These functions are called by a Conman Scheme at the appropriate times.
-     * They are essentially pass-throughs to the "execution hook" function
-     * objects supplied by the user.
-     */
+
+    /** \name Execution */
     //\{
     
-    //! Read from lower-level hardware API
-    void readHardware(
-        RTT::os::TimeService::Seconds time,
-        RTT::os::TimeService::Seconds period);
-    //! Compute state estimation and write to ports in the "estimation" layer.
-    void computeEstimation(
-        RTT::os::TimeService::Seconds time,
-        RTT::os::TimeService::Seconds period);
-    //! Compute control commands and write to ports in the "control" layer.
-    void computeControl(
-        RTT::os::TimeService::Seconds time,
-        RTT::os::TimeService::Seconds period); 
-    //! Write to lower-level hardware API
-    void writeHardware(
-        RTT::os::TimeService::Seconds time,
-        RTT::os::TimeService::Seconds period);
+    //! Initialize the time state & statistics
+    bool init(const RTT::Seconds time);
+    //! Execute the owner's update hook and compute execution time statistics
+    bool update(const RTT::Seconds time);
 
     //\}
-
+    //
   private:
+
+    //! Init flag used for statistics computation initialization
+    bool init_;
+
+    //! Component execution role
+    conman::Role::ID role_;
+
+    //! Minimum execution period for this component
+    RTT::Seconds desired_min_exec_period_;
+
+    //! Exponential smoothing factor for smoothing execution time
+    double exec_duration_smoothing_factor_;
+
+    //! Time state
+    //TODO: use nsecs instead?
+    RTT::Seconds
+      last_exec_time_,
+      last_exec_period_,
+      min_exec_period_,
+      max_exec_period_;
+
+    //! Execution statistics
+    //TODO: use nsecs instead?
+    RTT::Seconds
+      last_exec_duration_,
+      min_exec_duration_,
+      max_exec_duration_,
+      smooth_exec_duration_;
 
     //! Internal properties describing an input port in a conman scheme
     struct InputProperties {
@@ -113,29 +117,12 @@ namespace conman {
 
     //! Internal properties describing an output port in a conman scheme
     struct OutputProperties {
-      //! The layer in which a connection from this port should be
-      conman::Layer::ID layer;
+      // Currently no output port properties
     };
-
-    //! Minimum execution period for this component
-    RTT::os::TimeService::Seconds execution_period_;
 
     //! Map port names onto port annotations
     std::map<std::string, InputProperties> input_ports_;
     std::map<std::string, OutputProperties> output_ports_;
-
-    //! Map conman graph layers (control, estimation) onto a set of output ports
-    std::vector<std::set<RTT::base::PortInterface*> > output_ports_by_layer_;
-
-    /** \name Execution Hooks */
-    //\{
-    
-    RTT::OperationCaller<void(RTT::os::TimeService::Seconds, RTT::os::TimeService::Seconds)> read_hardware_hook_;
-    RTT::OperationCaller<void(RTT::os::TimeService::Seconds, RTT::os::TimeService::Seconds)> compute_estimation_hook_;
-    RTT::OperationCaller<void(RTT::os::TimeService::Seconds, RTT::os::TimeService::Seconds)> compute_control_hook_;
-    RTT::OperationCaller<void(RTT::os::TimeService::Seconds, RTT::os::TimeService::Seconds)> write_hardware_hook_;
-
-    //\}
 
     /** \brief Get a port by name
      *

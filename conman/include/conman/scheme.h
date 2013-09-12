@@ -101,6 +101,8 @@ namespace conman
     void computeConflicts();
     //! Compute the conflicts with a single block in the scheme
     void computeConflicts(RTT::TaskContext *block);
+    //! Compute the conflicts with a single block in the scheme
+    void computeConflicts(conman::graph::VertexProperties::Ptr block);
     //! Compute the conflicts with a single block in the scheme by name
     void computeConflicts(const std::string &block_name);
     //! Compute the conflicts with a list of blocks in the scheme by name
@@ -244,7 +246,7 @@ namespace conman
     //! \name Graph structures
     //\{
 
-    //! Graphs for each layer representing data port network
+    //! Graphs for each role representing data port network
     std::vector<conman::graph::BlockGraph> flow_graphs_;
     //! Mappings from TaskContext pointers to boost vertex descriptors
     std::vector<conman::graph::BlockVertexMap> flow_vertex_maps_;
@@ -272,8 +274,7 @@ namespace conman
      * the public API, see \ref add_block.
      */
     bool addBlockToGraph(
-        conman::graph::VertexProperties::Ptr new_vertex,
-        const conman::Layer::ID &layer);
+        conman::graph::VertexProperties::Ptr new_vertex);
 
     /** \brief Remove a block from one of the flow graphs
      *
@@ -284,8 +285,7 @@ namespace conman
      * the public API, see \ref remove_block.
      */
     bool removeBlockFromGraph(
-        conman::graph::VertexProperties::Ptr vertex,
-        const conman::Layer::ID &layer);
+        conman::graph::VertexProperties::Ptr vertex);
 
     /** \brief Generates an internal model of the RTT port connection graph
      *
@@ -295,8 +295,7 @@ namespace conman
      * This only modifies edges. Note that only edges between two blocks which
      * have already been added to the graph will be generated.
      */
-    bool regenerateGraph(
-        const conman::Layer::ID &layer);
+    bool regenerateGraph(const conman::Role::ID &role);
   };
 }
 

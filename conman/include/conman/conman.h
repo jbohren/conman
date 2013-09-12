@@ -39,18 +39,11 @@ namespace conman {
       RTT::TaskContext *block;
       //! The conman Hook service for this block (cached pointer)
       boost::shared_ptr<conman::Hook> hook;
-      //! The last time this block was executed
-      RTT::os::TimeService::nsecs last_control_time;
-      RTT::os::TimeService::nsecs last_estimation_time;
     };
 
     //! Boost Graph Edge Metadata
     struct EdgeProperties {
       typedef boost::shared_ptr<EdgeProperties> Ptr;
-
-      //! True if the ports are connected (unused)
-      // TODO: Do we need to use this / keep it synchronized?
-      bool connected;
 
       // TODO: Make these Input/OuputPortInterfaces instead of just PortInterfaces
       //! The source (output) port
@@ -165,26 +158,26 @@ namespace conman {
     typedef boost::graph_traits<conman::graph::BlockConflictGraph>::adjacency_iterator BlockConflictAdjacencyIterator;
   }
   
-  //! Graph layer identification
-  struct Layer {
+  //! Scheme role identification
+  struct Role {
     enum ID {
       ESTIMATION,
       CONTROL,
-      INVALID
+      UNDEFINED
     };
 
     typedef std::vector<ID>::const_iterator const_iterator;
 
-    //! The vector of layer IDs and the order in which they should be computed
+    //! The vector of role IDs and the order in which they should be computed
     static const std::vector<ID> ids;
     static const std::map<ID,std::string> names;
 
-    //! Make sure the layer ID is real
+    //! Make sure the role ID is real
     static bool Valid(const ID id) {
       return static_cast<int>(id) < ids.size();
     }
     
-    //! Get the name from a layer ID
+    //! Get the name from a role ID
     static const std::string& Name(const ID id) {
       return names.find(id)->second;
     }
