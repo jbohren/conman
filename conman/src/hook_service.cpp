@@ -97,6 +97,8 @@ bool HookService::setDesiredMinPeriod(const RTT::Seconds period)
 
   // Store the period
   desired_min_exec_period_ = period;
+  // Reset init flag
+  this->init(0.0);
     
   return true;
 }

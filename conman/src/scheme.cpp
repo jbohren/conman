@@ -1,6 +1,8 @@
 
 #include <boost/bind.hpp>
 
+#include <rtt/extras/SlaveActivity.hpp>
+
 #include <conman/scheme.h>
 #include <conman/hook.h>
 
@@ -169,6 +171,12 @@ bool Scheme::addBlock(RTT::TaskContext *new_block)
 
   // Compute conflicts for this block
   this->computeConflicts(new_vertex);
+
+  // Set the block's activity to be a slave to the scheme's
+  new_block->setActivity(
+      new RTT::extras::SlaveActivity(
+          this->getActivity(),
+          new_block->engine()));
 
   // Print out the ordering
   RTT::log(RTT::Info) << "Scheme ordering: [ ";
@@ -1050,6 +1058,8 @@ void Scheme::updateHook()
 {
   using namespace conman::graph;
 
+  RTT::Logger::In in("Scheme::updateHook");
+
   // What time is it
   RTT::os::TimeService::nsecs now = RTT::os::TimeService::Instance()->getNSecs();
   RTT::os::TimeService::Seconds 
@@ -1067,8 +1077,6 @@ void Scheme::updateHook()
   {
     const Role::ID &role = *role_it;
 
-    // Output the role name
-    RTT::log(RTT::Debug) << "Executing " << conman::Role::Name(role) << RTT::endlog();
     // Output the blocks in the role
     for(BlockOrdering::iterator block_it = causal_ordering_[*role_it].begin();
         block_it != causal_ordering_[*role_it].end();
