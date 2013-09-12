@@ -14,93 +14,96 @@ ORO_SERVICE_NAMED_PLUGIN(conman::HookService, "conman_hook");
 HookService::HookService(RTT::TaskContext* owner) :
   RTT::Service("conman_hook",owner),
   // Property Initialization
-  execution_period_(0.0),
-  output_ports_by_layer_(conman::Layer::ids.size())
+  role_(conman::Role::UNDEFINED),
+  desired_min_exec_period_(0.0),
+  exec_duration_smoothing_factor_(0.5)
 { 
-  // Conman Properties
-  this->addProperty("executionPeriod",execution_period_)
-    .doc("The desired execution period for this block, in seconds. By default, "
-        "this is 0 and it will run as fast as the scheme period.");
-
   // Constants 
   this->provides("exclusivity")->addConstant("UNRESTRICTED",static_cast<int>(Exclusivity::UNRESTRICTED));
   this->provides("exclusivity")->addConstant("EXCLUSIVE",static_cast<int>(Exclusivity::EXCLUSIVE));
-
-  for(std::vector<Layer::ID>::const_iterator it = Layer::ids.begin();
-      it != Layer::ids.end();
-      ++it)
-  {
-    this->provides("layer")->addConstant(Layer::names.find(*it)->second,static_cast<int>(*it));
+  for(std::vector<Role::ID>::const_iterator it = Role::ids.begin(); it != Role::ids.end(); ++it) {
+    this->provides("role")->addConstant(Role::names.find(*it)->second,static_cast<int>(*it));
   }
 
-  // Conman Introspection interface
-  this->addOperation("getPeriod",&HookService::getPeriod, this, RTT::ClientThread);
+  // Conman Properties
+  this->addProperty("desired_min_exec_period",desired_min_exec_period_)
+    .doc("The desired (minimum) execution period for this block, in seconds. By default, "
+        "this is 0 and it will run as fast as the scheme period.");
+  this->addProperty("exec_duration_smoothing_factor",exec_duration_smoothing_factor_)
+    .doc("The exponential smoothing factor (between 0.0 and 1.0) used for measuring execution duration.");
 
-  // Conman Execution interface
-  this->addOperation("readHardware",&HookService::readHardware,this, RTT::ClientThread);
-  this->addOperation("computeEstimation",&HookService::computeEstimation,this, RTT::ClientThread);
-  this->addOperation("computeControl",&HookService::computeControl,this, RTT::ClientThread);
-  this->addOperation("writeHardware",&HookService::writeHardware,this, RTT::ClientThread);
+  // Introspection Properties
+  this->addProperty("last_exec_time",last_exec_time_)
+    .doc("Last time this hook was executed.");
 
-  this->addOperation("setOutputLayer",&HookService::setOutputLayer,this,RTT::ClientThread);
+  this->addProperty("last_exec_period",last_exec_period_)
+    .doc("The last period between two consecutive executions.");
+  this->addProperty("min_exec_period",min_exec_period_)
+    .doc("The minimum observed execution period between two consecutive executions.");
+  this->addProperty("max_exec_period",max_exec_period_)
+    .doc("The maximum observed execution period between two consecutive executions.");
+
+  this->addProperty("last_exec_duration",last_exec_duration_)
+    .doc("The last duration needed to execute the owner's update hook.");
+  this->addProperty("min_exec_duration",min_exec_duration_)
+    .doc("The minimum observed duration needed to execute the owner's update hook.");
+  this->addProperty("max_exec_duration",max_exec_duration_)
+    .doc("The maximum observed duration needed to execute the owner's update hook.");
+  this->addProperty("smooth_exec_duration",smooth_exec_duration_)
+    .doc("The maximum observed duration needed to execute the owner's update hook.");
+
+  // Conman Configuration Interface
+  this->addOperation("setRole",&HookService::setRole,this,RTT::ClientThread);
+  this->addOperation("getRole",&HookService::getRole,this,RTT::ClientThread);
+  this->addOperation("setDesiredMinPeriod",&HookService::setDesiredMinPeriod,this,RTT::ClientThread);
+  this->addOperation("getDesiredMinPeriod",&HookService::getDesiredMinPeriod,this,RTT::ClientThread);
   this->addOperation("setInputExclusivity",&HookService::setInputExclusivity,this,RTT::ClientThread);
   this->addOperation("getInputExclusivity",&HookService::getInputExclusivity,this,RTT::ClientThread);
-  this->addOperation("getOutputLayer",&HookService::getOutputLayer,this,RTT::ClientThread);
-  this->addOperation("getOutputPortsOnLayer",&HookService::getOutputPortsOnLayer,this,RTT::ClientThread);
-  this->addOperation("setReadHardwareHook",&HookService::setReadHardwareHook,this,RTT::ClientThread);
-  this->addOperation("setComputeEstimationHook",&HookService::setComputeEstimationHook,this,RTT::ClientThread);
-  this->addOperation("setComputeControlHook",&HookService::setComputeControlHook,this,RTT::ClientThread);
-  this->addOperation("setWriteHardwareHook",&HookService::setWriteHardwareHook,this,RTT::ClientThread);
 
-  // Try to connect with default client hooks
-  if(owner != NULL) {
-    if(this->setReadHardwareHook("readHardwareHook")) {
-      RTT::log(RTT::Info) << "Binding to default readHardwareHook for block \"" << owner->getName() << "\"" << RTT::endlog();
-    }
-    if(this->setReadHardwareHook("computeEstimationHook")) {
-      RTT::log(RTT::Info) << "Binding to default computeEstimationHook for block \"" << owner->getName() << "\"" << RTT::endlog();
-    }
-    if(this->setComputeControlHook("computeControlHook")) {
-      RTT::log(RTT::Info) << "Binding to default computeControlHook for block \"" << owner->getName() << "\"" << RTT::endlog();
-    }
-    if(this->setReadHardwareHook("writeHardwareHook")) { 
-      RTT::log(RTT::Info) << "Binding to default writeHardwareHook for block \"" << owner->getName() << "\"" << RTT::endlog();
-    }
-  }
+  // Conman Introspection interface
+  this->addOperation("getTime",&HookService::getTime,this,RTT::ClientThread);
+  this->addOperation("getPeriod",&HookService::getPeriod,this,RTT::ClientThread);
+
+  // Conman Execution Interface
+  this->addOperation("init",&HookService::init,this,RTT::ClientThread)
+    .doc("Initialize period computation and execution statistics.");
+  this->addOperation("update",&HookService::update,this,RTT::ClientThread)
+    .doc("Execute the owner's updateHook and compute execution statistics");
 }
 
-
-RTT::os::TimeService::Seconds HookService::getPeriod() {
-  return execution_period_;
-}
-
-
-bool HookService::setOutputLayer(
-    const std::string &port_name,
-    const conman::Layer::ID layer) 
+bool HookService::setRole(
+    const conman::Role::ID role) 
 {
-  // Get the port
-  RTT::base::PortInterface *port = this->getOwnerPort(port_name);
+  // You can't change the role once its been set
+  if(role_ != conman::Role::UNDEFINED) {
+    return false;
+  }
+  // Set the role
+  role_ = role;
+  return true;
+}
 
-  // Make sure that the port is an output port
-  if(dynamic_cast<RTT::base::OutputPortInterface*>(port)) {
-    // Add to the output port map
-    output_ports_[port_name].layer = layer; 
-    // Add to the layer map
-    output_ports_by_layer_[layer].insert(port);
+conman::Role::ID HookService::getRole()
+{
+  return role_;
+}
 
-    RTT::log(RTT::Debug) << "Added port \""<<port_name<<"\" to the"
-      "\""<<conman::Layer::Name(layer)<<"\" layer." << RTT::endlog();
-  } else {
-    // Complain
-    RTT::log(RTT::Error) << "Tried to set output layer for an input port."
-      "Input ports inherit the layer from the output port to which they are"
-      "connected." << RTT::endlog();
-
+bool HookService::setDesiredMinPeriod(const RTT::Seconds period) 
+{
+  // Make sure the period is nonnegative
+  if(period < 0.0) {
     return false;
   }
 
+  // Store the period
+  desired_min_exec_period_ = period;
+    
   return true;
+}
+
+RTT::Seconds HookService::getDesiredMinPeriod() 
+{
+  return desired_min_exec_period_;
 }
 
 bool HookService::setInputExclusivity(
@@ -140,85 +143,70 @@ conman::Exclusivity::Mode HookService::getInputExclusivity(
   return Exclusivity::UNRESTRICTED;
 }
 
-conman::Layer::ID HookService::getOutputLayer(const std::string &port_name)
+RTT::Seconds HookService::getTime() 
 {
-  // Get the port properties
-  std::map<std::string,OutputProperties>::const_iterator props =
-    output_ports_.find(port_name);
+  return last_exec_time_;
+}
+
+RTT::Seconds HookService::getPeriod() 
+{
+  return last_exec_period_;
+}
+
+
+bool HookService::init(const RTT::Seconds time) 
+{
+  init_ = true;
+  return true;
+}
+
+bool HookService::update(const RTT::Seconds time) 
+{
+  // Handle initialization
+  if(init_) {
+    last_exec_time_ = time - desired_min_exec_period_;
+
+    min_exec_period_ = std::numeric_limits<double>::max();
+    max_exec_period_ = 0.0;
+
+    min_exec_duration_ = std::numeric_limits<double>::max();
+    max_exec_duration_ = 0.0;
+
+    init_ = false;
+  }
+
+  RTT::Seconds time_since_last_exec = time - last_exec_time_;
+
+  // Return true if we haven't met the desired minimum execution period
+  // TODO: Subtract half the scheme period here for better timing?
+  if(time_since_last_exec < desired_min_exec_period_) {
+    return true;
+  }
   
-  if(props != output_ports_.end()) {
-    return props->second.layer; 
-  }
+  // Compute statistics describing how often update is being called
+  last_exec_period_ = time_since_last_exec;
+  last_exec_time_ = time;
 
-  // Return invalid layer
-  return conman::Layer::INVALID;
-}
+  min_exec_period_ = std::min(min_exec_period_,last_exec_period_);
+  max_exec_period_ = std::max(max_exec_period_,last_exec_period_);
 
-void HookService::getOutputPortsOnLayer(
-    const conman::Layer::ID layer,
-    std::vector<RTT::base::PortInterface*> &ports)  
-{
-  // Copy the port pointers
-  if(layer < conman::Layer::ids.size()) {
-    ports.assign(
-        output_ports_by_layer_[layer].begin(), 
-        output_ports_by_layer_[layer].end());
-  }
-}
+  // Track how long it takes to execute the component's update hook
+  RTT::nsecs exec_start = RTT::os::TimeService::Instance()->getNSecs();
 
+  // Execute the component's update hook
+  bool success = this->getOwner()->update();
 
-bool HookService::setReadHardwareHook(const std::string &operation_name) {
-  RTT::OperationInterfacePart *caller = this->getOwnerOperation(operation_name);
-  if(caller != NULL) {
-    read_hardware_hook_ = caller;
-    return true;
-  }
-  return false;
-}
-bool HookService::setComputeEstimationHook(const std::string &operation_name) {
-  RTT::OperationInterfacePart *caller = this->getOwnerOperation(operation_name);
-  if(caller != NULL) {
-    compute_estimation_hook_ = caller;
-    return true;
-  }
-  return false;
-}
-bool HookService::setComputeControlHook(const std::string &operation_name) {
-  RTT::OperationInterfacePart *caller = this->getOwnerOperation(operation_name);
-  if(caller != NULL) {
-    compute_control_hook_ = caller;
-    return true;
-  }
-  return false;
-}
-bool HookService::setWriteHardwareHook(const std::string &operation_name) {
-  RTT::OperationInterfacePart *caller = this->getOwnerOperation(operation_name);
-  if(caller != NULL) {
-    write_hardware_hook_ = caller;
-    return true;
-  }
-  return false;
-}
+  // Compute statistics describing how long it actually took to update
+  last_exec_duration_ = 
+    RTT::nsecs_to_Seconds(RTT::os::TimeService::Instance()->getNSecs(exec_start));
+  
+  min_exec_duration_ = std::min(min_exec_duration_,last_exec_duration_);
+  max_exec_duration_ = std::max(max_exec_duration_,last_exec_duration_);
 
+  const double &a = exec_duration_smoothing_factor_;
+  smooth_exec_duration_ = a*smooth_exec_duration_ + (1.0-a)*last_exec_duration_;
 
-void HookService::readHardware( RTT::os::TimeService::Seconds time, RTT::os::TimeService::Seconds period) { 
-  this->read_hardware_hook_(time, period); 
-  // TODO: Check no conman ports were written to
-}
-
-void HookService::computeEstimation( RTT::os::TimeService::Seconds time, RTT::os::TimeService::Seconds period) {
-  this->compute_estimation_hook_(time, period); 
-  // TODO: Check no conman control ports were written to
-}
-
-void HookService::computeControl( RTT::os::TimeService::Seconds time, RTT::os::TimeService::Seconds period)  {
-  this->compute_control_hook_(time, period); 
-  // TODO: Check no conman estimation ports were written to
-}
-
-void HookService::writeHardware(RTT::os::TimeService::Seconds time, RTT::os::TimeService::Seconds period)  { 
-  this->write_hardware_hook_(time, period); 
-  // TODO: Check no conman ports were written to
+  return success;
 }
 
 RTT::base::PortInterface* HookService::getOwnerPort(const std::string &name) {

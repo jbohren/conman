@@ -14,16 +14,16 @@
 
 using namespace conman;
 
-const std::vector<Layer::ID> Layer::ids = 
+const std::vector<Role::ID> Role::ids = 
   boost::assign::list_of
-    (Layer::ESTIMATION)
-    (Layer::CONTROL)
-    .convert_to_container<std::vector<Layer::ID> >();
+    (Role::ESTIMATION)
+    (Role::CONTROL)
+    .convert_to_container<std::vector<Role::ID> >();
 
-const std::map<Layer::ID,std::string> Layer::names = 
+const std::map<Role::ID,std::string> Role::names = 
   boost::assign::map_list_of
-    (Layer::ESTIMATION,"ESTIMATION")
-    (Layer::CONTROL,"CONTROL")
-    .convert_to_container<std::map<Layer::ID,std::string> >();
+    (Role::ESTIMATION,"ESTIMATION")
+    (Role::CONTROL,"CONTROL")
+    .convert_to_container<std::map<Role::ID,std::string> >();
 
 ORO_CREATE_COMPONENT_LIBRARY()

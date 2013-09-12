@@ -8,6 +8,8 @@
 
 #include <conman/conman.h>
 
+#if 0
+
 namespace conman
 {
   //! Manager for scheduling execution and starting/stopping blocks
@@ -299,5 +301,7 @@ namespace conman
         const conman::Layer::ID &layer);
   };
 }
+
+#endif
 
 #endif // ifndef __CONMAN_SCHEME_H

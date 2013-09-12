@@ -11,35 +11,32 @@
 TestEffortController::TestEffortController(std::string const& name) :
   RTT::TaskContext(name)
 {
-  using namespace conman;
   // Create RTT ports
   this->addPort("effort_in", effort_in_).doc("Effort input.");
   this->addPort("effort_out", effort_out_).doc("Effort output := input + 1.");
 
-  // Register the conman execution hooks (use default name)
-  this->addOperation("computeControlHook",&TestEffortController::computeControlHook, this);
-
   // Load block interface
-  boost::shared_ptr<conman::Hook> conman_hook = conman::Hook::GetHook(this);
+  using namespace conman;
+  conman_hook_ = Hook::GetHook(this);
 
-  if(conman_hook.get()) {
-
-    // Add the ports to conman
-    conman_hook->setInputExclusivity("effort_in", Exclusivity::EXCLUSIVE);
-    conman_hook->setOutputLayer("effort_out", Layer::CONTROL);
-
+  if(conman_hook_) {
+    // Declare this component to be a control component
+    conman_hook_->setRole(Role::CONTROL);
+    // Make the effort input port exclusive
+    conman_hook_->setInputExclusivity("effort_in", Exclusivity::EXCLUSIVE);
   } else {
     RTT::log(RTT::Fatal) << "Could not load conman hook." << RTT::endlog();
   }
 }
 
-bool TestEffortController::configureHook() {
-
+bool TestEffortController::configureHook() 
+{
+  // Nothing to do 
   return true;
 }
 
-bool TestEffortController::startHook() {
-
+bool TestEffortController::startHook() 
+{
   // Ready if the input is connected
   bool ready = effort_in_.connected();
 
@@ -47,10 +44,14 @@ bool TestEffortController::startHook() {
 }
 
 
-void TestEffortController::computeControlHook(
-    RTT::os::TimeService::Seconds secs, 
-    RTT::os::TimeService::Seconds period) 
+void TestEffortController::updateHook()
 {
+  // Get the current and the time since the last update
+  const RTT::Seconds 
+    time = conman_hook_->getTime(), 
+    period = conman_hook_->getPeriod();
+
+  // Some stupid computation
   double effort;
   effort_in_.read(effort);
   effort_out_.write(effort + 1);

@@ -12,6 +12,7 @@
 #include "function_property_map.hpp"
 #endif
 
+#if 0
 
 ORO_LIST_COMPONENT_TYPE(conman::Scheme);
 
@@ -1097,3 +1098,4 @@ void Scheme::updateHook()
     }
   }
 }
+#endif
