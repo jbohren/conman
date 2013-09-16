@@ -400,6 +400,12 @@ discussion made the following pouints:
     time as a ros::Duration -- which maps on two common uses of the two clocks:
     stamping data and computing the time difference between two update cycles.
 
+#### Other Discussions
+
+http://www.orocos.org/forum/orocos/orocos-users/about-time-through-cascade-components
+http://www.orocos.org/node/1088
+http://www.orocos.org/node/1050
+
 #### Early 2013 ros\_control Framework
  
 In Spring and Summer 2013, the [ros\_control framework](http://www.github.com/ros-controls/ros_control) 
