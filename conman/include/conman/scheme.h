@@ -10,38 +10,58 @@
 
 namespace conman
 {
-  //! Manager for scheduling execution and starting/stopping blocks
+  /** \brief Manager for scheduling execution and starting/stopping blocks
+   *
+   * The Scheme maintains a data flow graph (DFG) and execution scheduling graph
+   * (ESG) which are used to model the data flow between Orocos components in
+   * the schcme and execute those components in a serialized order,
+   * respectively. These two graphs have identical vertex sets, but are
+   * distinguished by their arc sets. Specifically, the ESG arc set is a subset
+   * of the DFG arc set constructed by removing arcs in order to break cycles in
+   * the DFG.
+   *
+   * The ESG is "executable" when it has no cycles.
+   *
+   */
   class Scheme : public RTT::TaskContext
   {
   public:
+    /** \brief Construct a Scheme */
     Scheme(std::string name="Scheme");
 
     ///////////////////////////////////////////////////////////////////////////
-    //! \name Scheme Construction
+    /** \name Scheme Construction
+     *
+     * Each time an RTT component is added to the scheme, it is modeled in the
+     * Data Flow Graph (DFG) by a vertex and the set of connections from output
+     * to input ports between any two components are modeled as single arcs.
+     * Components and their connections are also modeled by the Execution
+     * Scheduling Graph (ESG). At execution time, the ESG must be acyclic.
+     *
+     * Each time a block is added or removed, the Runtime Conflict Graph (RCG)
+     * is recomputed. This undeirected graph models the groups of
+     * mutually-exclusive RTT components (components that cannot be run
+     * simultaneously) as adjacent vertices.
+     */
     //\{
 
     //! Get the names of all the blocks in this scheme
-    std::vector<std::string> getBlocks();
+    std::vector<std::string> getBlocks() const;
 
-    /*** \brief Add a block which is already a peer of this component by name.
-     *
-     * The block with this name must already be a peer of this Scheme.
-     */
+    //! Get the names of all the blocks in this scheme
+    void getBlocks(const std::vector<std::string> &blocks) const;
+
+    /** \brief Add a block which is already a peer of this scheme by name. */
     bool addBlock(const std::string &name);
 
-    /*** \brief Add a block that has already been constructed
-     *
-     * After calling add_block, new_block will be a peer of this Scheme.
-     *
-     */
+    /*** \brief Add a block that has already been constructed, and add it as a
+     * peer of this scheme.*/
     bool addBlock(RTT::TaskContext *new_block);
 
-    /** \brief Remove a block from the scheme by name
-     */
+    /** \brief Remove a block from the scheme by name */
     bool removeBlock(const std::string &name);
 
-    /** \brief Remove a block from the scheme
-     */
+    /** \brief Remove a block from the scheme */
     bool removeBlock(RTT::TaskContext *block);
 
     //\}
@@ -85,7 +105,12 @@ namespace conman
     //! Get the blocks in a given group
     bool getGroup(
         const std::string &group_name,
-        std::vector<std::string> &grouped_blocks);
+        std::vector<std::string> &members) const;
+
+    //! Get the blocks in a given group
+    bool getGroupMembers(
+        const std::string &group_name,
+        std::set<std::string> &members) const;
 
     //\}
     
@@ -109,6 +134,129 @@ namespace conman
     void computeConflicts(const std::vector<std::string> &block_names);
 
     //\}
+
+    ///////////////////////////////////////////////////////////////////////////
+    /** \name Feedback Cycle Management
+     *
+     * These functions are used to "latch" and "unlatch" connections between
+     * components in order to break feedback cycles in the Execution Scheduling
+     * Graph (ESG) so that the scheme can be executed causally. This means that
+     * every cycle in the data flow graph must have at least one latched
+     * connection. 
+     *
+     * Latching is done by component, that means that if two components A and B
+     * are connected by several data port connections, either all of the ports
+     * from A to B must be latched, or all of the ports from A to B must be
+     * unlatched.
+     *
+     * The scheme is represented by a directed graph. If that graph is acyclic,
+     * then the scheme can be executed. Adding a latch on a given connection
+     * removes arcs from that representation, and thus breaks cycles depending
+     * on those arcs.
+     *
+     * Note that self-loops are implicitly latched, so adding latches on the
+     * connections from a component to itself is a no-op.
+     *
+     */
+    //\{
+
+    //! Add/Remove a latch between two blocks by name
+    bool latchConnections(
+      const std::string &source_name,
+      const std::string &sink_name
+      const bool latch);
+    //! Add/Remove a latch between two blocks
+    bool latchConnections(
+      RTT::TaskContext *source,
+      RTT::TaskContext *sink,
+      const bool latch);
+
+    //! Add/Remove a latch on all input arcs to a given block by name
+    bool latchInputs(const std::string &name, const bool latch);
+    //! Add/Remove a latch on all input arcs to a given block
+    bool latchInputs(RTT::TaskContext *block, const bool latch);
+
+    //! Add/Remove a latch on all output arcs from a given block by name
+    bool latchOutputs(const std::string &name, const bool latch);
+    //! Add/Remove a latch on all output arcs from a given block
+    bool latchOutputs(RTT::TaskContext *block, const bool latch);
+
+    //\}
+    
+    ///////////////////////////////////////////////////////////////////////////
+    /** \name Latch Analysis
+     *
+     * These functions analyze the latched edges in the Data Flow Graph
+     * (DFG) which are removed in order to construct the Execution Scheduling
+     * Graph (ESG).
+     *
+     * The latch count for a given path is simply the number of pairs of
+     * components on the path with latched connections. 
+     */
+
+    /** \brief Computes all simple cycles in the Data Flow Graph (DFG) 
+     *
+     * This uses Tiernan's Elementary Circuit Algorithm (implementation from the
+     * Boost Graph Library) to find all cycles which do not include repeated
+     * vertices. It returns the number of cycles found.
+     */
+    int getFlowCycles(std::vector<std::vector<std::string> > &cycles) const;
+
+    /** \brief Get the number of latches in a given path through the DFG. */
+    int latchCount(const std::vector<std::string> &path) const;
+
+    /** \brief Get the maximum number of latches in any cycle in the DFG. */
+    int maxLatchCount() const;
+
+    /** \brief Get the maximum number of latches in all cycles which include a
+     * given component in the DFG. */
+    int maxLatchCount(const std::string &name) const;
+
+    /** \brief Get the minimum number of latches in any cycle in the DFG. */
+    int minLatchCount() const;
+
+    /** \brief Get the minimum number of latches in all cycles which include a
+     * given component in the DFG. */
+    int minLatchCount(const std::string &name);
+
+    //\}
+
+    ///////////////////////////////////////////////////////////////////////////
+    /** \name Cycle Introspection
+     *
+     * These functions perform the following analyses on the pending execution
+     * scheduling graph (ESG):
+     *
+     * * Determine the existence of simple cycles in the pending ESG
+     * * Compute all cyles in the pending ESG (useful for debugging)
+     * 
+     * Graph cycles prevent the scheduler from determining where to begin and
+     * end each computation. Cycles can be broken by adding lateches at the
+     * appropriate points, but different numbers of latching between signal
+     * paths can cause problems when fusing such data.
+     */
+
+    /** \brief Returns true if the pending execution scheduling graph has no
+     * cycles.
+     * 
+     * This determines the existence of cycles by attempting a topological sort
+     * (implementation from the Boost Graph Library) of the execution scheduling
+     * graph (ESG). If the ESG is acyclic, it can be executed. This property is
+     * required to start() the scheme.
+     */
+    bool executable() const;
+
+    /** \brief Computes all simple cycles in the pending Execution Scheduling
+     * Graph (ESG).
+     *
+     * This uses Tiernan's Elementary Circuit Algorithm (implementation from the
+     * Boost Graph Library) to find all cycles which do not include repeated
+     * vertices. It returns the number of cycles found.
+     */
+    int getExecutionCycles(std::vector<std::vector<std::string> > &cycles) const;
+
+    //\}
+
 
     ///////////////////////////////////////////////////////////////////////////
     /** \name Runtime Scheme Control
@@ -206,9 +354,12 @@ namespace conman
     //! \name Orocos RTT Hooks
     //\{
 
-
     virtual bool configureHook();
 
+    /** \brief Verify that the Execution Scheduling Graph can be executed
+     * serially.
+     *
+     */
     virtual bool startHook();
 
     /** \brief Execute one iteration of the Scheme
@@ -235,23 +386,26 @@ namespace conman
     /** \brief A map from block names onto flow graph vertex properties (for
      * fast access)
      */
-    std::map<std::string,conman::graph::VertexProperties::Ptr> blocks_;
-
+    std::map<std::string,conman::graph::DataFlowVertex::Ptr> blocks_;
     //! A list of blocks ordered by index (for linear re-indexing)
-    std::list<conman::graph::VertexProperties::Ptr> block_indices_;
-
+    std::list<conman::graph::DataFlowVertex::Ptr> block_indices_;
     //! A map of block group names to block names
-    std::map<std::string, std::set<std::string> > block_groups_;
+    conman::GroupMap block_groups_;
 
     //! \name Graph structures
     //\{
 
-    //! Graphs for each role representing data port network
-    std::vector<conman::graph::BlockGraph> flow_graphs_;
+    //! Data Flow Graph (DFG) 
+    conman::graph::DataFlowGraph flow_graph_;
     //! Mappings from TaskContext pointers to boost vertex descriptors
-    std::vector<conman::graph::BlockVertexMap> flow_vertex_maps_;
+    conman::graph::DataFlowVertexMap flow_vertex_map_;
+
+    //! Execution Scheduling Graph (ESG)
+    conman::graph::DataFlowGraph execution_graph_;
+    //! Mappings from TaskContext pointers to boost vertex descriptors
+    conman::graph::DataFlowVertexMap execution_vertex_map_;
     //! Topologically sorted ordering of each graph
-    std::vector<conman::graph::BlockOrdering> causal_ordering_;
+    conman::graph::ExecutionOrdering execution_ordering_;
 
     /** \brief Graph representing block conflicts 
      *
@@ -265,7 +419,6 @@ namespace conman
     conman::graph::BlockConflictVertexMap conflict_vertex_map_;
     //\}
 
-
     /** \brief Connect a block in one of the flow graphs
      *
      * This will add a block to a flow graph, and then regenerate that graph.
@@ -273,8 +426,7 @@ namespace conman
      * This is an internal function. For adding a block from
      * the public API, see \ref add_block.
      */
-    bool addBlockToGraph(
-        conman::graph::VertexProperties::Ptr new_vertex);
+    bool addBlockToGraph(conman::graph::VertexProperties::Ptr new_vertex);
 
     /** \brief Remove a block from one of the flow graphs
      *
@@ -284,8 +436,7 @@ namespace conman
      * This is an internal function. For adding a block from
      * the public API, see \ref remove_block.
      */
-    bool removeBlockFromGraph(
-        conman::graph::VertexProperties::Ptr vertex);
+    bool removeBlockFromGraph(conman::graph::VertexProperties::Ptr vertex);
 
     /** \brief Generates an internal model of the RTT port connection graph
      *
@@ -295,7 +446,7 @@ namespace conman
      * This only modifies edges. Note that only edges between two blocks which
      * have already been added to the graph will be generated.
      */
-    bool regenerateGraph(const conman::Role::ID &role);
+    bool regenerateGraph();
   };
 }
 

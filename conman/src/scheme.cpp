@@ -84,6 +84,11 @@ std::vector<std::string> Scheme::getBlocks()
   return block_names;
 }
 
+void getBlocks(const std::vector<std::string> &blocks)
+{
+  blocks = this->getBlocks();
+}
+
 bool Scheme::addBlock(const std::string &block_name)
 {
   RTT::Logger::In in("Scheme::addBlock(string)");
@@ -157,7 +162,7 @@ bool Scheme::addBlock(RTT::TaskContext *new_block)
 
   // Connect the block in the appropriate graph
   if(!addBlockToGraph(new_vertex)) {
-    // Cleanup
+    // Cleanup on failure
     RTT::log() << RTT::Logger::Error << "Could not add TaskContext \""<< block_name <<"\" to the scheme." << RTT::endlog();
     // Remove the block
     if(!this->removeBlock(new_block)) {
@@ -165,8 +170,8 @@ bool Scheme::addBlock(RTT::TaskContext *new_block)
       RTT::log(RTT::Fatal) << "Could not clean up block \"" << block_name <<
         "\" when trying to remove it. Something is terribly wrong." <<
         RTT::endlog();
-      return false;
     }
+    return false;
   }
 
   // Compute conflicts for this block
@@ -265,6 +270,8 @@ bool Scheme::addBlockToGraph(
 
   return true;
 }
+
+///////////////////////////////////////////////////////////////////////////////
 
 bool Scheme::removeBlock(const std::string &block_name)
 {
@@ -404,6 +411,289 @@ bool Scheme::removeBlockFromGraph(
 
   return true;
 }
+
+///////////////////////////////////////////////////////////////////////////////
+
+
+bool latchConnections(
+    const std::string &source_name,
+    const std::string &sink_name
+    const bool latch)
+{
+  // Self-loops are implicitly latched
+  if(source_name == sink_name) {
+    return true;
+  }
+
+  // Check if the source is a group name
+  std::vector<std::string> sources, sinks;
+
+  this->getGroup(source_name, sources);
+  this->getGroup(sink_name, sinks);
+
+  return this->latchConnections(source, sinks, latch);
+}
+
+bool latchConnections(
+    const std::vector<std::string> &source_names,
+    const std::vector<std::string> &sink_names,
+    bool latch)
+{
+  // Latch connections between all sources and sinks
+  bool success = true;
+  for(std::vector<std::string>::const_iterator source_it = sources.begin();
+      source_it != sources.end();
+      ++source_it)
+  {
+    for(std::vector<std::string>::const_iterator sink_it = sinks.begin();
+        sink_it != sinks.end();
+        ++sink_it)
+    {
+      RTT::TaskContext source = this->getPeer(*source_it)
+      RTT::TaskContext sink = this->getPeer(*sink_it)
+      success &= this->latchConnections(source, sink, latch, false);
+    }
+  }
+
+  return success;
+}
+
+bool latchConnections(
+    RTT::TaskContext *source,
+    RTT::TaskContext *sink,
+    const bool latch,
+    const bool strict)
+{
+  using namespace conman::graph;
+
+  // Make sure source and sink are valid
+  if(!source || !sink) {
+    return false;
+  }
+
+  // Get edge between the source and sink
+  DataFlowEdgeDescriptor edge;
+  bool edge_found;
+  boost::tie(edge, edge_found) = boost::edge(
+      flow_vertex_map_[source], 
+      flow_vertex_map_[sink], 
+      flow_graph_);
+
+  // Latch the edge
+  if(edge_found) {
+    // Set the latch flag
+    flow_graph_[edge]->latched = latch;
+
+    // Either remove or add the edge in the execution graph
+    if(letch) {
+      boost::remove_edge(
+          execution_vertex_map_[source],
+          execution_vertex_map_[sink],
+          execution_graph_);
+    } else {
+      boost::add_edge(
+          execution_vertex_map_[source],
+          execution_vertex_map_[sink],
+          flow_graph_[edge],
+          execution_graph_);
+    }
+  } else if(strict) {
+    // Only error if strict
+    RTT::log(RTT::Error) << "Tried to " << 
+      ((latch) ? ("latch") : ("un_latch"))
+      << " a non-existent connection." <<
+      RTT::logend();
+    return false;
+  }
+
+  return true;
+}
+
+bool latchInputs(const std::string &sink_name, const bool latch)
+{
+  std::vector<std::string> sources, sinks;
+
+  // Get the sources (all blocks)
+  this->getBlocks(sources);
+  // Get the sinks (potentially a group)
+  this->getGroup(sink_name, sinks);
+  
+  // Set latching flags for all vertices
+  for(std::vector<std::string>::const_iterator it=sinks.begin();
+      it != sinks.end();
+      ++it)
+  {
+    
+  }
+
+  return this->latchConnections(sources, sinks);
+}
+bool latchInputs(RTT::TaskContext *block, const bool latch)
+{
+  return block && this->latchInputs(block->getName());
+}
+
+bool latchOutputs(const std::string &name, const bool latch)
+{
+
+}
+bool latchOutputs(RTT::TaskContext *block, const bool latch)
+{
+  return block && this->latchOutputs(block->getName());
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+bool Scheme::executable()
+{
+  using namespace conman::graph;
+
+  // Compute the schedule on a throw-away ordering
+  ExecutionOrdering ordering;
+  this->computeSchedule(execution_scheduling_graph_, ordering, true)
+
+  return true;
+}
+
+namespace conman {
+  namespace graph {
+    //! Boost Graph Cycle Visitor used to capture cycles
+    struct flow_cycle_visitor
+    {
+      flow_cycle_visitor(std::vector<std::vector<DataFlowVertexDescriptor> > &cycles_)
+        : cycles(cycles_)
+      {
+        cycles_.clear();
+      }
+
+      //! This is called whenever a cycle is detected
+      template <typename Path, typename Graph>
+        inline void cycle(const Path& p, const Graph& g)
+        {
+          cycles.push_back(p);
+        }
+
+      std::vector<conman::graph::DataFlowPath> &cycles;
+    };
+  }
+}
+
+int Scheme::getCycles(
+    std::vector<std::vector<std::string> > &component_cycles)
+{
+  using namespace conman::graph;
+  std::vector<DataFlowPath> cycles;
+
+  this->computeCycles(execution_scheduling_graph_, cycles);
+
+  // Clear cycle component names
+  component_cycles.resize(cycles.size());
+
+  // Copy the names of the components associated with the verticies for each cycle
+  for(size_t c=0; c < cycles.size(); c++) {
+    component_cycles[c].resize(v);
+    for(size_t v=0; v < cycles[c].size(); v++) {
+      component_cycles[c][v] = execution_scheduling_graph_[cycles[c][v]]->task->getName();
+    }
+  }
+
+  return component_cycles.size();
+}
+
+int Scheme::latchCount(
+    const conman::graph::DataFlowPath &path,
+    const conman::graph::DataFlowGraph &flow_graph)
+{
+  using namespace conman::graph;
+
+  // If there are fewer than two vertices, there are no edges on the path
+  if(path.size() < 2) {
+    return 0;
+  }
+
+  int latch_count = 0;
+
+  // Iterate over pairs of vertices
+  for(size_t i=1; i<path.size(); i++) {
+    DataFlowVertex u = path.at(i-1);
+    DataFlowVertex v = path.at(i);
+
+    // Get parallel edges
+    DataFlowOutEdgeIterator par_edges_it, par_edges_end;
+    boost::tie(par_edges_it, par_edges_end) =
+      boost::edge_range(u, v, flow_graph);
+
+    // Check each parallel edge for latching
+    for(;par_edges_it != par_edges_end; ++par_edges_end) {
+      if(flow_graph[*par_edges_it]->latched) {
+        latch_count++;
+        break;
+      }
+    }
+  }
+
+  return latch_count;
+}
+
+int Scheme::computeCycles(
+    const conman::graph::DataFlowGraph &data_flow_graph,
+    std::vector<conman::graph::DataFlowPath> &cycles)
+{
+  using namespace conman::graph;
+
+  // Check if the graph has no cycles (this can be done very fast)
+  if(this->executable()) {
+    return 0;
+  }
+
+  // Construct a cycle visitor for extracting cycles
+  FlowCycleVisitor visitor(cycles);
+
+  try {
+    // Find all cycles 
+    boost::tiernan_all_cycles(
+        data_flow_graph,
+        visitor);
+  }
+
+  return cycles.size();
+}
+
+bool Scheme::computeSchedule(
+    const conman::graph::DataFlowGraph &data_flow_graph
+    conman::graph::ExecutionOrdering &ordering, 
+    const bool quiet)
+{
+  try{
+    // Recompute the topological sort
+    // NOTE: We need to use an external vertex index property for this
+    // algorithm to work since our adjacency_list uses a list as the underlying
+    // vertex data structure. See the documentation for BlockVertexIndex for
+    // more info.
+    boost::topological_sort( 
+        data_flow_graph, 
+        std::front_inserter(ordering),
+        boost::vertex_index_map(
+            boost::make_function_property_map<BlockVertexDescriptor>(
+                boost::bind(&BlockVertexIndex,_1,data_flow_graph))));
+
+  } catch(std::exception &ex) {
+    // Complain unless quiet flag is true
+    if(!quiet) {
+      RTT::log(RTT::Error)
+        << "Cannot regenerate topological ordering in conman scheme because: " <<
+        ex.what() << RTT::endlog();
+    }
+    return false;
+  }
+}
+
+
+
+
+
+
+
 
 bool Scheme::regenerateGraph(
     const conman::Role::ID &role)
@@ -674,22 +964,47 @@ bool Scheme::disbandGroup( const std::string &group_name)
   return true; 
 }
 
-bool Scheme::getGroup(
+bool Scheme::getGroupMembers(
     const std::string &group_name,
-    std::vector<std::string> &grouped_blocks) 
+    std::set<std::string> &member_set) 
 {
+  // Check if the group is a single block
+  if(blocks_.find(group_name)) {
+    member_set.insert(group_name);
+    return true;
+  }
+
   // Check if the group exists
-  std::map<std::string, std::set<std::string> >::iterator group = 
-    block_groups_.find(group_name);
+  GroupMap::iterator group = block_groups_.find(group_name);
 
   if(group == block_groups_.end()) {
     return false;
   }
 
-  // Return the group constituents
-  grouped_blocks.assign(group->second.begin(), group->second.end());
+  // Return the group members
+  success = true;
+  for(std::set<std::string>::const_iterator it=group->second.begin();
+      it != group->second.end();
+      ++it)
+  {
+    success &= this->getGroupMembers(it, member_set);
+  }
 
-  return true; 
+  return success; 
+}
+
+bool Scheme::getGroup(
+    const std::string &group_name,
+    std::vector<std::string> &members) 
+{
+  // Expand the group recursively
+  std::set<std::string> member_set;
+  bool success = getGroupMembers(group_name, member_set);
+
+  // Copy the set to vector
+  members.assign(member_set.begin(), member_set.end());
+
+  return success;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
