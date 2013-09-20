@@ -212,6 +212,7 @@ namespace conman {
     };
   };
 
+  //! Structure for representing groups of comopnents
   typedef std::vector<std::string, std::set<std::string> > GroupMap;
 }
 
