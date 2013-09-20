@@ -32,7 +32,7 @@ namespace conman {
     //! Boost Graph Vertex Metadata for Data Flow Graph
     struct DataFlowVertex 
     {
-      typedef boost::shared_ptr<VertexProperties> Ptr;
+      typedef boost::shared_ptr<DataFlowVertex> Ptr;
 
       //! An index for use in topological sort
       unsigned int index;
@@ -49,13 +49,19 @@ namespace conman {
     //! Boost Graph Edge Metadata for Data Flow Graph
     struct DataFlowEdge 
     {
-      typedef boost::shared_ptr<EdgeProperties> Ptr;
+      typedef boost::shared_ptr<DataFlowEdge> Ptr;
 
       //! If true, execution scheduling does not consider this edge as a constraint
       bool latched;
 
       //! Model representing a single RTT data port connection
       struct Connection {
+        Connection(
+            RTT::base::PortInterface *source_port_
+            RTT::base::PortInterface *sink_port_) :
+          source_port(source_port_),
+          sink_port(sink_port_) { }
+
         //! The source (output) port
         RTT::base::PortInterface *source_port;
         //! The sink (input) port:
@@ -109,19 +115,9 @@ namespace conman {
     typedef boost::graph_traits<conman::graph::DataFlowGraph>::out_edge_iterator DataFlowOutEdgeIterator;
     //! Iterator for iterating over edges in the DataFlowGraph in no particular order
     typedef boost::graph_traits<conman::graph::DataFlowGraph>::in_edge_iterator DataFlowInEdgeIterator;
+
     //! Vertex descriptor map for retrieving DataFlowGraph vertices
-    typedef std::map<RTT::TaskContext*,DataFlowVertexDescriptor> DataFlowVertexMap;
-
-
-    typedef DataFlowVertex VertexProperties;
-    typedef DataFlowEdge EdgeProperties;
-    typedef DataFlowGraph BlockGraph;
-    typedef DataFlowVertexDescriptor BlockVertexDescriptor;
-    typedef DataFlowEdgeDescriptor BlockEdgeDescriptor;
-    typedef DataFlowVertexDescriptor BlockVertexIterator;
-    typedef DataFlowOutEdgeIterator BlockOutEdgeIterator;
-    typedef DataFlowPath BlockOrdering;
-    typedef DataFlowVertexMap BlockVertexMap;
+    typedef std::map<RTT::TaskContext*, DataFlowVertexDescriptor> DataFlowVertexTaskMap;
 
     /** \brief Function for extracting the vertex index from a block vertex
      *
@@ -133,23 +129,42 @@ namespace conman {
      * below), but in this case, the use of shared_ptr properties precludes
      * this:
      * <pre>
-     *    boost::vertex_index_map(boost::get(&VertexProperties::index,flow_graph)));
+     *    boost::vertex_index_map(boost::get(&DataFlowVertex::index,flow_graph)));
      * </pre>
      *
      * In this case, we need to do something more complicated to dereference
      * the shared_ptr:
      * <pre>
      *    boost::vertex_index_map(
-     *      boost::make_function_property_map<BlockVertexDescriptor>(
-     *        boost::bind(&BlockVertexIndex,_1,flow_graph))));
+     *      boost::make_function_property_map<DataFlowVertexDescriptor>(
+     *        boost::bind(&DataFlowVertexIndex,_1,flow_graph))));
      * </pre>
      * 
-     * Note above, we use boost::Bind so that the BlockVertexIndex function
+     * Note above, we use boost::Bind so that the DataFlowVertexIndex function
      * gets the vertex descriptor from the correct graph.
      */
-    static unsigned int BlockVertexIndex(BlockVertexDescriptor vertex, BlockGraph graph) {
+    static unsigned int DataFlowVertexIndex(DataFlowVertexDescriptor vertex, DataFlowGraph graph) {
       return graph[vertex]->index;
     }
+
+    //! Boost Graph Cycle Visitor used to capture cycles in data flow graphs
+    struct flow_cycle_visitor
+    {
+      flow_cycle_visitor(std::vector<std::vector<DataFlowVertexDescriptor> > &cycles_)
+        : cycles(cycles_)
+      {
+        cycles_.clear();
+      }
+
+      //! This is called whenever a cycle is detected
+      template <typename Path, typename Graph>
+        inline void cycle(const Path& p, const Graph& g)
+        {
+          cycles.push_back(p);
+        }
+
+      std::vector<conman::graph::DataFlowPath> &cycles;
+    };
 
     /** \brief Boost graph for representing the conflicts between components
      *
@@ -173,17 +188,18 @@ namespace conman {
         boost::listS, 
         boost::listS, 
         boost::undirectedS, 
-        VertexProperties::Ptr>
-          BlockConflictGraph;
+        DataFlowVertex::Ptr>
+          ConflictGraph;
 
     //! Vertex descriptor for the block conflict graph
-    typedef boost::graph_traits<BlockConflictGraph>::vertex_descriptor BlockConflictVertexDescriptor;
-    //! Vertex descriptor map for retrieving BlockGraph vertices
-    typedef std::map<RTT::TaskContext*,BlockConflictVertexDescriptor> BlockConflictVertexMap;
+    typedef boost::graph_traits<ConflictGraph>::vertex_descriptor ConflictVertexDescriptor;
+    //! Vertex descriptor map for retrieving DataFlowGraph vertices
+    typedef std::map<RTT::TaskContext*,ConflictVertexDescriptor> ConflictVertexMap;
     //! Iterator for iterating over vertices in the ConflictGraph in no particular order
-    typedef boost::graph_traits<conman::graph::BlockConflictGraph>::vertex_iterator BlockConflictVertexIterator;
+    typedef boost::graph_traits<conman::graph::ConflictGraph>::vertex_iterator ConflictVertexIterator;
     //! Iterator for iterating over adjacent vertices in the ConflictGraph in no particular order
-    typedef boost::graph_traits<conman::graph::BlockConflictGraph>::adjacency_iterator BlockConflictAdjacencyIterator;
+    typedef boost::graph_traits<conman::graph::ConflictGraph>::adjacency_iterator ConflictAdjacencyIterator;
+    
   }
 
   //! Exclusivity modes describe how a given port can be accessed.

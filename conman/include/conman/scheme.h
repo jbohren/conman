@@ -87,7 +87,7 @@ namespace conman
     //! Add blocks to a group 
     bool createGroup(
         const std::string &group_name,
-        const std::vector<std::string> &grouped_blocks);
+        const std::vector<std::string> &members);
 
     //! Add a single block to a group
     bool addToGroup(
@@ -124,14 +124,12 @@ namespace conman
     
     //! Compute the conflicts between all blocks in the scheme
     void computeConflicts();
-    //! Compute the conflicts with a single block in the scheme
-    void computeConflicts(RTT::TaskContext *block);
-    //! Compute the conflicts with a single block in the scheme
-    void computeConflicts(conman::graph::VertexProperties::Ptr block);
     //! Compute the conflicts with a single block in the scheme by name
     void computeConflicts(const std::string &block_name);
     //! Compute the conflicts with a list of blocks in the scheme by name
     void computeConflicts(const std::vector<std::string> &block_names);
+    //! Compute the conflicts with a single block in the scheme
+    void computeConflicts(conman::graph::DataFlowVertex::Ptr block);
 
     //\}
 
@@ -160,25 +158,25 @@ namespace conman
      */
     //\{
 
-    //! Add/Remove a latch between two blocks by name
+    //! Add/Remove a latch between two blocks (or two groups of blocks) by name
     bool latchConnections(
       const std::string &source_name,
       const std::string &sink_name
       const bool latch);
+
     //! Add/Remove a latch between two blocks
     bool latchConnections(
       RTT::TaskContext *source,
       RTT::TaskContext *sink,
       const bool latch);
 
-    //! Add/Remove a latch on all input arcs to a given block by name
+    //! Set latching for all current and future input arcs to a given block
     bool latchInputs(const std::string &name, const bool latch);
-    //! Add/Remove a latch on all input arcs to a given block
+    //! Set latching for all current and future input arcs to a given block
     bool latchInputs(RTT::TaskContext *block, const bool latch);
-
-    //! Add/Remove a latch on all output arcs from a given block by name
+    //! Set latching for all current and future input arcs to a given block
     bool latchOutputs(const std::string &name, const bool latch);
-    //! Add/Remove a latch on all output arcs from a given block
+    //! Set latching for all current and future input arcs to a given block
     bool latchOutputs(RTT::TaskContext *block, const bool latch);
 
     //\}
@@ -371,8 +369,6 @@ namespace conman
 
     //\}
 
-    // TODO: ROS service call interface (make as a separate thing?)
-
   protected:
 
     /** \brief The last time updateHook was called.
@@ -392,51 +388,47 @@ namespace conman
     //! A map of block group names to block names
     conman::GroupMap block_groups_;
 
-    //! \name Graph structures
+    //! \name Data Flow Graph Structures
     //\{
-
     //! Data Flow Graph (DFG) 
     conman::graph::DataFlowGraph flow_graph_;
     //! Mappings from TaskContext pointers to boost vertex descriptors
-    conman::graph::DataFlowVertexMap flow_vertex_map_;
+    conman::graph::DataFlowVertexTaskMap flow_vertex_map_;
 
+    //! \name Execution Sampling Graph Structures
+    //\{
     //! Execution Scheduling Graph (ESG)
-    conman::graph::DataFlowGraph execution_graph_;
+    conman::graph::DataFlowGraph exec_graph_;
     //! Mappings from TaskContext pointers to boost vertex descriptors
-    conman::graph::DataFlowVertexMap execution_vertex_map_;
+    conman::graph::DataFlowVertexTaskMap exec_vertex_map_;
     //! Topologically sorted ordering of each graph
-    conman::graph::ExecutionOrdering execution_ordering_;
+    conman::graph::ExecutionOrdering exec_ordering_;
+    //\}
 
+    //! \name Runtime Conflict Graph Structures
+    //\{
     /** \brief Graph representing block conflicts 
      *
-     * Adjacent vertices in the ConflictGraph represent components that can't
-     * run simultaneously
+     * Adjacent vertices in the Rtunime Conflict Graph represent components
+     * that can't run simultaneously.
      */
-    conman::graph::BlockConflictGraph conflict_graph_;
+    conman::graph::ConflictGraph conflict_graph_;
     /** \brief A map from RTT TaskContext pointers to vertex identifiers in the
      * conflict graph
      */
-    conman::graph::BlockConflictVertexMap conflict_vertex_map_;
+    conman::graph::ConflictVertexMap conflict_vertex_map_;
     //\}
 
-    /** \brief Connect a block in one of the flow graphs
+    /** \brief Connect a block in the graph structures
      *
-     * This will add a block to a flow graph, and then regenerate that graph.
-     *
-     * This is an internal function. For adding a block from
-     * the public API, see \ref add_block.
+     * This will model a block in the Data Flow, Execution Scheduling, and
+     * Runtime Conflict graphs.
      */
-    bool addBlockToGraph(conman::graph::VertexProperties::Ptr new_vertex);
+    bool addBlockToGraph(conman::graph::DataFlowVertex::Ptr new_vertex);
 
-    /** \brief Remove a block from one of the flow graphs
-     *
-     * This will remove a block from a flow graph, and then regenerate that
-     * graph.
-     *
-     * This is an internal function. For adding a block from
-     * the public API, see \ref remove_block.
+    /** \brief Remove a block from the flow graphs
      */
-    bool removeBlockFromGraph(conman::graph::VertexProperties::Ptr vertex);
+    bool removeBlockFromGraph(conman::graph::DataFlowVertex::Ptr vertex);
 
     /** \brief Generates an internal model of the RTT port connection graph
      *
@@ -446,7 +438,10 @@ namespace conman
      * This only modifies edges. Note that only edges between two blocks which
      * have already been added to the graph will be generated.
      */
-    bool regenerateGraph();
+    bool regenerateGraphs();
+
+    //! Print out the current execution ordering
+    void printExecutionOrdering() const;
   };
 }
 
