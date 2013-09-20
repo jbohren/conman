@@ -19,10 +19,7 @@ ORO_LIST_COMPONENT_TYPE(conman::Scheme);
 using namespace conman;
 
 Scheme::Scheme(std::string name) 
- : RTT::TaskContext(name),
-   flow_graphs_(conman::Role::ids.size()),
-   flow_vertex_maps_(conman::Role::ids.size()),
-   causal_ordering_(conman::Role::ids.size())
+ : RTT::TaskContext(name)
 {
   // Add operations
   this->addOperation("addBlock", 
@@ -259,7 +256,7 @@ bool Scheme::removeBlock(
     return false;
   }
 
-  // Check if the block is in this role
+  // Check if the block is in the scheme
   if(flow_vertex_map_.find(block) != flow_vertex_map_.end()) {
     // Get the vertex properties pointer
     DataFlowVertex::Ptr vertex = flow_graph[flow_vertex_map_[block]];
@@ -767,7 +764,7 @@ void Scheme::computeConflicts(conman::graph::DataFlowVertex::Ptr vertex)
   DataFlowOutEdgeIterator out_edge_it, out_edge_end;
   DataFlowInEdgeIterator in_edge_it, in_edge_end;
 
-  // Get all output ports on this role
+  // Get all output ports for this block
   boost::tie(out_edge_it, out_edge_end) =
     boost::out_edges(flow_vertex_map_[block], flow_graph_);
 
@@ -918,13 +915,6 @@ bool Scheme::regenerateGraphs()
   using namespace conman::graph;
 
   RTT::Logger::In in("Scheme::regenerateGraph");
-
-  // Make sure the role is valid
-  if(role >= conman::Role::ids.size()) {
-    RTT::log(RTT::Error) 
-      << "Tried to add block to invalid role: "<< Role::Name(role) << RTT::endlog();
-    return false;
-  }
 
   // Initialize the modification flag
   bool topology_modified = ordering.size() != flow_vertex_map.size();
@@ -1377,13 +1367,13 @@ void Scheme::updateHook()
   // running at the same rate are executed in the same update() cycle
   last_update_time_ = now;
 
-  // Output the blocks in the role
-  for(ExecutionOrdering::iterator block_it = causal_ordering_[*role_it].begin();
-      block_it != causal_ordering_[*role_it].end();
+  // Execute the blocks in the appropriate order
+  for(ExecutionOrdering::iterator block_it = exec_ordering_.begin();
+      block_it != exec_ordering_.end();
       ++block_it) 
   {
     // Temporary variable for readability
-    DataFlowVertex::Ptr block_vertex = flow_graphs_[*role_it][*block_it];
+    DataFlowVertex::Ptr block_vertex = flow_graph_[*block_it];
 
     // Get the state of the task
     const RTT::base::TaskCore::TaskState block_state = block_vertex->block->getTaskState();
