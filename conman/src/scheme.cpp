@@ -548,6 +548,12 @@ bool Scheme::latchConnections(
           flow_graph_[edge],
           exec_graph_);
     }
+
+    // Regenerate the graphs
+    this->regenerateGraphs();
+
+    // Print out the ordering
+    this->printExecutionOrdering();
   } else if(strict) {
     // Only error if strict
     RTT::log(RTT::Error) << "Tried to " << 
@@ -925,13 +931,15 @@ bool Scheme::addBlockToGraph(conman::graph::DataFlowVertex::Ptr new_vertex)
   // Regenerate the topological ordering
   if(!this->regenerateGraphs()) {
     // Report error if we can't regenerate the graphs
-    RTT::log(RTT::Error) << "Cannot connect block \"" << new_block->getName()
-      << "\" in conman scheme." << RTT::endlog();
+    RTT::log(RTT::Warning) << "New block \"" << new_block->getName()
+      << "\" creates a cycle in the conman scheme." << RTT::endlog();
 
-    // Clean up this graph (but not the others, yet)
-    this->removeBlockFromGraph(new_vertex);
+    if(false) {
+      // Clean up this graph (but not the others, yet)
+      this->removeBlockFromGraph(new_vertex);
 
-    return false;
+      return false;
+    }
   }
 
   return true;
