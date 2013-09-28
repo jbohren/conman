@@ -74,6 +74,11 @@ Scheme::Scheme(std::string name)
 
 ///////////////////////////////////////////////////////////////////////////////
 
+bool Scheme::hasBlock(const std::string &name) const
+{
+  return blocks_.find(name) != blocks_.end();
+}
+
 std::vector<std::string> Scheme::getBlocks() const
 {
   using namespace conman::graph;
@@ -260,6 +265,10 @@ bool Scheme::removeBlock(
 
   RTT::Logger::In in("Scheme::removeBlock");
 
+  if(block == NULL) {
+    return false;
+  }
+
   RTT::log(RTT::Debug) << "Removing block " << block->getName() << "." <<
     RTT::endlog();
 
@@ -314,52 +323,81 @@ bool Scheme::removeBlock(
 
 ///////////////////////////////////////////////////////////////////////////////
 
-bool Scheme::createGroup(
+bool Scheme::hasGroup(const std::string &group_name) const
+{ 
+  return block_groups_.find(group_name) != block_groups_.end();
+}
+
+bool Scheme::addGroup(const std::string &group_name) 
+{ 
+  // Check if the group name collides with a real block
+  if(this->hasBlock(group_name)) {
+    RTT::log(RTT::Error) << "Block group named \"" << group_name << "\" "
+      "cannot be created because a block with the same name already exists." <<
+      RTT::endlog();
+    return false;
+  }
+
+  // Check if the group exists
+  if(this->hasGroup(group_name)) {
+    return true;
+  }
+
+  // Create an empty group
+  std::set<std::string> no_members;
+  block_groups_[group_name] = no_members;
+
+  return true;
+}
+
+bool Scheme::setGroup(
+    const std::string &group_name,
+    const std::string &member_name) 
+{ 
+  std::vector<std::string> members;
+  members.push_back(member_name);
+  return this->setGroup(group_name, members);
+}
+
+bool Scheme::setGroup(
     const std::string &group_name,
     const std::vector<std::string> &members) 
 { 
   RTT::Logger::In in("Scheme::createGroup");
 
-  // Check if the group name collides with a real block
-  if(blocks_.find(group_name) != blocks_.end())
-  {
-    RTT::log(RTT::Error) << "Block group named \"" << group_name << "\""
-      "cannot be created because a block with the same name already exists."
-      << RTT::endlog();
+  // Check if the group already exists
+  if(this->hasGroup(group_name)) {
+    RTT::log(RTT::Warning) << "Block group named \"" << group_name << "\""
+      " already exists. Over-writing." << RTT::endlog();
+  }
+
+  // Ensure the group exists
+  if(!this->addGroup(group_name)) {
     return false;
   }
 
-  // Make sure all the blocks are in the scheme
+  // Make sure all the blocks are in the scheme before adding any of them
   for(std::vector<std::string>::const_iterator it=members.begin();
       it != members.end();
       ++it)
   {
     // Check if the block is in the scheme
-    if( blocks_.find(*it) == blocks_.end() &&
-        block_groups_.find(*it) == block_groups_.end())
-    {
-      RTT::log(RTT::Error) << "Block named \"" << *it << "\""
-        "is not in the scheme." << RTT::endlog();
+    if(!this->hasBlock(*it) && !this->hasGroup(*it)) {
+      RTT::log(RTT::Error) << "Block named \"" << *it << "\" is not in the "
+      "scheme and it is not a group name." << RTT::endlog();
       return false;
     }
   }
 
-  // Check if the group already exists
-  if(block_groups_.find(group_name) != block_groups_.end()) {
-    RTT::log(RTT::Warning) << "Block group named \"" << group_name << "\""
-      " already exists. Over-writing." << RTT::endlog();
-  }
-
-  // Flatten and store the group 
-  block_groups_[group_name] = 
-    std::set<std::string>(members.begin(), members.end());
+  // Set the group membership
+  block_groups_[group_name] = std::set<std::string>(members.begin(),members.end());
 
   return true; 
 }
 
 bool Scheme::addToGroup(
     const std::string &group_name,
-    const std::string &new_block) 
+    const std::string &new_name) 
 {
   RTT::Logger::In in("Scheme::addToGroup");
 
@@ -371,14 +409,14 @@ bool Scheme::addToGroup(
   }
 
   // Check if the block is in the scheme
-  if( blocks_.find(new_block) == blocks_.end()) {
-    RTT::log(RTT::Error) << "Block named \"" << new_block << "\" is not in the"
-      " scheme." << RTT::endlog();
+  if(!this->hasBlock(new_name) && !this->hasGroup(new_name)) {
+    RTT::log(RTT::Error) << "Block or group named \"" << new_name << "\" is not"
+      " in the scheme." << RTT::endlog();
     return false;
   }
 
   // Return the group constituents
-  group->second.insert(new_block);
+  group->second.insert(new_name);
 
   return true; 
 }
@@ -407,24 +445,46 @@ bool Scheme::removeFromGroup(
   return true; 
 }
 
-bool Scheme::disbandGroup( const std::string &group_name) 
+bool Scheme::emptyGroup( const std::string &group_name) 
 {
   // Check if the group exists
-  if(block_groups_.find(group_name) != block_groups_.end()) {
+  if(!this->hasGroup(group_name)) {
+    return false;
+  }
+
+  // Remove the elments from the group
+  block_groups_[group_name].clear();
+
+  return true; 
+}
+
+bool Scheme::removeGroup( const std::string &group_name) 
+{
+  // Check if the group exists
+  if(this->hasGroup(group_name)) {
+    // Remove this group
     block_groups_.erase(group_name);
+
+    // Remove references to this group from all other groups
+    for(conman::GroupMap::iterator it = block_groups_.begin();
+        it != block_groups_.end();
+        ++it)
+    {
+      this->removeFromGroup(it->first, group_name);
+    }
   }
   
   return true; 
 }
 
-bool Scheme::getGroup(
+bool Scheme::getGroupMembers(
     const std::string &group_name,
     std::vector<std::string> &members) 
   const
 {
   // Expand the group recursively
-  std::set<std::string> member_set;
-  bool success = getGroupMembers(group_name, member_set);
+  std::set<std::string> member_set, visited;
+  bool success = getGroupMembers(group_name, member_set, visited);
 
   // Copy the set to vector
   members.assign(member_set.begin(), member_set.end());
@@ -433,21 +493,30 @@ bool Scheme::getGroup(
 }
 
 bool Scheme::getGroupMembers(
-    const std::string &group_name,
-    std::set<std::string> &member_set) 
+    const std::string &name,
+    std::set<std::string> &member_set,
+    std::set<std::string> &visited) 
   const
 {
   bool success = true;
 
+  // Avoid loops in group membership
+  if(visited.find(name) == visited.end()) {
+    // Add this group to the visited list
+    visited.insert(name);
+  } else {
+    // Already found this member
+    return true;
+  }
+
   // Check if the group is a single block
-  if(blocks_.find(group_name) != blocks_.end()) {
-    member_set.insert(group_name);
+  if(this->hasBlock(name)) {
+    member_set.insert(name);
     return true;
   }
 
   // Check if the group exists
-  GroupMap::const_iterator group = block_groups_.find(group_name);
-
+  GroupMap::const_iterator group = block_groups_.find(name);
   if(group == block_groups_.end()) {
     return false;
   }
@@ -458,7 +527,7 @@ bool Scheme::getGroupMembers(
       it != group->second.end();
       ++it)
   {
-    success &= this->getGroupMembers(*it, member_set);
+    success &= this->getGroupMembers(*it, member_set, visited);
   }
 
   return success; 
@@ -479,8 +548,8 @@ bool Scheme::latchConnections(
   // Check if the source is a group name
   std::vector<std::string> sources, sinks;
 
-  this->getGroup(source_name, sources);
-  this->getGroup(sink_name, sinks);
+  this->getGroupMembers(source_name, sources);
+  this->getGroupMembers(sink_name, sinks);
 
   return this->latchConnections(sources, sinks, latch);
 }
@@ -573,7 +642,7 @@ bool Scheme::latchInputs(const std::string &sink_name, const bool latch)
   // Get the sources (all blocks)
   this->getBlocks(sources);
   // Get the sinks (potentially a group)
-  this->getGroup(sink_name, sinks);
+  this->getGroupMembers(sink_name, sinks);
   
   // Set latching flags for all vertices
   for(std::vector<std::string>::const_iterator it=sinks.begin();
@@ -596,7 +665,7 @@ bool Scheme::latchOutputs(const std::string &source_name, const bool latch)
   std::vector<std::string> sources, sinks;
 
   // Get the sources (potentially a group)
-  this->getGroup(source_name, sources);
+  this->getGroupMembers(source_name, sources);
   // Get the sinks (all blocks)
   this->getBlocks(sinks);
   
@@ -675,6 +744,40 @@ int Scheme::latchCount(
   }
 
   return latch_count;
+}
+
+int Scheme::maxLatchCount() const
+{
+  int max_latch_count = 0;
+
+  std::vector<std::vector<std::string> > cycles;
+  this->getFlowCycles(cycles);
+
+  for(std::vector<std::vector<std::string> >::const_iterator it = cycles.begin();
+      it != cycles.end();
+      ++it)
+  {
+    max_latch_count = std::max(max_latch_count, this->latchCount(*it));
+  }
+
+  return max_latch_count;
+}
+
+int Scheme::minLatchCount() const
+{
+  int min_latch_count = 0;
+
+  std::vector<std::vector<std::string> > cycles;
+  this->getFlowCycles(cycles);
+
+  for(std::vector<std::vector<std::string> >::const_iterator it = cycles.begin();
+      it != cycles.end();
+      ++it)
+  {
+    min_latch_count = std::min(min_latch_count, this->latchCount(*it));
+  }
+
+  return min_latch_count;
 }
 
 int Scheme::getFlowCycles(

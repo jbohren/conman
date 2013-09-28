@@ -45,6 +45,9 @@ namespace conman
      */
     //\{
 
+    //! Check if a block is in the scheme
+    bool hasBlock(const std::string &name) const;
+
     //! Get the names of all the blocks in this scheme
     std::vector<std::string> getBlocks() const;
 
@@ -83,34 +86,43 @@ namespace conman
      * representation.
      */
     //\{
+    
+    //! Check if a group exists
+    bool hasGroup(const std::string &group_name) const;
 
-    //! Add blocks to a group 
-    bool createGroup(
+    //! Create an initially empty group
+    bool addGroup( const std::string &group_name);
+
+    //! Set the membership for a group with just one member
+    bool setGroup(
+        const std::string &group_name,
+        const std::string &member_name);
+
+    //! Set the membership for a group
+    bool setGroup(
         const std::string &group_name,
         const std::vector<std::string> &members);
 
     //! Add a single block to a group
     bool addToGroup(
         const std::string &group_name,
-        const std::string &new_block);
+        const std::string &member_name);
 
     //! Remove a single block from a group
     bool removeFromGroup(
         const std::string &group_name,
-        const std::string &block);
+        const std::string &member_name);
 
     //! Remove the blocks from a group, and then remove the group
-    bool disbandGroup(const std::string &group_name);
+    bool emptyGroup(const std::string &group_name);
 
-    //! Get the blocks in a given group
-    bool getGroup(
-        const std::string &group_name,
-        std::vector<std::string> &members) const;
+    //! Remove the blocks from a group, and then remove the group
+    bool removeGroup(const std::string &group_name);
 
     //! Get the blocks in a given group
     bool getGroupMembers(
         const std::string &group_name,
-        std::set<std::string> &members) const;
+        std::vector<std::string> &members) const;
 
     //\}
     
@@ -446,10 +458,21 @@ namespace conman
      */
     bool regenerateGraphs();
 
+    /** \brief Recursively get a flattened list of all members in a group
+     *
+     * This is the internal function used by the public \ref getGroupMembers.
+     */
+    bool getGroupMembers(
+        const std::string &group_name,
+        std::set<std::string> &members,
+        std::set<std::string> &visited) const;
+
+    //! Brief compute cycles in a specific flow graph.
     int computeCycles(
         const conman::graph::DataFlowGraph &data_flow_graph,
         std::vector<conman::graph::DataFlowPath> &cycles) const;
 
+    //! Compute the schedule without modifying the scheme
     bool computeSchedule(
         const conman::graph::DataFlowGraph &data_flow_graph,
         conman::graph::ExecutionOrdering &ordering, 

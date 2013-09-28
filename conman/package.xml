@@ -44,6 +44,8 @@
   <build_depend>rtt</build_depend>
   <run_depend>rtt</run_depend>
 
+  <test_depend>rosunit</test_depend>
+
   <!-- The export tag contains other, unspecified, tags -->
   <export>
     <!-- You can specify that this package is a metapackage here: -->
