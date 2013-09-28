@@ -57,14 +57,14 @@ int ORO_main(int argc, char** argv) {
     scheme.addBlock(&B);
     scheme.addBlock(&A);
 
-    if(scheme.hasCycles()) {
+    if(!scheme.executable()) {
       RTT::log(RTT::Info) << "Scheme has cycles!" << RTT::endlog();
     }
 
     // conman::graph::Cycles cycles = scheme.getCycles();
-    scheme.latchConnections(&C,&D);
+    scheme.latchConnections(&C,&D,true);
 
-    if(!scheme.hasCycles()) {
+    if(scheme.executable()) {
       RTT::log(RTT::Info) << "Scheme no longer has cycles!" << RTT::endlog();
     }
 

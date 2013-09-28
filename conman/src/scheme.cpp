@@ -16,10 +16,15 @@
 #endif
 
 #if BOOST_VERSION / 100000 >= 1 && BOOST_VERSION / 100 % 1000 >= 55
+#define USE_HAWICK
+#endif
+
+#ifdef USE_HAWICK
 #include <boost/graph/hawick_circuits.hpp>
 #else
-#include "hawick_circuits.hpp"
+#include <boost/graph/tiernan_all_cycles.hpp>
 #endif
+
 
 ORO_LIST_COMPONENT_TYPE(conman::Scheme);
 
@@ -685,9 +690,11 @@ int Scheme::computeCycles(
 
   try {
     // Find all cycles 
-    boost::hawick_circuits(
-        data_flow_graph,
-        visitor);
+#ifdef USE_HAWICK
+    boost::hawick_circuits( data_flow_graph, visitor);
+#else
+    boost::tiernan_all_cycles( data_flow_graph, visitor);
+#endif
   } catch( std::runtime_error &ex) {
     
     return 0;

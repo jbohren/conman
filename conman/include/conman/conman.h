@@ -18,6 +18,7 @@
 #include <ocl/LoggingService.hpp>
 #include <rtt/Logger.hpp>
 
+#include <boost/graph/directed_graph.hpp>
 #include <boost/graph/adjacency_list.hpp>
 #include <boost/graph/topological_sort.hpp>
 #include <boost/graph/labeled_graph.hpp>
@@ -94,14 +95,20 @@ namespace conman {
      *  - Allows querying of both in- and out- edges (directedS does not provide
      *  this capability.
      */
-    typedef 
-      boost::adjacency_list< 
-        boost::vecS, 
-        boost::vecS, 
-        boost::bidirectionalS, 
-        DataFlowVertex::Ptr, 
-        DataFlowEdge::Ptr>
-          DataFlowGraph;
+    /*
+     *typedef 
+     *  boost::adjacency_list< 
+     *    boost::vecS, 
+     *    boost::vecS, 
+     *    boost::bidirectionalS, 
+     *    DataFlowVertex::Ptr, 
+     *    DataFlowEdge::Ptr>
+     *      DataFlowGraph;
+     */
+    typedef
+      boost::directed_graph
+      <DataFlowVertex::Ptr, DataFlowEdge::Ptr>
+      DataFlowGraph;
 
     //! Boost Vertex Descriptor Type for DataFlowGraph
     typedef boost::graph_traits<DataFlowGraph>::vertex_descriptor DataFlowVertexDescriptor;

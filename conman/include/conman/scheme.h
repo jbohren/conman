@@ -174,7 +174,7 @@ namespace conman
       RTT::TaskContext *source,
       RTT::TaskContext *sink,
       const bool latch,
-      const bool strict);
+      const bool strict = true);
 
     //! Set latching for all current and future input arcs to a given block
     bool latchInputs(const std::string &name, const bool latch);

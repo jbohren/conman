@@ -28,10 +28,6 @@ orocos_use_package( ocl-logging )
 #orocos_plugin(conman_plugin src/conman.cpp src/manager.cpp)
 #orocos_plugin(conman_test_plugins src/conman_test_plugins.cpp)
 
-if(${Boost_VERSION} VERSION_LESS 1.53)
-  include_directories(src/boost/move/include)
-endif()
-
 #orocos_executable(port_dag src/port_dag.cpp)
 add_definitions(-DRTT_COMPONENT)
 orocos_plugin(conman 

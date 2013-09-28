@@ -13,7 +13,7 @@
 #include <boost/graph/graph_traits.hpp>
 #include <boost/graph/one_bit_color_map.hpp>
 #include <boost/graph/properties.hpp>
-#include "boost_move_utility.hpp"
+#include <boost/move/utility.hpp>
 #include <boost/property_map/property_map.hpp>
 #include <boost/range/begin.hpp>
 #include <boost/range/end.hpp>
