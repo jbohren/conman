@@ -260,6 +260,9 @@ bool Scheme::removeBlock(
 
   RTT::Logger::In in("Scheme::removeBlock");
 
+  RTT::log(RTT::Debug) << "Removing block " << block->getName() << "." <<
+    RTT::endlog();
+
   // Succeed if the block isn't already in the scheme
   if(blocks_.find(block->getName()) == blocks_.end()) {
     return true;
@@ -284,11 +287,6 @@ bool Scheme::removeBlock(
       return false;
     }
   }
-
-  // Remove block from conflict graph / map
-  boost::clear_vertex(conflict_vertex_map_[block], conflict_graph_);
-  boost::remove_vertex(conflict_vertex_map_[block], conflict_graph_);
-  conflict_vertex_map_.erase(block);
 
   // Remove the block from the block map
   blocks_.erase(block->getName());
