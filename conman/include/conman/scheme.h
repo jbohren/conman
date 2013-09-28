@@ -49,7 +49,7 @@ namespace conman
     std::vector<std::string> getBlocks() const;
 
     //! Get the names of all the blocks in this scheme
-    void getBlocks(const std::vector<std::string> &blocks) const;
+    void getBlocks(std::vector<std::string> &blocks) const;
 
     /** \brief Add a block which is already a peer of this scheme by name. */
     bool addBlock(const std::string &name);
@@ -161,14 +161,20 @@ namespace conman
     //! Add/Remove a latch between two blocks (or two groups of blocks) by name
     bool latchConnections(
       const std::string &source_name,
-      const std::string &sink_name
+      const std::string &sink_name,
+      const bool latch);
+
+    bool latchConnections(
+      const std::vector<std::string> &source_names,
+      const std::vector<std::string> &sink_names,
       const bool latch);
 
     //! Add/Remove a latch between two blocks
     bool latchConnections(
       RTT::TaskContext *source,
       RTT::TaskContext *sink,
-      const bool latch);
+      const bool latch,
+      const bool strict);
 
     //! Set latching for all current and future input arcs to a given block
     bool latchInputs(const std::string &name, const bool latch);
@@ -439,6 +445,15 @@ namespace conman
      * have already been added to the graph will be generated.
      */
     bool regenerateGraphs();
+
+    int computeCycles(
+        const conman::graph::DataFlowGraph &data_flow_graph,
+        std::vector<conman::graph::DataFlowPath> &cycles) const;
+
+    bool computeSchedule(
+        const conman::graph::DataFlowGraph &data_flow_graph,
+        conman::graph::ExecutionOrdering &ordering, 
+        const bool quiet) const;
 
     //! Print out the current execution ordering
     void printExecutionOrdering() const;

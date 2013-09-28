@@ -8,6 +8,7 @@
 
 #include <string>
 #include <vector>
+#include <set>
 #include <iterator>
 
 #include <rtt/os/main.h>
@@ -57,7 +58,7 @@ namespace conman {
       //! Model representing a single RTT data port connection
       struct Connection {
         Connection(
-            RTT::base::PortInterface *source_port_
+            RTT::base::PortInterface *source_port_,
             RTT::base::PortInterface *sink_port_) :
           source_port(source_port_),
           sink_port(sink_port_) { }
@@ -95,8 +96,8 @@ namespace conman {
      */
     typedef 
       boost::adjacency_list< 
-        boost::listS, 
-        boost::listS, 
+        boost::vecS, 
+        boost::vecS, 
         boost::bidirectionalS, 
         DataFlowVertex::Ptr, 
         DataFlowEdge::Ptr>
@@ -106,15 +107,16 @@ namespace conman {
     typedef boost::graph_traits<DataFlowGraph>::vertex_descriptor DataFlowVertexDescriptor;
     //! Boost Edge Descriptor Type for DataFlowGraph
     typedef boost::graph_traits<DataFlowGraph>::edge_descriptor DataFlowEdgeDescriptor;
-    //! Topological Ordering container for DataFlowGraph vertices
-    typedef std::list<DataFlowVertexDescriptor> DataFlowPath;
-    typedef DataFlowPath ExecutionOrdering;
     //! Iterator for iterating over vertices in the DataFlowGraph in no particular order
     typedef boost::graph_traits<conman::graph::DataFlowGraph>::vertex_iterator DataFlowVertexIterator;
     //! Iterator for iterating over edges in the DataFlowGraph in no particular order
     typedef boost::graph_traits<conman::graph::DataFlowGraph>::out_edge_iterator DataFlowOutEdgeIterator;
     //! Iterator for iterating over edges in the DataFlowGraph in no particular order
     typedef boost::graph_traits<conman::graph::DataFlowGraph>::in_edge_iterator DataFlowInEdgeIterator;
+
+    //! Topological Ordering container for DataFlowGraph vertices
+    typedef std::list<DataFlowVertexDescriptor> DataFlowPath;
+    typedef DataFlowPath ExecutionOrdering;
 
     //! Vertex descriptor map for retrieving DataFlowGraph vertices
     typedef std::map<RTT::TaskContext*, DataFlowVertexDescriptor> DataFlowVertexTaskMap;
@@ -143,27 +145,31 @@ namespace conman {
      * Note above, we use boost::Bind so that the DataFlowVertexIndex function
      * gets the vertex descriptor from the correct graph.
      */
-    static unsigned int DataFlowVertexIndex(DataFlowVertexDescriptor vertex, DataFlowGraph graph) {
+    static unsigned int DataFlowVertexIndex(
+        DataFlowVertexDescriptor vertex, 
+        DataFlowGraph graph) 
+    {
       return graph[vertex]->index;
     }
 
     //! Boost Graph Cycle Visitor used to capture cycles in data flow graphs
-    struct flow_cycle_visitor
+    struct FlowCycleVisitor
     {
-      flow_cycle_visitor(std::vector<std::vector<DataFlowVertexDescriptor> > &cycles_)
+      FlowCycleVisitor(std::vector<DataFlowPath> &cycles_)
         : cycles(cycles_)
       {
-        cycles_.clear();
+        cycles.clear();
       }
 
       //! This is called whenever a cycle is detected
       template <typename Path, typename Graph>
         inline void cycle(const Path& p, const Graph& g)
         {
-          cycles.push_back(p);
+          DataFlowPath p_vec(p.begin(),p.end());
+          cycles.push_back(p_vec);
         }
 
-      std::vector<conman::graph::DataFlowPath> &cycles;
+      std::vector<DataFlowPath> &cycles;
     };
 
     /** \brief Boost graph for representing the conflicts between components
@@ -213,7 +219,7 @@ namespace conman {
   };
 
   //! Structure for representing groups of comopnents
-  typedef std::vector<std::string, std::set<std::string> > GroupMap;
+  typedef std::map<std::string, std::set<std::string> > GroupMap;
 }
 
 #endif // ifndef __CONMAN_CONMAN_H
