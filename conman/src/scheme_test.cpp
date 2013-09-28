@@ -61,6 +61,20 @@ int ORO_main(int argc, char** argv) {
       RTT::log(RTT::Info) << "Scheme has cycles!" << RTT::endlog();
     }
 
+    std::vector<std::vector<std::string> > cycles;
+    int n_cycles = scheme.getFlowCycles(cycles);
+
+    RTT::log(RTT::Info) << n_cycles << " Cycles: [ " <<std::endl;
+    for(int i=0; i<cycles.size(); i++) {
+        RTT::log(RTT::Info) << "[ ";
+      for(int v=0; v < cycles[i].size(); v++) {
+        RTT::log(RTT::Info) << cycles[i][v] <<" ";
+      }
+      RTT::log(RTT::Info) << "]"<<std::endl;
+    }
+    RTT::log(RTT::Info) << "]" << RTT::endlog();
+
+
     // conman::graph::Cycles cycles = scheme.getCycles();
     scheme.latchConnections(&C,&D,true);
 

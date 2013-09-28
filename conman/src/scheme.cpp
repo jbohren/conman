@@ -677,6 +677,33 @@ int Scheme::latchCount(
   return latch_count;
 }
 
+int Scheme::getFlowCycles(
+    std::vector<std::vector<std::string> > &cycles_strs)
+  const
+{
+  using namespace conman::graph;
+
+  std::vector<DataFlowPath> cycles;
+  this->computeCycles(flow_graph_, cycles);
+
+  cycles_strs.clear();
+  for(std::vector<DataFlowPath>::const_iterator cycle_it=cycles.begin();
+      cycle_it!=cycles.end();
+      ++cycle_it)
+  {
+    std::vector<std::string> cycle_strs;
+    for(DataFlowPath::const_iterator vertex_it=cycle_it->begin();
+        vertex_it!=cycle_it->end();
+        ++vertex_it)
+    {
+      cycle_strs.push_back(flow_graph_[*vertex_it]->block->getName());
+    }
+    cycles_strs.push_back(cycle_strs);
+  }
+
+  return cycles.size();
+}
+
 int Scheme::computeCycles(
     const conman::graph::DataFlowGraph &data_flow_graph,
     std::vector<conman::graph::DataFlowPath> &cycles)
@@ -753,9 +780,7 @@ bool Scheme::executable() const
 
   // Compute the schedule on a throw-away ordering
   ExecutionOrdering ordering;
-  this->computeSchedule(exec_graph_, ordering, true);
-
-  return true;
+  return this->computeSchedule(exec_graph_, ordering, true);
 }
 
 int Scheme::getExecutionCycles(
