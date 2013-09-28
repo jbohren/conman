@@ -185,7 +185,7 @@ bool Scheme::addBlock(RTT::TaskContext *new_block)
     }
     return false;
   }
-
+  
   // Compute conflicts for this block and represent them in the RCG
   this->computeConflicts(new_vertex);
 
@@ -711,6 +711,9 @@ bool Scheme::computeSchedule(
 {
   using namespace conman::graph;
 
+  // Clear the ordering
+  ordering.clear();
+
   try{
     // Recompute the topological sort
     // NOTE: We need to use an external vertex index property for this
@@ -733,6 +736,8 @@ bool Scheme::computeSchedule(
     }
     return false;
   }
+
+  return true;
 }
 
 
@@ -946,19 +951,25 @@ bool Scheme::removeBlockFromGraph(conman::graph::DataFlowVertex::Ptr vertex)
   }
 
   // Remove the edges, the vertex itself, and the reference in the flow map
-  boost::clear_vertex(flow_vertex_map_[vertex->block], flow_graph_);
-  boost::remove_vertex(flow_vertex_map_[vertex->block], flow_graph_);
-  flow_vertex_map_.erase(vertex->block);
+  if(flow_vertex_map_.find(vertex->block) != flow_vertex_map_.end()) {
+    boost::clear_vertex(flow_vertex_map_[vertex->block], flow_graph_);
+    boost::remove_vertex(flow_vertex_map_[vertex->block], flow_graph_);
+    flow_vertex_map_.erase(vertex->block);
+  }
 
   // Remove the edges, the vertex itself, and the reference in the exec map
-  boost::clear_vertex(exec_vertex_map_[vertex->block], exec_graph_);
-  boost::remove_vertex(exec_vertex_map_[vertex->block], exec_graph_);
-  exec_vertex_map_.erase(vertex->block);
+  if(exec_vertex_map_.find(vertex->block) != exec_vertex_map_.end()) {
+    boost::clear_vertex(exec_vertex_map_[vertex->block], exec_graph_);
+    boost::remove_vertex(exec_vertex_map_[vertex->block], exec_graph_);
+    exec_vertex_map_.erase(vertex->block);
+  }
 
   // Remove the edges, the vertex itself, and the reference in the conflict map
-  boost::clear_vertex(conflict_vertex_map_[vertex->block], conflict_graph_);
-  boost::remove_vertex(conflict_vertex_map_[vertex->block], conflict_graph_);
-  conflict_vertex_map_.erase(vertex->block);
+  if(conflict_vertex_map_.find(vertex->block) != conflict_vertex_map_.end()) {
+    boost::clear_vertex(conflict_vertex_map_[vertex->block], conflict_graph_);
+    boost::remove_vertex(conflict_vertex_map_[vertex->block], conflict_graph_);
+    conflict_vertex_map_.erase(vertex->block);
+  }
 
   // Regenerate the graph without the vertex
   return this->regenerateGraphs();
@@ -1147,8 +1158,12 @@ bool Scheme::regenerateGraphs()
 
   // Recompute the execution schedule if the topology changed
   if(topology_modified) {
-    this->computeSchedule(exec_graph_, exec_ordering_, true);
-    RTT::log(RTT::Debug) << "Regenerated topological ordering." << RTT::endlog();
+    if(this->computeSchedule(exec_graph_, exec_ordering_, true)) {
+      RTT::log(RTT::Debug) << "Regenerated topological ordering." << RTT::endlog();
+    } else {
+      RTT::log(RTT::Debug) << "Could not regenerate the topological ordering." << RTT::endlog();
+      return false;
+    }
   }
 
   return true;
