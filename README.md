@@ -60,12 +60,13 @@ the data that component *A* wrote at cycle *(k-1)*.
 
 Internally, the scheme is represented by three graphs:
 
-1. **Data Flow Graph** (DFG): An exact model of the data flow between the scheme
-   members. Each vertex represents an RTT task, and each edge represets a set of
-   data flow connections between two tasks. This graph may be cyclic.
+1. **Data Flow Graph** (DFG): An exact directed graph model of the data flow
+   between the scheme members. Each vertex represents an RTT task, and each
+   arc represets a set of data flow connections between two tasks.
+   This graph may be cyclic.
 2. **Execution Scheduling Graph** (ESG): The DFG with "latched" edges removed.
    This graph is always acyclic, and is used to compute the execution order of
-   the scheme members.
+   the scheme members via standard topological sort.
 3. **Runtime Conflict Graph** (RCG): An undirected graph of members where
    adjacent members cannot be run simultaneously due to some resource conflict.
 
