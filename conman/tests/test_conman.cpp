@@ -135,18 +135,25 @@ TEST_F(GroupsTest, SetGroups) {
 }
 
 TEST_F(GroupsTest, AddToGroups) {
-  std::vector<std::string> members, members2;
+  std::vector<std::string> members, members_get;
 
   EXPECT_FALSE(scheme.addToGroup("fail",""));
 
   ValidBlock vb1("vb1");
+  ValidBlock vb2("vb2");
   scheme.addBlock(&vb1);
+  scheme.addBlock(&vb2);
   EXPECT_FALSE(scheme.addToGroup("win","vb1"));
   EXPECT_TRUE(scheme.addGroup("win"));
   EXPECT_TRUE(scheme.addToGroup("win","vb1"));
+  EXPECT_TRUE(scheme.addToGroup("win","vb2"));
+  // Add it again
+  EXPECT_TRUE(scheme.addToGroup("win","vb2"));
 
-  EXPECT_TRUE(scheme.getGroupMembers("win",members2));
-  EXPECT_EQ(members2.size(),1);
+  EXPECT_TRUE(scheme.getGroupMembers("win",members_get));
+  EXPECT_EQ(members_get.size(),2);
+
+  EXPECT_THAT(members_get, ElementsAre("vb1","vb2"));
 }
 
 TEST_F(GroupsTest, NestedGroups) {
@@ -174,6 +181,33 @@ TEST_F(GroupsTest, NestedGroups) {
 }
 
 TEST_F(GroupsTest, RemoveFromGroups) {
+  std::vector<std::string> members, members_get;
+
+  ValidBlock vb1("vb1");
+  scheme.addBlock(&vb1);
+  ValidBlock vb2("vb2");
+  scheme.addBlock(&vb2);
+
+  // Add some members
+  EXPECT_TRUE(scheme.setGroup("win1","vb1"));
+  EXPECT_TRUE(scheme.addToGroup("win1","vb2"));
+  EXPECT_TRUE(scheme.getGroupMembers("win1",members_get));
+  EXPECT_EQ(members_get.size(),2);
+
+  // Remove a member
+  EXPECT_TRUE(scheme.removeFromGroup("win1","vb2"));
+  EXPECT_TRUE(scheme.getGroupMembers("win1",members_get));
+  EXPECT_EQ(members_get.size(),1);
+  
+  // Empty the group
+  EXPECT_TRUE(scheme.emptyGroup("win1"));
+  EXPECT_TRUE(scheme.getGroupMembers("win1",members_get));
+  EXPECT_EQ(members_get.size(),0);
+
+  // Empty it again (already empty)
+  EXPECT_TRUE(scheme.emptyGroup("win1"));
+  EXPECT_TRUE(scheme.getGroupMembers("win1",members_get));
+  EXPECT_EQ(members_get.size(),0);
 }
 
 int main(int argc, char** argv) {
