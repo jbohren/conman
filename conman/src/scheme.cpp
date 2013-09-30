@@ -619,7 +619,7 @@ bool Scheme::latchConnections(
     }
 
     // Regenerate the graphs
-    this->regenerateGraphs();
+    this->regenerateModel();
 
     // Print out the ordering
     this->printExecutionOrdering();
@@ -912,6 +912,27 @@ int Scheme::getExecutionCycles(
   return component_cycles.size();
 }
 
+bool Scheme::getExecutionOrder(std::vector<std::string> &order) const
+{
+  // Reset the order return argument
+  order.clear();
+
+  // Check if there is a valid order
+  if(!this->executable()) {
+    return false;
+  }
+
+  // Fill the order with 
+  for(conman::graph::ExecutionOrdering::const_iterator it = exec_ordering_.begin();
+      it != exec_ordering_.end();
+      ++it)
+  {
+    order.push_back(exec_graph_[*it]->block->getName());
+  }
+
+  return true;
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 
 void Scheme::computeConflicts() 
@@ -1057,10 +1078,10 @@ bool Scheme::addBlockToGraph(conman::graph::DataFlowVertex::Ptr new_vertex)
     << RTT::endlog();
 
   // Regenerate the topological ordering
-  if(!this->regenerateGraphs()) {
+  if(!this->regenerateModel()) {
     // Report error if we can't regenerate the graphs
     RTT::log(RTT::Warning) << "New block \"" << new_block->getName()
-      << "\" creates a cycle in the conman scheme." << RTT::endlog();
+      << "\" creates one or more cycles in the conman scheme." << RTT::endlog();
 
     if(false) {
       // Clean up this graph (but not the others, yet)
@@ -1106,10 +1127,10 @@ bool Scheme::removeBlockFromGraph(conman::graph::DataFlowVertex::Ptr vertex)
   }
 
   // Regenerate the graph without the vertex
-  return this->regenerateGraphs();
+  return this->regenerateModel();
 }
 
-bool Scheme::regenerateGraphs()
+bool Scheme::regenerateModel()
 {
   using namespace conman::graph;
 

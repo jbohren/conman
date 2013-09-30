@@ -85,7 +85,7 @@ int ORO_main(int argc, char** argv) {
     std::vector<std::string> group_bc;
     group_bc.push_back("B");
     group_bc.push_back("C");
-    scheme.createGroup("BC",group_bc);
+    scheme.setGroup("BC",group_bc);
 
     //RTT::Logger::log() << RTT::Logger::Info << "Control groups: " << RTT::endlog();
     //manager.connect("c0.control.out.left_arm.joint_effort","c1.control.in.left_arm.joint_effort",RTT::ConnPolicy());

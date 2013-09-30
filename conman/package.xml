@@ -45,6 +45,7 @@
   <run_depend>rtt</run_depend>
 
   <test_depend>rosunit</test_depend>
+  <test_depend>google-mock</test_depend>
 
   <!-- The export tag contains other, unspecified, tags -->
   <export>

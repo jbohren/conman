@@ -271,6 +271,11 @@ namespace conman
      */
     int getExecutionCycles(std::vector<std::vector<std::string> > &cycles) const;
 
+    /** \brief Gets the execution order for the scheme or if it can't be
+     * executed, returns false.
+     */
+    bool getExecutionOrder(std::vector<std::string> &order) const;
+
     //\}
 
 
@@ -366,6 +371,14 @@ namespace conman
 
     //\}
 
+    /** \brief (Re)generates an internal model of the RTT port connection graph
+     *
+     * This will populate the Data Flow Graph (DFG), the Execution Scheduling
+     * Graph (ESG), and the Runtime Conflict Graph (RCG). The scheme must be 
+     *
+     */
+    bool regenerateModel();
+
     ///////////////////////////////////////////////////////////////////////////
     //! \name Orocos RTT Hooks
     //\{
@@ -447,16 +460,6 @@ namespace conman
     /** \brief Remove a block from the flow graphs
      */
     bool removeBlockFromGraph(conman::graph::DataFlowVertex::Ptr vertex);
-
-    /** \brief Generates an internal model of the RTT port connection graph
-     *
-     * This will generate a grah with RTT TaskContext blocks as vertices, and
-     * RTT PortInterfaces as edges. 
-     *
-     * This only modifies edges. Note that only edges between two blocks which
-     * have already been added to the graph will be generated.
-     */
-    bool regenerateGraphs();
 
     /** \brief Recursively get a flattened list of all members in a group
      *
