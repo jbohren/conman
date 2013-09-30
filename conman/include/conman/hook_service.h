@@ -33,12 +33,6 @@ namespace conman {
     /** \name Conman Scheduling Management */
     //\{
 
-    //! Set the scheme role for the owning component
-    bool setRole(const conman::Role::ID role);
-
-    //! Get the scheme role for the owning component
-    conman::Role::ID getRole();
-
     //! Set the desired minimum execution period
     bool setDesiredMinPeriod(const RTT::Seconds period);
 
@@ -83,9 +77,6 @@ namespace conman {
 
     //! Init flag used for statistics computation initialization
     bool init_;
-
-    //! Component execution role
-    conman::Role::ID role_;
 
     //! Minimum execution period for this component
     RTT::Seconds desired_min_exec_period_;

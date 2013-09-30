@@ -30,8 +30,6 @@ namespace conman {
 
     Hook(RTT::TaskContext *owner) :
       RTT::ServiceRequester("conman_hook", owner),
-      setRole("setRole"),
-      getRole("getRole"),
       setDesiredMinPeriod("setDesiredMinPeriod"),
       getDesiredMinPeriod("getDesiredMinPeriod"),
       setInputExclusivity("setInputExclusivity"),
@@ -41,8 +39,6 @@ namespace conman {
       init("init"),
       update("update")
     { 
-      this->addOperationCaller(setRole);
-      this->addOperationCaller(getRole);
       this->addOperationCaller(setDesiredMinPeriod);
       this->addOperationCaller(getDesiredMinPeriod);
       this->addOperationCaller(setInputExclusivity);
@@ -55,10 +51,6 @@ namespace conman {
       this->addOperationCaller(update);
     }
 
-    RTT::OperationCaller<bool(const conman::Role::ID)>
-      setRole;
-    RTT::OperationCaller<conman::Role::ID(void)>
-      getRole;
     RTT::OperationCaller<bool(const RTT::Seconds)>
       setDesiredMinPeriod;
     RTT::OperationCaller<RTT::Seconds(void)>

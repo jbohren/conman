@@ -43,35 +43,97 @@ system implementation:
 
 #### Schemes: Serialized Control, Hardware, and Estimation Model Execution 
 
-A *Conman* "scheme" is a set of RTT components, and a pair of directed acyclic
-computational graphs on these components and their RTT ports: the **estimation
-graph** and the **control graph**. These graphs are meant to be computed
-topologically in realtime, so their respective vertices should either compute
-their results with bounded latency, or asynchronously in a separate thread.
+A *Conman* "scheme" models the data flow of and execution constraints on a set
+of RTT components connected by data flow ports. The scheme is an RTT component,
+itself, and when executed at runtime, it serially executes a subset of its peers
+according to their input and output data flow ports. 
 
-These two graphs may share vertices (RTT components), but are distinguished by
-their arcs (relevant RTT ports). 
+The execution schedule guarantees that all inputs to a given component are
+generated before said component, and each component is executed in a single
+update of the scheme. This schedule corresponds to a topological sort of the
+data flow graph. As such, cycles in data flow need to be explicitly broken
+through "latching." Latching the data connections from component *A* to
+component *B* means that the data that component *B* reads at cycle *(k)* will be
+the data that component *A* wrote at cycle *(k-1)*.
 
-Each scheme update involves the following stages, executed in a single thread:
+#### Scheme Internals
 
-1. Read from all hardware (sensors)
-2. Compute **estimation graph**
-3. Compute **control graph**
-4. Write to all hardware (actuators)
+Internally, the scheme is represented by three graphs:
 
-These stages are supported by the corresponding *Conman* RTT operations which
-**should execute quickly**:
+1. **Data Flow Graph** (DFG): An exact directed graph model of the data flow
+   between the scheme members. Each vertex represents an RTT task, and each
+   arc represets a set of data flow connections between two tasks.
+   This graph may be cyclic.
+2. **Execution Scheduling Graph** (ESG): The DFG with "latched" edges removed.
+   This graph is always acyclic, and is used to compute the execution order of
+   the scheme members via standard topological sort.
+3. **Runtime Conflict Graph** (RCG): An undirected graph of members where
+   adjacent members cannot be run simultaneously due to some resource conflict.
 
-1. **readHardware()**
-  * Reads lower-level hardware APIs or external interfaces (like ROS topics)
-2. **computeEstimation()**
-  * Computes state estimation based on RTT port inputs
-  * Writes estimated state to RTT ports modeled by edges in the **estimation graph**
-3. **computeControl()**
-  * Computes control command based on RTT port inputs
-  * Writes control command to RTT ports modeled by edges in the **control graph**
-4. **writeHardware()**
-  * Writes to lower-level hardware APIs or external interfaces
+#### Scheme Construction
+
+Components are added to and removed from a scheme procedurally. Each time a
+component is added, the scheme regnerates its model of the data flow and
+conflict relationships between all the scheme members.
+
+Currently, the scheme topology can only be changed when it is not in the *Running*
+state. In the future, the scheme model will be double-buffered so that a copy of
+it can be modified at runtime and then swapped in real-time with the active one.
+
+#### Edge Latching
+
+If the addition of a component to the scheme adds a cycle to the data flow
+graph, one of the connections in the cycle must be latched before the scheme can
+be executed in an unambiguous order. Latches are also set procedurally.
+
+#### Component Grouping
+
+Components in the scheme can be grouped together under alphanumeric labes (and
+groups can contain other groups). Groups are useful for starting and stopping
+multiple scheme components simultaneously at runtime. The manipulation of groups
+does not change the graph topology.
+
+#### Scheme Orchestration at Runtime
+
+Components can be started and stopped synchonously with the execution of the
+entire scheme at runtime. If numerous components are specified, they are started
+in topological order, and stopped in reverse-topological order.
+
+### Designing Components for Use in Conman
+
+Conman imposes a few constraints on the design of RTT components. For components
+to be used with Conman, they need the following properties:
+
+* The component should be compatible with the `SlaveActivity` execution pattern.
+  Each component added to a Scheme is assigned a `SlaveActivity` which enables
+  it to be executed in the Scheme's thread.
+* The component's `startHook()`, `updateHook()`, and `stopHook()` should be
+  realtime-safe and not block for long durations. Components should either
+  compute their results with bounded latency, or coordinate without locking with
+  a separate activity. 
+* Data ports should only be written to and read from in a component's
+  `startHook()` and `updateHook()`. The assumption of the sched
+
+#### Running Components at Different Rates
+
+The *Conman* scheme will run at a fixed rate (the rate at which you want to
+control the fastest hardware in the scheme), but you may want to have components
+which run slower than that. If this is the case, then they can still run at
+integral multiples of the loop rate.
+
+Each member of the scheme has a minimum execution period associated with it. By
+default, this minimum execution period is 0.0 seconds. A minimum execution
+period of 0.0 seconds means that the block will be executed as fast as the
+scheme, itself.
+
+#### Running Multiple Schemes
+
+**NOTE:** _Conman v1 is only concerned with schemes that do not interact_
+
+**BRAINSTORM** Since *Conman* schemes do not _own_ the RTT components involved
+in them, it's possible to run multiple schemes either in parallel or serialized.
+Of course there's nothing to worry about if the two schemes do not interact, but
+if they do, you can still run them in parallel...
 
 #### Common RTT Port Interfaces
 
@@ -88,29 +150,6 @@ port in cartesian-space should also provide the name of its origin frame.
 
 ##### Joint-Space Quantity
 ##### Cartesian-Space Quantity
-
-### Designing Components for Use in Conman
-
-#### Running Components at Different Rates
-
-The *Conman* scheme will run at a fixed rate (the rate at which you want to
-control the fastest hardware in the scheme), but you may want to have components
-which run slower than that. If this is the case, then they can still run at
-integral multiples of the loop rate.
-
-Each `conman::Block` has a minimum execution period associated with it. By
-default, this minimum execution period is 0.0 seconds. A minimum execution
-period of 0.0 seconds means that the block will be executed as fast as the
-scheme, itself.
-
-#### Running Multiple Schemes
-
-**NOTE:** _Conman v1 is only concerned with schemes that do not interact_
-
-**BRAINSTORM** Since *Conman* schemes do not _own_ the RTT components involved
-in them, it's possible to run multiple schemes either in parallel or serialized.
-Of course there's nothing to worry about if the two schemes do not interact, but
-if they do, you can still run them in parallel...
 
 ## Tutorials 
 
