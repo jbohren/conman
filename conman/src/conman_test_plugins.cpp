@@ -20,8 +20,6 @@ TestEffortController::TestEffortController(std::string const& name) :
   conman_hook_ = Hook::GetHook(this);
 
   if(conman_hook_) {
-    // Declare this component to be a control component
-    conman_hook_->setRole(Role::CONTROL);
     // Make the effort input port exclusive
     conman_hook_->setInputExclusivity("effort_in", Exclusivity::EXCLUSIVE);
   } else {

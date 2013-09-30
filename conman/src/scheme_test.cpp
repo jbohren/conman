@@ -49,7 +49,7 @@ int ORO_main(int argc, char** argv) {
     A.getPort("effort_out")->connectTo(B.getPort("effort_in"));
     A.getPort("effort_out")->connectTo(C.getPort("effort_in"));
     B.getPort("effort_out")->connectTo(C.getPort("effort_in"));
-    //C.getPort("effort_out")->connectTo(D.getPort("effort_in"));
+    C.getPort("effort_out")->connectTo(D.getPort("effort_in"));
 
     // Add the blocks
     scheme.addBlock(&C);
@@ -57,13 +57,37 @@ int ORO_main(int argc, char** argv) {
     scheme.addBlock(&B);
     scheme.addBlock(&A);
 
+    if(!scheme.executable()) {
+      RTT::log(RTT::Info) << "Scheme has cycles!" << RTT::endlog();
+    }
+
+    std::vector<std::vector<std::string> > cycles;
+    int n_cycles = scheme.getFlowCycles(cycles);
+
+    RTT::log(RTT::Info) << n_cycles << " Cycles: [ " <<std::endl;
+    for(int i=0; i<cycles.size(); i++) {
+        RTT::log(RTT::Info) << "[ ";
+      for(int v=0; v < cycles[i].size(); v++) {
+        RTT::log(RTT::Info) << cycles[i][v] <<" ";
+      }
+      RTT::log(RTT::Info) << "]"<<std::endl;
+    }
+    RTT::log(RTT::Info) << "]" << RTT::endlog();
+
+
+    // conman::graph::Cycles cycles = scheme.getCycles();
+    scheme.latchConnections(&C,&D,true);
+
+    if(scheme.executable()) {
+      RTT::log(RTT::Info) << "Scheme no longer has cycles!" << RTT::endlog();
+    }
+
     std::vector<std::string> group_bc;
     group_bc.push_back("B");
     group_bc.push_back("C");
-    scheme.createGroup("BC",group_bc);
+    scheme.setGroup("BC",group_bc);
 
     //RTT::Logger::log() << RTT::Logger::Info << "Control groups: " << RTT::endlog();
-
     //manager.connect("c0.control.out.left_arm.joint_effort","c1.control.in.left_arm.joint_effort",RTT::ConnPolicy());
 
     OCL::TaskBrowser task_browser(&scheme);

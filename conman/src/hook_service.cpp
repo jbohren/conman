@@ -14,16 +14,12 @@ ORO_SERVICE_NAMED_PLUGIN(conman::HookService, "conman_hook");
 HookService::HookService(RTT::TaskContext* owner) :
   RTT::Service("conman_hook",owner),
   // Property Initialization
-  role_(conman::Role::UNDEFINED),
   desired_min_exec_period_(0.0),
   exec_duration_smoothing_factor_(0.5)
 { 
   // Constants 
   this->provides("exclusivity")->addConstant("UNRESTRICTED",static_cast<int>(Exclusivity::UNRESTRICTED));
   this->provides("exclusivity")->addConstant("EXCLUSIVE",static_cast<int>(Exclusivity::EXCLUSIVE));
-  for(std::vector<Role::ID>::const_iterator it = Role::ids.begin(); it != Role::ids.end(); ++it) {
-    this->provides("role")->addConstant(Role::names.find(*it)->second,static_cast<int>(*it));
-  }
 
   // Conman Properties
   this->addProperty("desired_min_exec_period",desired_min_exec_period_)
@@ -53,8 +49,6 @@ HookService::HookService(RTT::TaskContext* owner) :
     .doc("The maximum observed duration needed to execute the owner's update hook.");
 
   // Conman Configuration Interface
-  this->addOperation("setRole",&HookService::setRole,this,RTT::ClientThread);
-  this->addOperation("getRole",&HookService::getRole,this,RTT::ClientThread);
   this->addOperation("setDesiredMinPeriod",&HookService::setDesiredMinPeriod,this,RTT::ClientThread);
   this->addOperation("getDesiredMinPeriod",&HookService::getDesiredMinPeriod,this,RTT::ClientThread);
   this->addOperation("setInputExclusivity",&HookService::setInputExclusivity,this,RTT::ClientThread);
@@ -69,23 +63,6 @@ HookService::HookService(RTT::TaskContext* owner) :
     .doc("Initialize period computation and execution statistics.");
   this->addOperation("update",&HookService::update,this,RTT::ClientThread)
     .doc("Execute the owner's updateHook and compute execution statistics");
-}
-
-bool HookService::setRole(
-    const conman::Role::ID role) 
-{
-  // You can't change the role once its been set
-  if(role_ != conman::Role::UNDEFINED) {
-    return false;
-  }
-  // Set the role
-  role_ = role;
-  return true;
-}
-
-conman::Role::ID HookService::getRole()
-{
-  return role_;
 }
 
 bool HookService::setDesiredMinPeriod(const RTT::Seconds period) 
