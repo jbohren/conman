@@ -221,7 +221,7 @@ void Scheme::printExecutionOrdering() const
   }
 
   RTT::log(RTT::Info) << "Scheme ordering: [ " <<
-    boost::algorithm::join(ordered_names, ",") << " ] " << RTT::endlog();
+    boost::algorithm::join(ordered_names, ", ") << " ] " << RTT::endlog();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -591,6 +591,9 @@ bool Scheme::latchConnections(
     return false;
   }
 
+  RTT::log(RTT::Debug) << "Latching connections between \"" << source->getName()
+    << "\" and \"" << sink->getName() << "\"" << RTT::endlog();
+
   // Get edge between the source and sink
   DataFlowEdgeDescriptor edge;
   bool edge_found;
@@ -757,7 +760,12 @@ int Scheme::maxLatchCount() const
       it != cycles.end();
       ++it)
   {
-    max_latch_count = std::max(max_latch_count, this->latchCount(*it));
+    std::vector<std::string> closed_path;
+    if(it->size() >= 2) {
+      closed_path.push_back((*it)[it->size()-1]);
+      closed_path.push_back((*it)[0]);
+    }
+    max_latch_count = std::max(max_latch_count, this->latchCount(*it) + this->latchCount(closed_path));
   }
 
   return max_latch_count;
@@ -765,46 +773,54 @@ int Scheme::maxLatchCount() const
 
 int Scheme::minLatchCount() const
 {
-  int min_latch_count = 0;
+  int min_latch_count = std::numeric_limits<int>::max();
 
   std::vector<std::vector<std::string> > cycles;
-  this->getFlowCycles(cycles);
+  if(this->getFlowCycles(cycles) == 0) {
+    return 0;
+  }
 
   for(std::vector<std::vector<std::string> >::const_iterator it = cycles.begin();
       it != cycles.end();
       ++it)
   {
-    min_latch_count = std::min(min_latch_count, this->latchCount(*it));
+    std::vector<std::string> closed_path;
+    if(it->size() >= 2) {
+      closed_path.push_back((*it)[it->size()-1]);
+      closed_path.push_back((*it)[0]);
+    }
+    min_latch_count = std::min(min_latch_count, this->latchCount(*it) + this->latchCount(closed_path));
   }
 
   return min_latch_count;
 }
 
 int Scheme::getFlowCycles(
-    std::vector<std::vector<std::string> > &cycles_strs)
+    std::vector<std::vector<std::string> > &cycle_strs)
   const
 {
   using namespace conman::graph;
 
+  cycle_strs.clear();
+
   std::vector<DataFlowPath> cycles;
   this->computeCycles(flow_graph_, cycles);
 
-  cycles_strs.clear();
-  for(std::vector<DataFlowPath>::const_iterator cycle_it=cycles.begin();
-      cycle_it!=cycles.end();
-      ++cycle_it)
-  {
-    std::vector<std::string> cycle_strs;
-    for(DataFlowPath::const_iterator vertex_it=cycle_it->begin();
-        vertex_it!=cycle_it->end();
-        ++vertex_it)
+  // Clear cycle component names
+  cycle_strs.resize(cycles.size());
+
+  // Copy the names of the components associated with the verticies for each
+  // cycle
+  for(size_t c=0; c < cycles.size(); c++) {
+    for(DataFlowPath::const_iterator v_it=cycles[c].begin();
+        v_it != cycles[c].end();
+        ++v_it) 
     {
-      cycle_strs.push_back(flow_graph_[*vertex_it]->block->getName());
+      cycle_strs[c].push_back(flow_graph_[*v_it]->block->getName());
     }
-    cycles_strs.push_back(cycle_strs);
   }
 
-  return cycles.size();
+  return cycle_strs.size();
 }
 
 int Scheme::computeCycles(
@@ -814,10 +830,8 @@ int Scheme::computeCycles(
 {
   using namespace conman::graph;
 
-  // Check if the graph has no cycles (this can be done very fast)
-  if(this->executable()) {
-    return 0;
-  }
+  // Clear the output variable
+  cycles.clear();
 
   // Construct a cycle visitor for extracting cycles
   FlowCycleVisitor visitor(cycles);
@@ -830,7 +844,8 @@ int Scheme::computeCycles(
     boost::tiernan_all_cycles( data_flow_graph, visitor);
 #endif
   } catch( std::runtime_error &ex) {
-    
+    RTT::log(RTT::Error) << "Could not compute cycles for data flow graph." <<
+      RTT::endlog();
     return 0;
   }
 
@@ -887,16 +902,18 @@ bool Scheme::executable() const
 }
 
 int Scheme::getExecutionCycles(
-    std::vector<std::vector<std::string> > &component_cycles)
+    std::vector<std::vector<std::string> > &cycle_strs)
   const
 {
   using namespace conman::graph;
-  std::vector<DataFlowPath> cycles;
 
+  cycle_strs.clear();
+
+  std::vector<DataFlowPath> cycles;
   this->computeCycles(exec_graph_, cycles);
 
   // Clear cycle component names
-  component_cycles.resize(cycles.size());
+  cycle_strs.resize(cycles.size());
 
   // Copy the names of the components associated with the verticies for each
   // cycle
@@ -905,11 +922,11 @@ int Scheme::getExecutionCycles(
         v_it != cycles[c].end();
         ++v_it) 
     {
-      component_cycles[c].push_back(exec_graph_[*v_it]->block->getName());
+      cycle_strs[c].push_back(exec_graph_[*v_it]->block->getName());
     }
   }
 
-  return component_cycles.size();
+  return cycle_strs.size();
 }
 
 bool Scheme::getExecutionOrder(std::vector<std::string> &order) const

@@ -341,7 +341,12 @@ TEST_F(DataFlowTest, LatchConnections) {
   ConnectBlocksCyclic();
   AddBlocks();
 
-  scheme.latchConnections("iob5","iob1",true);
+  EXPECT_EQ(4,scheme.getFlowCycles(flow_cycles));
+  EXPECT_THAT(flow_cycles, ElementsAre(c1,c2,c3,c4));
+  EXPECT_EQ(4,scheme.getExecutionCycles(exec_cycles));
+  EXPECT_THAT(exec_cycles, ElementsAre(c1,c2,c3,c4));
+
+  EXPECT_TRUE(scheme.latchConnections("iob5","iob1",true));
 
   EXPECT_FALSE(scheme.executable());
 
@@ -350,8 +355,10 @@ TEST_F(DataFlowTest, LatchConnections) {
   EXPECT_EQ(1,scheme.getExecutionCycles(exec_cycles));
   EXPECT_THAT(exec_cycles, ElementsAre(c4));
 
-  scheme.latchConnections("iob5","iob2",true);
+  EXPECT_TRUE(scheme.latchConnections("iob5","iob2",true));
 
+  EXPECT_EQ(4,scheme.getFlowCycles(flow_cycles));
+  EXPECT_THAT(flow_cycles, ElementsAre(c1,c2,c3,c4));
   EXPECT_EQ(0,scheme.getExecutionCycles(exec_cycles));
   EXPECT_TRUE(scheme.executable());
 
@@ -362,11 +369,45 @@ TEST_F(DataFlowTest, LatchConnections) {
   EXPECT_THAT(execution_order, ElementsAre("iob1", "iob2", "iob3", "iob4", "iob5"));
 }
 
+TEST_F(DataFlowTest, Latchanalysis) {
+  std::vector<std::vector<std::string> > flow_cycles, exec_cycles;
+
+  // Connect blocks with cycles
+  ConnectBlocksAcyclic();
+  ConnectBlocksCyclic();
+  AddBlocks();
+
+  EXPECT_EQ(4,scheme.getFlowCycles(flow_cycles));
+  EXPECT_EQ(4,scheme.getExecutionCycles(exec_cycles));
+
+  scheme.latchConnections("iob5","iob1",true);
+  scheme.latchConnections("iob5","iob2",true);
+
+  EXPECT_EQ(4,scheme.getFlowCycles(flow_cycles));
+  EXPECT_EQ(0,scheme.getExecutionCycles(exec_cycles));
+
+  std::vector<std::string> path_query1, path_query2;
+  path_query1 += "iob1", "iob2", "iob3", "iob4", "iob5";
+  EXPECT_EQ(0,scheme.latchCount(path_query1));
+  path_query2 += "iob5","iob1";
+  EXPECT_EQ(1,scheme.latchCount(path_query2));
+
+  EXPECT_EQ(4,scheme.getFlowCycles(flow_cycles));
+  EXPECT_EQ(0,scheme.getExecutionCycles(exec_cycles));
+
+  EXPECT_EQ(1,scheme.maxLatchCount());
+  EXPECT_EQ(1,scheme.minLatchCount());
+}
+
 int main(int argc, char** argv) {
   testing::InitGoogleTest(&argc, argv);
 
   // Initialize Orocos
   __os_init(argc, argv);
+
+  RTT::Logger::log().setStdStream(std::cerr);
+  RTT::Logger::log().mayLogStdOut(true);
+  //RTT::Logger::log().setLogLevel(RTT::Logger::Info);
 
   // Import conman plugin
   RTT::ComponentLoader::Instance()->import("conman", "" );

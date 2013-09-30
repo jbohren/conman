@@ -224,16 +224,9 @@ namespace conman
     /** \brief Get the maximum number of latches in any cycle in the DFG. */
     int maxLatchCount() const;
 
-    /** \brief Get the maximum number of latches in all cycles which include a
-     * given component in the DFG. */
-    int maxLatchCount(const std::string &name) const;
-
-    /** \brief Get the minimum number of latches in any cycle in the DFG. */
+    /** \brief Get the minimum number of latches in any cycle in the DFG. If the
+     * DFG has no cycles, this returns 0.*/
     int minLatchCount() const;
-
-    /** \brief Get the minimum number of latches in all cycles which include a
-     * given component in the DFG. */
-    int minLatchCount(const std::string &name);
 
     //\}
 
