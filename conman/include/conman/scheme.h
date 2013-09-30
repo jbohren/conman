@@ -240,7 +240,7 @@ namespace conman
      * * Compute all cyles in the pending ESG (useful for debugging)
      * 
      * Graph cycles prevent the scheduler from determining where to begin and
-     * end each computation. Cycles can be broken by adding lateches at the
+     * end each computation. Cycles can be broken by adding latches at the
      * appropriate points, but different numbers of latching between signal
      * paths can cause problems when fusing such data.
      */
