@@ -1,6 +1,8 @@
 Conman
 ======
 
+[![Build Status](https://travis-ci.org/jbohren/conman.png?branch=master)](https://travis-ci.org/jbohren/conman)
+
 ## Introduction
 
 *Conman* is a controller and state estimator manager built on top of the
