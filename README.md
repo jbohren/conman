@@ -5,7 +5,10 @@ Conman
 
 *Conman* is a controller and state estimator manager built on top of the
 [Oroocos Toolchain](http://www.orocos.org) and designed to create a common
-platform for sharing robot controllers and state estimators.
+platform for sharing robot controllers and state estimators. Conman enforces
+additional constraints on when and how components can be running in order to
+prevent errors and improve robustness when switching components in and out
+of the control loop at runtime.
 
 ### Audience
 
@@ -130,16 +133,6 @@ For example, a port in joint-space should provide both the number of degrees of
 freedom of the joint group, as well as the ordered list of joint names, and a
 port in cartesian-space should also provide the name of its origin frame.
 
-#### Running Multiple Schemes
-
-**NOTE:** _Conman v1 is only concerned with schemes that do not interact_
-
-**BRAINSTORM** Since *Conman* schemes do not _own_ the RTT components involved
-in them, it's possible to run multiple schemes either in parallel or serialized.
-Of course there's nothing to worry about if the two schemes do not interact, but
-if they do, you can still run them in parallel...
-
-
 ##### Joint-Space Quantity
 ##### Cartesian-Space Quantity
 
@@ -186,3 +179,14 @@ if they do, you can still run them in parallel...
 ### Visual Feedback for Robotic Manipulator Control
 
 **TBD**
+
+## Future Work
+
+### Running Multiple Schemes
+
+Since *Conman* schemes do not _own_ the RTT components involved
+in them, it's possible to run multiple schemes either in parallel or serialized.
+Of course there's nothing to worry about if the two schemes do not interact, but
+if they do, you can still run them in parallel...
+
+

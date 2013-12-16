@@ -58,10 +58,10 @@ install(DIRECTORY include/${PROJECT_NAME}/
 
 ## Add gtest based cpp test target and link libraries
 if (CATKIN_ENABLE_TESTING)
-
   find_library(GMOCK_LIBRARY NAMES gmock)
 
   catkin_add_gtest(test_conman tests/test_conman.cpp)
-  target_link_libraries(test_conman conman ${catkin_LIBRARIES} ${GMOCK_LIBRARY})
+  target_link_libraries(test_conman 
+    conman ${catkin_LIBRARIES} ${GMOCK_LIBRARY} ${USE_OROCOS_LIBRARIES})
 endif()
 
