@@ -34,7 +34,10 @@ orocos_component(conman_test_components
   src/conman_test_plugins.cpp)
 
 orocos_executable(scheme_test src/scheme_test.cpp)
-target_link_libraries(scheme_test conman conman_test_components)
+target_link_libraries(scheme_test 
+  conman 
+  conman_test_components 
+  ${USE_OROCOS_LIBRARIES})
 
 orocos_generate_package()
 
