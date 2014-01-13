@@ -9,4 +9,5 @@
 
 using namespace conman;
 
+ORO_LIST_COMPONENT_TYPE(conman::Scheme)
 ORO_CREATE_COMPONENT_LIBRARY()

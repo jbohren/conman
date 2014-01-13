@@ -69,6 +69,13 @@ Scheme::Scheme(std::string name)
       &Scheme::setEnabledBlocks, this, 
       RTT::OwnThread)
     .doc("Set the list running blocks, any block not on the list will be disabled.");
+
+  this->addProperty("last_exec_period",last_exec_period_)
+    .doc("The last period between two consecutive executions.");
+  this->addProperty("min_exec_period",min_exec_period_)
+    .doc("The minimum observed execution period between two consecutive executions.");
+  this->addProperty("max_exec_period",max_exec_period_)
+    .doc("The maximum observed execution period between two consecutive executions.");
 }
 
 
@@ -148,14 +155,16 @@ bool Scheme::addBlock(RTT::TaskContext *new_block)
   }
 
   // Make sure the block has the conman hook service
-  if(!conman::Hook::HasHook(new_block)) {
+  if(!conman::Hook::GetHook(new_block)) {
     RTT::log(RTT::Error) << "Requested block to add does not have the conman"
-      " hook service." << RTT::endlog();
+      " hook service and it could not be loaded." << RTT::endlog();
     return false;
   }
 
-  // Try to add this block as a peer
-  if(!this->connectPeers(new_block)) {
+  // Try to add this block as a peer if it isn't already a peer
+  if(!(this->getPeer(new_block->getName()) == new_block) 
+     && !this->connectPeers(new_block)) 
+  {
     RTT::log() << RTT::Logger::Error << "Could not connect peer: " <<
       new_block->getName() << RTT::endlog();
   }
@@ -236,7 +245,7 @@ bool Scheme::removeBlock(const std::string &block_name)
 
     RTT::log(RTT::Error)
       << "Requested block to remove named \"" << block_name << "\" was not a"
-      " peer" "of this Scheme." << std::endl << "  Available blocks include:"
+      " peer of this Scheme." << std::endl << "  Available blocks include:"
       << std::endl;
 
     for(RTT::TaskContext::PeerList::iterator it = peers.begin();
@@ -1611,9 +1620,13 @@ void Scheme::updateHook()
     period = RTT::nsecs_to_Seconds(RTT::os::TimeService::Instance()->getNSecs(last_update_time_));
   
   // Store update time
-  // NOTE: We maintain a single update time for all blocks so that any blocks
-  // running at the same rate are executed in the same update() cycle
   last_update_time_ = now;
+
+  // Compute statistics describing how often update is being called
+  last_exec_period_ = time - last_exec_time_;
+  last_exec_time_ = time;
+  min_exec_period_ = std::min(min_exec_period_,last_exec_period_);
+  max_exec_period_ = std::max(max_exec_period_,last_exec_period_);
 
   // Execute the blocks in the appropriate order
   for(ExecutionOrdering::iterator block_it = exec_ordering_.begin();
@@ -1628,6 +1641,7 @@ void Scheme::updateHook()
 
     // Check if the task is running 
     if(block_state == RTT::TaskContext::Running) { 
+
       // Update the task
       if(!block_vertex->hook->update(time)) {
         // Signal an error

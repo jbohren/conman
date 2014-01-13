@@ -8,13 +8,6 @@ include(${OROCOS-RTT_USE_FILE_PATH}/UseOROCOS-RTT.cmake )
 
 set(CMAKE_BUILD_TYPE Debug)
 
-catkin_package(
-  INCLUDE_DIRS include
-  #LIBRARIES conman
-  #CATKIN_DEPENDS other_catkin_pkg
-  DEPENDS rtt
-)
-
 ###########
 ## Build ##
 ###########
@@ -25,21 +18,26 @@ orocos_use_package( ocl-deployment )
 orocos_use_package( ocl-logging )
 
 add_definitions(-DRTT_COMPONENT)
-orocos_plugin(conman 
-  src/conman.cpp 
-  src/scheme.cpp 
+orocos_plugin(conman_hook
   src/hook_service.cpp )
+
+orocos_component(conman_scheme
+  src/conman.cpp 
+  src/scheme.cpp )
 
 orocos_component(conman_test_components
   src/conman_test_plugins.cpp)
 
 orocos_executable(scheme_test src/scheme_test.cpp)
 target_link_libraries(scheme_test 
-  conman 
+  conman_hook
+  conman_scheme
   conman_test_components 
   ${USE_OROCOS_LIBRARIES})
 
-orocos_generate_package()
+orocos_generate_package(
+  INCLUDE_DIRS include
+  DEPENDS rtt)
 
 #############
 ## Install ##

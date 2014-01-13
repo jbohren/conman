@@ -476,6 +476,24 @@ namespace conman
 
     //! Print out the current execution ordering
     void printExecutionOrdering() const;
+
+    //! Time state
+    //TODO: use nsecs instead?
+    RTT::Seconds
+      last_exec_time_,
+      last_exec_period_,
+      min_exec_period_,
+      max_exec_period_;
+
+    //! Execution statistics
+    //TODO: use nsecs instead?
+    RTT::Seconds
+      last_exec_duration_,
+      min_exec_duration_,
+      max_exec_duration_,
+      smooth_exec_duration_;
+
+    size_t n_running_blocks_;
   };
 }
 
