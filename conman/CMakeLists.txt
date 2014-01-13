@@ -60,6 +60,6 @@ if (CATKIN_ENABLE_TESTING)
 
   catkin_add_gtest(test_conman tests/test_conman.cpp)
   target_link_libraries(test_conman 
-    conman ${catkin_LIBRARIES} ${GMOCK_LIBRARY} ${USE_OROCOS_LIBRARIES})
+    conman_hook conman_scheme ${catkin_LIBRARIES} ${GMOCK_LIBRARY} ${USE_OROCOS_LIBRARIES})
 endif()
 
