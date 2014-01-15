@@ -17,6 +17,7 @@
 #include <rtt_rosservice/rosservice.h>
 
 #include <conman/conman.h>
+#include <conman/scheme.h>
 
 // ROS srv types
 #include <controller_manager_msgs/ListControllerTypes.h>
@@ -47,6 +48,9 @@ namespace conman_ros {
     bool reloadControllerLibrariesCB( controller_manager_msgs::ReloadControllerLibraries::Request &req, controller_manager_msgs::ReloadControllerLibraries::Response& resp);
     bool switchControllerCB(          controller_manager_msgs::SwitchController::Request &req,          controller_manager_msgs::SwitchController::Response& resp);
     bool unloadControllerCB(          controller_manager_msgs::UnloadController::Request &req,          controller_manager_msgs::UnloadController::Response& resp);
+
+  private:
+    conman::Scheme *scheme;
   };
 }
 

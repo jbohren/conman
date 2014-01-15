@@ -57,6 +57,7 @@
       <plugin_depend>conman</plugin_depend>
       <plugin_depend>rtt_roscomm</plugin_depend>
       <plugin_depend>rtt_actionlib</plugin_depend>
+      <plugin_depend>rtt_controller_manager_msgs</plugin_depend>
     </rtt_ros>
     <!-- You can specify that this package is a metapackage here: -->
     <!-- <metapackage/> -->

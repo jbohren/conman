@@ -22,7 +22,6 @@ catkin_package()
 
 orocos_use_package(conman)
 orocos_use_package(rtt_roscomm)
-orocos_use_package(rtt_controller_manager_msgs)
 
 include_directories(
   ${catkin_INCLUDE_DIRS}
@@ -31,6 +30,7 @@ link_directories(
   ${catkin_LIBRARY_DIRS}
   ${USE_OROCOS_LIBRARY_DIRS})
 
+add_definitions(-DRTT_COMPONENT)
 orocos_service(${PROJECT_NAME}
   src/ros_interface_service.cpp
   )
