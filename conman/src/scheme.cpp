@@ -1214,8 +1214,25 @@ bool Scheme::regenerateModel()
     DataFlowVertex::Ptr source_vertex = vert_it->second;
 
     // Get the output ports for a given taskcontext
-    const std::vector<RTT::base::PortInterface*> &ports =
+    std::vector<RTT::base::PortInterface*> ports;
+
+    const std::vector<RTT::base::PortInterface*> &root_ports =
       source_vertex->block->ports()->getPorts();
+
+    ports.insert(ports.end(),root_ports.begin(), root_ports.end());
+
+    // Add the output ports for each of its services
+    // TODO: FIXME: Currently this only goes one level deep, really, it should be recursive
+    RTT::Service::ProviderNames provider_names = source_vertex->block->provides()->getProviderNames();
+    RTT::Service::ProviderNames::const_iterator provider_name_it;
+    for(provider_name_it = provider_names.begin();
+        provider_name_it != provider_names.end();
+        ++provider_name_it)
+    {
+      const std::vector<RTT::base::PortInterface*> &service_ports =
+        source_vertex->block->provides(*provider_name_it)->getPorts();
+      ports.insert(ports.end(),service_ports.begin(), service_ports.end());
+    }
 
     // Create graph arcs for each port between blocks
     std::vector<RTT::base::PortInterface*>::const_iterator port_it;
@@ -1223,6 +1240,8 @@ bool Scheme::regenerateModel()
     {
       // Get the port, for readability
       const RTT::base::PortInterface *port = *port_it;
+
+      RTT::log(RTT::Debug) << "Examining port: "<<source_vertex->block->getName() << " . " <<port->getName() << RTT::endlog();
 
       // Only start from output ports
       if(!dynamic_cast<const RTT::base::OutputPortInterface*>(port)) {
@@ -1245,8 +1264,9 @@ bool Scheme::regenerateModel()
           *sink_port = connection->getOutputEndPoint()->getPort();
 
         // Make sure the ports and components are not null
-        if( source_port == NULL && source_port->getInterface() == NULL
-            && sink_port == NULL && sink_port->getInterface() == NULL) 
+        // Make sure they have DFIs (some dont, like streamed ports)
+        if( source_port == NULL || source_port->getInterface() == NULL
+            || sink_port == NULL || sink_port->getInterface() == NULL) 
         {
           continue;
         }
@@ -1572,7 +1592,7 @@ bool Scheme::enableBlocks(
       ++it)
   {
     // Try to start the block
-    success &= this->enableBlock(*it,force);
+    success = success && this->enableBlock(*it,force);
 
     // Break on failure if strict
     if(!success && strict) { return false; }
