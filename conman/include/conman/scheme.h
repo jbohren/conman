@@ -89,6 +89,9 @@ namespace conman
     
     //! Check if a group exists
     bool hasGroup(const std::string &group_name) const;
+    
+    //! Check if a group exists
+    std::vector<std::string> getGroups() const;
 
     //! Create an initially empty group
     bool addGroup( const std::string &group_name);
@@ -123,6 +126,10 @@ namespace conman
     bool getGroupMembers(
         const std::string &group_name,
         std::vector<std::string> &members) const;
+
+    //! Get the blocks in a given group
+    std::vector<std::string> getGroupMembers(
+        const std::string &group_name) const;
 
     //\}
     

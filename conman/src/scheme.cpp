@@ -33,42 +33,56 @@ using namespace conman;
 Scheme::Scheme(std::string name) 
  : RTT::TaskContext(name)
 {
-  // Add operations
-  this->addOperation("addBlock", 
-      (bool (Scheme::*)(const std::string&))&Scheme::addBlock, this, 
-      RTT::OwnThread)
+  // Modifying blocks in the scheme
+  this->addOperation("hasBlock", &Scheme::hasBlock, this, RTT::OwnThread)
+    .doc("Check if a conman block is in this scheme by name.");
+  this->addOperation("getBlocks", (std::vector<std::string> (Scheme::*)(void) const)&Scheme::getBlocks, this, RTT::OwnThread)
+    .doc("Get the list of all blocks.");
+  this->addOperation("addBlock", (bool (Scheme::*)(const std::string&))&Scheme::addBlock, this, RTT::OwnThread)
     .doc("Add a conman block into this scheme.");
-  
-  this->addOperation("removeBlock", 
-      (bool (Scheme::*)(const std::string&))&Scheme::removeBlock, this, 
-      RTT::OwnThread)
+  this->addOperation("removeBlock", (bool (Scheme::*)(const std::string&))&Scheme::removeBlock, this, RTT::OwnThread)
     .doc("Remove a conman block from this scheme.");
 
-  this->addOperation("getBlocks", 
-      (std::vector<std::string> (Scheme::*)(void) const)&Scheme::getBlocks, this, 
-      RTT::OwnThread)
-    .doc("Get the list of all blocks.");
+  // Group management
+  this->addOperation("hasGroup", &Scheme::hasGroup, this, RTT::OwnThread)
+    .doc("Check if a group is in this scheme by name.");
+  this->addOperation("getGroups", &Scheme::getGroups, this, RTT::OwnThread)
+    .doc("Get all groups in this scheme by name.");
+  this->addOperation("addGroup", &Scheme::addGroup, this, RTT::OwnThread)
+    .doc("Add a group to this scheme by name.");
+  this->addOperation("addToGroup", &Scheme::addToGroup, this, RTT::OwnThread)
+    .doc("Add a block to a group by name.");
+  this->addOperation("removeFromGroup", &Scheme::removeFromGroup, this, RTT::OwnThread)
+    .doc("Remove a block from a group by name.");
+  this->addOperation("emptyGroup", &Scheme::emptyGroup, this, RTT::OwnThread)
+    .doc("Remove all blocks from a group by name.");
+  this->addOperation("removeGroup", &Scheme::removeGroup, this, RTT::OwnThread)
+    .doc("Remove a group by name.");
+  this->addOperation("getGroupMembers", (std::vector<std::string> (Scheme::*)(const std::string &) const)&Scheme::getGroupMembers, this, RTT::OwnThread)
+    .doc("Get the members of a group.");
+
+  // Latch management
+  this->addOperation("latchConnections", (bool (Scheme::*)(const std::string&, const std::string&, const bool))&Scheme::latchConnections, this, RTT::OwnThread)
+    .doc("Latch all the connections between two components.");
+  this->addOperation("latchInputs", (bool (Scheme::*)(const std::string&, const bool))&Scheme::latchInputs, this, RTT::OwnThread)
+    .doc("Latch all the inputs to a given component.");
+  this->addOperation("latchOutputs", (bool (Scheme::*)(const std::string&, const bool))&Scheme::latchOutputs, this, RTT::OwnThread)
+    .doc("Latch all the outputs to a given component.");
+
+  // Execution introspection
+  this->addOperation("executable", &Scheme::executable, this, RTT::OwnThread)
+    .doc("Returns true if the graph can be executed with the current latches.");
 
   // Block runtime management
-  this->addOperation("enableBlock", 
-      (bool (Scheme::*)(const std::string&, bool))&Scheme::enableBlock, this, 
-      RTT::OwnThread)
+  this->addOperation("enableBlock", (bool (Scheme::*)(const std::string&, const bool))&Scheme::enableBlock, this, RTT::OwnThread)
     .doc("Enable a block in this scheme.");
-
-  this->addOperation("disableBlock", 
-      (bool (Scheme::*)(const std::string&))&Scheme::disableBlock, this, 
-      RTT::OwnThread)
+  this->addOperation("disableBlock", (bool (Scheme::*)(const std::string&))&Scheme::disableBlock, this, RTT::OwnThread)
     .doc("Disable a block in this scheme.");
-
-  this->addOperation("switchBlocks", 
-      &Scheme::switchBlocks, this, 
-      RTT::OwnThread)
+  this->addOperation("switchBlocks", &Scheme::switchBlocks, this, RTT::OwnThread)
     .doc("Simultaneousy enable and disable a list of blocks, any block not in either list will remain in its current state.");
 
-  this->addOperation("setEnabledBlocks", 
-      &Scheme::setEnabledBlocks, this, 
-      RTT::OwnThread)
-    .doc("Set the list running blocks, any block not on the list will be disabled.");
+  this->addOperation("setEnabledBlocks", &Scheme::setEnabledBlocks, this, RTT::OwnThread)
+    .doc("Set the list of running blocks, any block not on the list will be disabled.");
 
   this->addProperty("last_exec_period",last_exec_period_)
     .doc("The last period between two consecutive executions.");
@@ -337,6 +351,20 @@ bool Scheme::hasGroup(const std::string &group_name) const
   return block_groups_.find(group_name) != block_groups_.end();
 }
 
+std::vector<std::string> Scheme::getGroups() const
+{
+  std::vector<std::string> group_names;
+
+  for(conman::GroupMap::const_iterator it = block_groups_.begin();
+      it != block_groups_.end();
+      ++it)
+  {
+    group_names.push_back(it->first);
+  }
+
+  return group_names;
+}
+
 bool Scheme::addGroup(const std::string &group_name) 
 { 
   // Check if the group name collides with a real block
@@ -486,6 +514,18 @@ bool Scheme::removeGroup( const std::string &group_name)
   return true; 
 }
 
+std::vector<std::string> Scheme::getGroupMembers(
+    const std::string &group_name) 
+  const
+{
+  std::vector<std::string> block_names;
+
+  this->getGroupMembers(group_name, block_names);
+
+  return block_names;
+}
+
+
 bool Scheme::getGroupMembers(
     const std::string &group_name,
     std::vector<std::string> &members) 
@@ -566,7 +606,7 @@ bool Scheme::latchConnections(
 bool Scheme::latchConnections(
     const std::vector<std::string> &source_names,
     const std::vector<std::string> &sink_names,
-    bool latch)
+    const bool latch)
 {
   // Latch connections between all sources and sinks
   bool success = true;
@@ -1500,6 +1540,11 @@ bool Scheme::enableBlocks(
         it != block_names.end();
         ++it)
     {
+      // Make sure the block is in the scheme
+      if(!this->hasBlock(*it)) {
+        continue;
+      }
+
       // Get the blocks that conflict with this block
       ConflictAdjacencyIterator conflict_it, conflict_end;
 
@@ -1581,18 +1626,21 @@ bool Scheme::switchBlocks(
     const bool force)
 {
   // First disable blocks, so that "force" can be used appropriately when
-  // enabling blocks. Also note that we used & instead of && in order to prevent
-  // short-circuiting.
-  return disableBlocks(disable_block_names, strict) & 
-    enableBlocks(enable_block_names, strict, force);
+  // enabling blocks.
+  bool disable_success = this->disableBlocks(strict);
+  bool enable_success = this->enableBlocks(enable_block_names, strict, force);
+
+  return disable_success && enable_success;
 }
 
 bool Scheme::setEnabledBlocks(
     const std::vector<std::string> &enabled_block_names,
     const bool strict)
 {
-  return this->disableBlocks(strict) & 
-    this->enableBlocks(enabled_block_names, strict, false);
+  bool disable_success = this->disableBlocks(strict);
+  bool enable_success = this->enableBlocks(enabled_block_names, strict, false);
+
+  return disable_success && enable_success;
 }
 
 ///////////////////////////////////////////////////////////////////////////////

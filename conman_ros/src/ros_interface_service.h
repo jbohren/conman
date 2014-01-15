@@ -51,6 +51,10 @@ namespace conman_ros {
 
   private:
     conman::Scheme *scheme;
+
+    RTT::OperationCaller<std::vector<std::string>(void)> getBlocks;
+    RTT::OperationCaller<std::vector<std::string>(void)> getGroups;
+    RTT::OperationCaller<bool(std::vector<std::string>&, std::vector<std::string>&, bool, bool)> switchBlocks;
   };
 }
 
