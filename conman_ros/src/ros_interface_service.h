@@ -14,17 +14,39 @@
 #include <rtt/Logger.hpp>
 #include <rtt/plugin/PluginLoader.hpp>
 
+#include <rtt_rosservice/rosservice.h>
+
 #include <conman/conman.h>
+
+// ROS srv types
+#include <controller_manager_msgs/ListControllerTypes.h>
+#include <controller_manager_msgs/ListControllers.h>
+#include <controller_manager_msgs/LoadController.h>
+#include <controller_manager_msgs/ReloadControllerLibraries.h>
+#include <controller_manager_msgs/SwitchController.h>
+#include <controller_manager_msgs/UnloadController.h>
 
 namespace conman_ros {
   
   //! This service provides a ROS interface to control a Conman Scheme
+  /**
+   *  It gets loaded onto a conman Scheme at runtime, and provides ROS
+   *  service calls compatible with the ros_control controller_manager.
+   */
   class ROSInterfaceService : public RTT::Service 
   {
   public:
     ROSInterfaceService(RTT::TaskContext* owner);
 
-    boost::shared_ptr<RTT::Service> rosservice_;
+    boost::shared_ptr<RTT::Service> roscontrol;
+    boost::shared_ptr<rtt_rosservice::ROSService> rosservice;
+
+    bool listControllerTypesCB(       controller_manager_msgs::ListControllerTypes::Request &req,       controller_manager_msgs::ListControllerTypes::Response& resp);
+    bool listControllersCB(           controller_manager_msgs::ListControllers::Request &req,           controller_manager_msgs::ListControllers::Response& resp);
+    bool loadControllerCB(            controller_manager_msgs::LoadController::Request &req,            controller_manager_msgs::LoadController::Response& resp);
+    bool reloadControllerLibrariesCB( controller_manager_msgs::ReloadControllerLibraries::Request &req, controller_manager_msgs::ReloadControllerLibraries::Response& resp);
+    bool switchControllerCB(          controller_manager_msgs::SwitchController::Request &req,          controller_manager_msgs::SwitchController::Response& resp);
+    bool unloadControllerCB(          controller_manager_msgs::UnloadController::Request &req,          controller_manager_msgs::UnloadController::Response& resp);
   };
 }
 
