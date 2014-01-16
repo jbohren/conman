@@ -1196,6 +1196,27 @@ bool Scheme::removeBlockFromGraph(conman::graph::DataFlowVertex::Ptr vertex)
   return this->regenerateModel();
 }
 
+void get_all_ports(
+    boost::shared_ptr<RTT::Service> service,
+    std::vector<RTT::base::PortInterface*> &ports)
+{
+  // Get ports on this service
+  const std::vector<RTT::base::PortInterface*> &service_ports = service->getPorts();
+  ports.insert(ports.end(), service_ports.begin(), service_ports.end());
+
+  // Get the sub-services
+  RTT::Service::ProviderNames provider_names = service->getProviderNames();
+
+  RTT::Service::ProviderNames::const_iterator provider_name_it;
+  for(provider_name_it = provider_names.begin();
+      provider_name_it != provider_names.end();
+      ++provider_name_it)
+  {
+    // Get ports on sub-service
+    get_all_ports(service->provides(*provider_name_it), ports);
+  }
+}
+
 bool Scheme::regenerateModel()
 {
   using namespace conman::graph;
@@ -1215,24 +1236,7 @@ bool Scheme::regenerateModel()
 
     // Get the output ports for a given taskcontext
     std::vector<RTT::base::PortInterface*> ports;
-
-    const std::vector<RTT::base::PortInterface*> &root_ports =
-      source_vertex->block->ports()->getPorts();
-
-    ports.insert(ports.end(),root_ports.begin(), root_ports.end());
-
-    // Add the output ports for each of its services
-    // TODO: FIXME: Currently this only goes one level deep, really, it should be recursive
-    RTT::Service::ProviderNames provider_names = source_vertex->block->provides()->getProviderNames();
-    RTT::Service::ProviderNames::const_iterator provider_name_it;
-    for(provider_name_it = provider_names.begin();
-        provider_name_it != provider_names.end();
-        ++provider_name_it)
-    {
-      const std::vector<RTT::base::PortInterface*> &service_ports =
-        source_vertex->block->provides(*provider_name_it)->getPorts();
-      ports.insert(ports.end(),service_ports.begin(), service_ports.end());
-    }
+    get_all_ports(source_vertex->block->provides(), ports);
 
     // Create graph arcs for each port between blocks
     std::vector<RTT::base::PortInterface*>::const_iterator port_it;
