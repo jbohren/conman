@@ -1030,55 +1030,89 @@ void Scheme::computeConflicts(conman::graph::DataFlowVertex::Ptr seed_vertex)
 {
   using namespace conman::graph;
 
+  RTT::Logger::In in("Scheme::computeConflicts");
+
+  // The seed block is the block whose sinks we're inspecting for conflicts
+  // i.e. the seed block has output ports, this gets all of the input ports
+  // that those output ports connect to, and determines if there are other
+  // output ports which are connected to them
   RTT::TaskContext *& seed_block = seed_vertex->block;
+
+  RTT::log(RTT::Debug) << "Computing conflicts for " << seed_block->getName() << "..." << RTT::endlog();
 
   // Add this block to the conflict graph / map if it isn't already in it
   if(conflict_vertex_map_.find(seed_block) == conflict_vertex_map_.end()) {
     conflict_vertex_map_[seed_block] = boost::add_vertex(seed_vertex,conflict_graph_);
   }
 
-  // Iterator for out edges
+  // Iterator for out edges (from the seed block)
   DataFlowOutEdgeIterator out_edge_it, out_edge_end;
-  // Iterator for in edges
-  DataFlowInEdgeIterator in_edge_it, in_edge_end;
 
-  // Iterate over each data flow edge from the source vertex
+  // Iterate over each data flow edge from the seed vertex
   for(boost::tie(out_edge_it, out_edge_end) = boost::out_edges(flow_vertex_map_[seed_block], flow_graph_);
       out_edge_it != out_edge_end; 
       ++out_edge_it) 
   {
-    // Get a reference to the edge properties for convenience
+    // Get a reference to the output edge properties for convenience
     const DataFlowEdge::Ptr out_edge = flow_graph_[*out_edge_it];
 
-    // Get a reference to the vertex properties of the sink for convenience
+    // Get a reference to the vertex properties of the sink block for convenience
     const DataFlowVertexDescriptor sink_vertex_descriptor = boost::target(*out_edge_it, flow_graph_);
     const DataFlowVertex::Ptr sink_vertex = flow_graph_[sink_vertex_descriptor];
 
-    // Iterate over connections between these two components
+    RTT::log(RTT::Debug) << " -- Examining ports " << seed_block->getName() << " -> " << sink_vertex->block->getName() << "..." << RTT::endlog();
+
+    // Iterate over connections between the seed block and this sink block (each pair of output/input ports)
     for(std::vector<DataFlowEdge::Connection>::const_iterator out_conn_it = out_edge->connections.begin();
         out_conn_it != out_edge->connections.end();
         ++out_conn_it)
     {
-      // Get the exclusivity of this connection
+      RTT::log(RTT::Debug) << " -- -- Examining connection " 
+        << seed_block->getName()<<"."<< out_conn_it->source_port->getName() 
+        << " -> "
+        << sink_vertex->block->getName()<<"."<<out_conn_it->sink_port->getName() << "..."
+        << RTT::endlog();
+
+      // Get the exclusivity of this connection from the seed to this sink
+      // (the sink port of the out connection is the input that it is connected to)
       const conman::Exclusivity::Mode mode = sink_vertex->hook->getInputExclusivity(out_conn_it->sink_port->getName());
       // Only exclusive ports can induce conflicts
       if(mode != conman::Exclusivity::EXCLUSIVE) {
         continue;
       }
 
-      // Iterate over all inputs to the sink vertex
+      RTT::log(RTT::Debug) << " -- -- This connection is EXCLUSIVE " << RTT::endlog(); 
+
+      // Iterator for edges targeting the sink vertex
+      DataFlowInEdgeIterator in_edge_it, in_edge_end;
+
+      // Iterate over all input edges to the sink vertex
       for(boost::tie(in_edge_it, in_edge_end) = boost::in_edges(sink_vertex_descriptor, flow_graph_);
           in_edge_it != in_edge_end;
           ++in_edge_it) 
       {
         // Get a reference to the edge properties for convenience
         const DataFlowEdge::Ptr in_edge = flow_graph_[*in_edge_it];
+        const DataFlowVertex::Ptr source_vertex = flow_graph_[boost::source(*in_edge_it,flow_graph_)];
 
-        // Iterate over the connections on this in input edge
+        RTT::log(RTT::Debug) << " -- -- -- Examining ports " << source_vertex->block->getName() << " -> " << sink_vertex->block->getName() << "..." << RTT::endlog();
+
+        // Iterate over the connections (port pairs) on this in input edge
         for(std::vector<DataFlowEdge::Connection>::const_iterator in_conn_it = in_edge->connections.begin();
             in_conn_it != in_edge->connections.end();
             ++in_conn_it)
         {
+          RTT::log(RTT::Debug) << " -- -- -- -- Examining connection " 
+            << source_vertex->block->getName()<<"."<< in_conn_it->source_port->getName() 
+            << " -> "
+            << sink_vertex->block->getName()<<"."<< in_conn_it->sink_port->getName() << "..."
+            << RTT::endlog();
+
+          // This isn't a conflict if the ports are different
+          if(out_conn_it->sink_port != in_conn_it->sink_port) {
+            continue;
+          }
+
           // Add conflict between the seed block and the source block for this connection
           const DataFlowVertex::Ptr conflicting_vertex = flow_graph_[boost::source(*in_edge_it,flow_graph_)];
 
@@ -1096,9 +1130,10 @@ void Scheme::computeConflicts(conman::graph::DataFlowVertex::Ptr seed_vertex)
               conflict_graph_);
 
           // Debug output
-          RTT::log(RTT::Debug) << "Added conflict between blocks "<<
+          RTT::log(RTT::Debug) << " -- -- -- -- Added conflict between blocks "<<
             seed_block->getName() << " and " <<
-            conflicting_vertex->block->getName() << RTT::endlog();
+            conflicting_vertex->block->getName() << " because of port: "
+            << sink_vertex->block->getName() << "." << in_conn_it->sink_port->getName() << RTT::endlog();
         }
       }
     }
@@ -1418,12 +1453,15 @@ bool Scheme::regenerateModel()
 
 bool Scheme::enableBlock(const std::string &block_name, const bool force)
 {
+  RTT::Logger::In in("Scheme::enableBlock");
+
   // First check if this block is a group
   std::map<std::string, std::set<std::string> >::iterator group = 
     block_groups_.find(block_name);
 
   if(group != block_groups_.end()) {
     // Enable the blocks in this group
+    RTT::log(RTT::Debug) << "Enabling blocks in group \"" << block_name <<"\"" << RTT::endlog();
     return this->enableBlocks(
         std::vector<std::string>(group->second.begin(),group->second.end()),
         true,
@@ -1596,7 +1634,7 @@ bool Scheme::enableBlocks(
       ++it)
   {
     // Try to start the block
-    success = success && this->enableBlock(*it,force);
+    success = this->enableBlock(*it,force) && success;
 
     // Break on failure if strict
     if(!success && strict) { return false; }
