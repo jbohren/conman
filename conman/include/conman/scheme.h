@@ -108,8 +108,8 @@ namespace conman
 
     //! Add a single block to a group
     bool addToGroup(
-        const std::string &group_name,
-        const std::string &member_name);
+        const std::string &member_name,
+        const std::string &group_name);
 
     //! Remove a single block from a group
     bool removeFromGroup(

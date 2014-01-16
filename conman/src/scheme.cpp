@@ -433,15 +433,18 @@ bool Scheme::setGroup(
 }
 
 bool Scheme::addToGroup(
-    const std::string &group_name,
-    const std::string &new_name) 
+    const std::string &new_name,
+    const std::string &group_name) 
 {
   RTT::Logger::In in("Scheme::addToGroup");
 
   // Check if the group exists
   std::map<std::string, std::set<std::string> >::iterator group =
     block_groups_.find(group_name);
+
   if(group == block_groups_.end()) {
+    RTT::log(RTT::Error) << "Group named \"" << group_name << "\" is not"
+      " in the scheme." << RTT::endlog();
     return false;
   }
 
@@ -452,7 +455,7 @@ bool Scheme::addToGroup(
     return false;
   }
 
-  // Return the group constituents
+  // Add the new name to the group
   group->second.insert(new_name);
 
   return true; 
@@ -1479,11 +1482,14 @@ bool Scheme::enableBlock(RTT::TaskContext *block, const bool force)
   RTT::Logger::In in("Scheme::enableBlock");
 
   if(block == NULL) { 
+    RTT::log(RTT::Error) << "Could not enable block because the given block is NULL." << RTT::endlog();
     return false; 
   }
 
   const std::string &block_name = block->getName();
   std::map<std::string,conman::graph::DataFlowVertex::Ptr>::const_iterator block_vertex_it = blocks_.find(block_name);
+
+  RTT::log(RTT::Debug) << "Enabling block \"" << block_name <<"\"" << RTT::endlog();
 
   if(block_vertex_it == blocks_.end()) {
     RTT::log(RTT::Error) << "Could not enable block \""<< block_name << "\""
@@ -1505,6 +1511,7 @@ bool Scheme::enableBlock(RTT::TaskContext *block, const bool force)
     // If it's already running, then we're going to assume for now that the
     // user isn't doing anything dirty.
     // TODO: Keep track of whether or not a block has been properly enabled.
+    RTT::log(RTT::Debug) << "The block \"" << block_name <<"\" is already enabled." << RTT::endlog();
     return true;
   }
 
@@ -1604,6 +1611,7 @@ bool Scheme::enableBlocks(
     {
       // Make sure the block is in the scheme
       if(!this->hasBlock(*it)) {
+        RTT::log(RTT::Error) << "Could not enable block named \"" << *it << "\" because it is not in the scheme." << RTT::endlog();
         continue;
       }
 
@@ -1620,6 +1628,7 @@ bool Scheme::enableBlocks(
 
         // Check if the conflicting block is running
         if(conflict_block->getTaskState() == RTT::TaskContext::Running) {
+          RTT::log(RTT::Error) << "Could not enable block named \"" << *it << "\" because it conflicts with block \""<<conflict_block->getName()<<"\"." << RTT::endlog();
           return false;
         }
       }
