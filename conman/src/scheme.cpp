@@ -449,9 +449,12 @@ bool Scheme::addToGroup(
   }
 
   // Check if the block is in the scheme
-  if(!this->hasBlock(new_name) && !this->hasGroup(new_name)) {
+  if(!this->hasBlock(new_name) &&
+     !this->hasGroup(new_name) &&
+     !this->addBlock(new_name)) 
+  {
     RTT::log(RTT::Error) << "Block or group named \"" << new_name << "\" is not"
-      " in the scheme." << RTT::endlog();
+      " in the scheme and could not be added to the scheme." << RTT::endlog();
     return false;
   }
 
@@ -1071,14 +1074,16 @@ void Scheme::computeConflicts(conman::graph::DataFlowVertex::Ptr seed_vertex)
         ++out_conn_it)
     {
       RTT::log(RTT::Debug) << " -- -- Examining connection " 
-        << seed_block->getName()<<"."<< out_conn_it->source_port->getName() 
+        << seed_block->getName()<<"."<<service_path(out_conn_it->source_service)<<"."<< out_conn_it->source_port->getName() 
         << " -> "
-        << sink_vertex->block->getName()<<"."<<out_conn_it->sink_port->getName() << "..."
+        << sink_vertex->block->getName()<<"."<<service_path(out_conn_it->sink_service)<<"."<<out_conn_it->sink_port->getName() << "..."
         << RTT::endlog();
 
       // Get the exclusivity of this connection from the seed to this sink
       // (the sink port of the out connection is the input that it is connected to)
-      const conman::Exclusivity::Mode mode = sink_vertex->hook->getInputExclusivity(out_conn_it->sink_port->getName());
+      // TODO: how do you make this work for sub-services
+      const conman::Exclusivity::Mode mode = sink_vertex->hook->getInputExclusivity(
+          service_path(out_conn_it->sink_service) + "." + out_conn_it->sink_port->getName());
       // Only exclusive ports can induce conflicts
       if(mode != conman::Exclusivity::EXCLUSIVE) {
         continue;
@@ -1314,6 +1319,10 @@ bool Scheme::regenerateModel()
         }
 
         // Get the source and sink components
+        RTT::Service
+          *source_service = source_port->getInterface()->getService(),
+          *sink_service = sink_port->getInterface()->getService();
+
         RTT::TaskContext
           *source_block = source_port->getInterface()->getOwner(),
           *sink_block = sink_port->getInterface()->getOwner();
@@ -1397,7 +1406,10 @@ bool Scheme::regenerateModel()
 
         // Store the data flow connection in the edge if it doesn't already exist
         if(!connection_exists) {
-          flow_edge->connections.push_back(DataFlowEdge::Connection(source_port, sink_port));
+          flow_edge->connections.push_back(
+              DataFlowEdge::Connection(
+                  source_service, source_port,
+                  sink_service, sink_port));
         }
 
         // Check if either of the blocks involved in this connection are latched

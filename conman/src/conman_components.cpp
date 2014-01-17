@@ -3,8 +3,12 @@
  * this license, please see LICENSE.txt at the root of this repository. 
  */
 
-#include <conman/conman.h>
+#include <rtt/Component.hpp>
+#include <boost/assign/list_of.hpp>
+#include <conman/scheme.h>
 
-const conman::Exclusivity::Mode conman::Exclusivity::UNRESTRICTED;
-const conman::Exclusivity::Mode conman::Exclusivity::EXCLUSIVE;
+using namespace conman;
+
+ORO_LIST_COMPONENT_TYPE(conman::Scheme)
+ORO_CREATE_COMPONENT_LIBRARY()
 

@@ -7,6 +7,8 @@
 
 #include <conman/hook_service.h>
 
+#include <boost/algorithm/string.hpp>
+
 using namespace conman;
 
 ORO_SERVICE_NAMED_PLUGIN(conman::HookService, "conman_hook");
@@ -18,8 +20,8 @@ HookService::HookService(RTT::TaskContext* owner) :
   exec_duration_smoothing_factor_(0.5)
 { 
   // Constants 
-  this->provides("exclusivity")->addConstant("UNRESTRICTED",static_cast<int>(Exclusivity::UNRESTRICTED));
-  this->provides("exclusivity")->addConstant("EXCLUSIVE",static_cast<int>(Exclusivity::EXCLUSIVE));
+  this->provides("exclusivity")->addConstant("UNRESTRICTED",Exclusivity::UNRESTRICTED);
+  this->provides("exclusivity")->addConstant("EXCLUSIVE",Exclusivity::EXCLUSIVE);
 
   // Conman Properties
   this->addProperty("desired_min_exec_period",desired_min_exec_period_)
@@ -53,6 +55,7 @@ HookService::HookService(RTT::TaskContext* owner) :
   this->addOperation("getDesiredMinPeriod",&HookService::getDesiredMinPeriod,this,RTT::ClientThread);
   this->addOperation("setInputExclusivity",&HookService::setInputExclusivity,this,RTT::ClientThread);
   this->addOperation("getInputExclusivity",&HookService::getInputExclusivity,this,RTT::ClientThread);
+  this->addOperation("getRegisteredInputPorts",&HookService::getRegisteredInputPorts,this,RTT::ClientThread);
 
   // Conman Introspection interface
   this->addOperation("getTime",&HookService::getTime,this,RTT::ClientThread);
@@ -87,7 +90,7 @@ RTT::Seconds HookService::getDesiredMinPeriod()
 
 bool HookService::setInputExclusivity(
     const std::string &port_name,
-    const Exclusivity::Mode mode)
+    const unsigned int mode)
 {
   // Get the port
   RTT::base::PortInterface *port = this->getOwnerPort(port_name);
@@ -95,11 +98,15 @@ bool HookService::setInputExclusivity(
   // Make sure that the port is an input port
   if(dynamic_cast<RTT::base::InputPortInterface*>(port)) {
     // Add to the input port map
-    input_ports_[port_name].exclusivity = mode; 
-  } else {
+    input_ports_[port_name].exclusivity = Exclusivity::Mode(mode); 
+  } else if(port) {
     // Complain
     RTT::log(RTT::Error) << "Tried to set input exclusivity for an output"
-      "port. Output ports do not have exclusivity" << RTT::endlog();
+      "port. Output ports do not have exclusivity, and do not make good companions." << RTT::endlog();
+
+    return false;
+  } else {
+    RTT::log(RTT::Error) << "Tried to set input exclusivity for an unknown port." << RTT::endlog();
 
     return false;
   }
@@ -107,7 +114,7 @@ bool HookService::setInputExclusivity(
   return true;
 }
 
-conman::Exclusivity::Mode HookService::getInputExclusivity(
+unsigned int HookService::getInputExclusivity(
     const std::string &port_name)
 {
   // Get the port
@@ -119,7 +126,22 @@ conman::Exclusivity::Mode HookService::getInputExclusivity(
   }
 
   // Return undefined if the port isn't registered
-  return Exclusivity::UNRESTRICTED;
+  RTT::log(RTT::Debug) << "Exclusivity for input port \"" << port_name << "\" has not been declared explicitly." <<RTT::endlog();
+  return (unsigned int)Exclusivity::UNRESTRICTED;
+}
+
+std::vector<std::string> HookService::getRegisteredInputPorts() const {
+  std::vector<std::string> port_names;
+  port_names.reserve(input_ports_.size());
+
+  for(std::map<std::string, InputProperties>::const_iterator it = input_ports_.begin();
+      it != input_ports_.end();
+      ++it)
+  {
+    port_names.push_back(it->first);
+  }
+  
+  return port_names;
 }
 
 RTT::Seconds HookService::getTime() 
@@ -189,7 +211,26 @@ bool HookService::update(const RTT::Seconds time)
 }
 
 RTT::base::PortInterface* HookService::getOwnerPort(const std::string &name) {
-  return this->getOwner()->getPort(name);
+  std::vector<std::string> tokens;
+  boost::split(tokens, name, boost::is_any_of("."));
+
+  RTT::base::PortInterface* port = NULL;
+  boost::shared_ptr<RTT::Service> service = this->getOwner()->provides();
+  for(std::vector<std::string>::const_iterator it=tokens.begin();
+      it!=tokens.end();
+      ++it)
+  {
+    // Try to get the next token as a port
+    if(port = service->getPort(*it)) {
+      break;
+    }
+    // Otherwise continue to treat them as services
+    if(!(service = service->provides(*it))) {
+      break;
+    }
+  }
+
+  return port;
 }
 
 RTT::OperationInterfacePart* HookService::getOwnerOperation(const std::string &name) {

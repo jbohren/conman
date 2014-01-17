@@ -47,11 +47,14 @@ namespace conman {
     //! Set the exclusivity mode for an input port
     bool setInputExclusivity(
         const std::string &port_name,
-        const Exclusivity::Mode mode);
+        const unsigned int mode);
 
     //! Get the exclusivity mode for an input port
-    conman::Exclusivity::Mode getInputExclusivity(
+    unsigned int getInputExclusivity(
         const std::string &port_name);
+
+    //! Get the registered ports
+    std::vector<std::string> getRegisteredInputPorts() const; 
 
     //\}
 

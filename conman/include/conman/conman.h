@@ -48,6 +48,34 @@ namespace conman {
       boost::shared_ptr<conman::Hook> hook;
     };
 
+    // Get the string name for the path to a service
+    static const std::string service_path(const RTT::Service *service)
+    {
+      RTT::Service
+        *parent_service = NULL, 
+        *parent_parent_service = NULL; 
+
+      if(service) {
+        parent_service = service->getParent().get();
+      } else {
+        // service doesn't exist
+        return "";
+      }
+
+      if(parent_service) {
+        parent_parent_service = parent_service->getParent().get();
+      } else {
+        // service is the root service
+        return "";
+      }
+
+      if(parent_parent_service) {
+        return service_path(parent_service) + service->getName() + ".";
+      }
+
+      return service->getName();
+    }
+
     //! Boost Graph Edge Metadata for Data Flow Graph
     struct DataFlowEdge 
     {
@@ -59,11 +87,19 @@ namespace conman {
       //! Model representing a single RTT data port connection
       struct Connection {
         Connection(
+            RTT::Service *source_service_,
             RTT::base::PortInterface *source_port_,
+            RTT::Service *sink_service_,
             RTT::base::PortInterface *sink_port_) :
+          source_service(source_service_),
+          sink_service(sink_service_),
           source_port(source_port_),
           sink_port(sink_port_) { }
 
+        //! The service the source port lives on
+        RTT::Service *source_service;
+        //! The service the sink port lives on
+        RTT::Service *sink_service;
         //! The source (output) port
         RTT::base::PortInterface *source_port;
         //! The sink (input) port:
@@ -217,12 +253,11 @@ namespace conman {
 
   //! Exclusivity modes describe how a given port can be accessed.
   struct Exclusivity {
-    enum Mode {
-      //! Any number of connections.
-      UNRESTRICTED,
-      //! Limit to one connection.
-      EXCLUSIVE
-    };
+    typedef unsigned int Mode;
+    //! Any number of connections.
+    static const Mode UNRESTRICTED = 0;
+    //! Limit to one connection.
+    static const Mode EXCLUSIVE = 1;
   };
 
   //! Structure for representing groups of comopnents
