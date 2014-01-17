@@ -107,19 +107,19 @@ TEST_F(BlocksTest, AddBlocks) {
   EXPECT_FALSE(scheme.addBlock(NULL));
 
   InvalidBlock ib1("ib1");
-  EXPECT_FALSE(scheme.addBlock(&ib1));
-  EXPECT_EQ(scheme.getBlocks().size(),0);
+  EXPECT_TRUE(scheme.addBlock(&ib1));
+  EXPECT_EQ(scheme.getBlocks().size(),1);
 
   ValidBlock vb1("vb1");
   EXPECT_FALSE(scheme.addBlock("vb1"));
   EXPECT_TRUE(scheme.addPeer(&vb1));
   EXPECT_TRUE(scheme.addBlock("vb1"));
-  EXPECT_EQ(scheme.getBlocks().size(),1);
+  EXPECT_EQ(scheme.getBlocks().size(),2);
 
   ValidBlock vb2("vb2");
   EXPECT_TRUE(scheme.addBlock(&vb2));
 
-  EXPECT_EQ(scheme.getBlocks().size(),2);
+  EXPECT_EQ(scheme.getBlocks().size(),3);
 }
 
 TEST_F(BlocksTest, RemoveBlocks) {
@@ -179,12 +179,12 @@ TEST_F(GroupsTest, AddToGroups) {
 
   EXPECT_FALSE(scheme.addToGroup("fail",""));
 
-  EXPECT_FALSE(scheme.addToGroup("win","vb1"));
+  EXPECT_FALSE(scheme.addToGroup("vb1","win"));
   EXPECT_TRUE(scheme.addGroup("win"));
-  EXPECT_TRUE(scheme.addToGroup("win","vb1"));
-  EXPECT_TRUE(scheme.addToGroup("win","vb2"));
+  EXPECT_TRUE(scheme.addToGroup("vb1","win"));
+  EXPECT_TRUE(scheme.addToGroup("vb2","win"));
   // Add it again
-  EXPECT_TRUE(scheme.addToGroup("win","vb2"));
+  EXPECT_TRUE(scheme.addToGroup("vb2","win"));
 
   EXPECT_TRUE(scheme.getGroupMembers("win",members_get));
   EXPECT_EQ(members_get.size(),2);
@@ -214,7 +214,7 @@ TEST_F(GroupsTest, RemoveFromGroups) {
 
   // Add some members
   EXPECT_TRUE(scheme.setGroup("win1","vb1"));
-  EXPECT_TRUE(scheme.addToGroup("win1","vb2"));
+  EXPECT_TRUE(scheme.addToGroup("vb2","win1"));
   EXPECT_TRUE(scheme.getGroupMembers("win1",members_get));
   EXPECT_EQ(members_get.size(),2);
 

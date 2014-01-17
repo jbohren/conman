@@ -26,8 +26,6 @@
 #endif
 
 
-ORO_LIST_COMPONENT_TYPE(conman::Scheme);
-
 using namespace conman;
 
 Scheme::Scheme(std::string name) 

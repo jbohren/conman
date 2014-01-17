@@ -58,10 +58,12 @@ HookService::HookService(RTT::TaskContext* owner) :
   this->addOperation("getRegisteredInputPorts",&HookService::getRegisteredInputPorts,this,RTT::ClientThread);
 
   // Conman Introspection interface
+  // Note: These must be client-thread-based because they are called from the master activity
   this->addOperation("getTime",&HookService::getTime,this,RTT::ClientThread);
   this->addOperation("getPeriod",&HookService::getPeriod,this,RTT::ClientThread);
 
   // Conman Execution Interface
+  // Note: These must be client-thread-based because they are called from the master activity
   this->addOperation("init",&HookService::init,this,RTT::ClientThread)
     .doc("Initialize period computation and execution statistics.");
   this->addOperation("update",&HookService::update,this,RTT::ClientThread)
