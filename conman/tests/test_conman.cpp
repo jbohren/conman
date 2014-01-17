@@ -166,11 +166,11 @@ TEST_F(GroupsTest, AddGroups) {
 TEST_F(GroupsTest, SetGroups) {
   std::vector<std::string> members;
 
-  EXPECT_TRUE(scheme.setGroup("",members));
-  EXPECT_TRUE(scheme.setGroup("win",members));
+  EXPECT_TRUE(scheme.setGroupMembers("",members));
+  EXPECT_TRUE(scheme.setGroupMembers("win",members));
 
   members.push_back("not_a_peer");
-  EXPECT_FALSE(scheme.setGroup("fail",members));
+  EXPECT_FALSE(scheme.setGroupMembers("fail",members));
 
 }
 
@@ -195,15 +195,15 @@ TEST_F(GroupsTest, AddToGroups) {
 TEST_F(GroupsTest, NestedGroups) {
   std::vector<std::string> members, members_get;
 
-  EXPECT_TRUE(scheme.setGroup("win1","vb1"));
-  EXPECT_TRUE(scheme.setGroup("win2","vb2"));
-  EXPECT_TRUE(scheme.setGroup("win3","vb3"));
+  EXPECT_TRUE(scheme.setGroupMembers("win1","vb1"));
+  EXPECT_TRUE(scheme.setGroupMembers("win2","vb2"));
+  EXPECT_TRUE(scheme.setGroupMembers("win3","vb3"));
   EXPECT_TRUE(scheme.addGroup("win4"));
 
   std::vector<std::string> win123_members;
   win123_members += "win1", "win2", "win3", "win4", "win123";
 
-  EXPECT_TRUE(scheme.setGroup("win123",win123_members));
+  EXPECT_TRUE(scheme.setGroupMembers("win123",win123_members));
 
   EXPECT_TRUE(scheme.getGroupMembers("win123",members_get));
   EXPECT_EQ(members_get.size(),3);
@@ -213,13 +213,13 @@ TEST_F(GroupsTest, RemoveFromGroups) {
   std::vector<std::string> members, members_get;
 
   // Add some members
-  EXPECT_TRUE(scheme.setGroup("win1","vb1"));
+  EXPECT_TRUE(scheme.setGroupMembers("win1","vb1"));
   EXPECT_TRUE(scheme.addToGroup("vb2","win1"));
   EXPECT_TRUE(scheme.getGroupMembers("win1",members_get));
   EXPECT_EQ(members_get.size(),2);
 
   // Remove a member
-  EXPECT_TRUE(scheme.removeFromGroup("win1","vb2"));
+  EXPECT_TRUE(scheme.removeFromGroup("vb2","win1"));
   EXPECT_TRUE(scheme.getGroupMembers("win1",members_get));
   EXPECT_EQ(members_get.size(),1);
   

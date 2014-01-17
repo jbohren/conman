@@ -385,18 +385,18 @@ bool Scheme::addGroup(const std::string &group_name)
   return true;
 }
 
-bool Scheme::setGroup(
+bool Scheme::setGroupMembers(
     const std::string &group_name,
     const std::string &member_name) 
 { 
   std::vector<std::string> members;
   members.push_back(member_name);
-  return this->setGroup(group_name, members);
+  return this->setGroupMembers(group_name, members);
 }
 
-bool Scheme::setGroup(
+bool Scheme::setGroupMembers(
     const std::string &group_name,
-    const std::vector<std::string> &members) 
+    const std::vector<std::string> &members)
 { 
   RTT::Logger::In in("Scheme::createGroup");
 
@@ -463,8 +463,8 @@ bool Scheme::addToGroup(
 }
 
 bool Scheme::removeFromGroup(
-    const std::string &group_name,
-    const std::string &block) 
+    const std::string &block,
+    const std::string &group_name) 
 {
   // Check if the group exists
   std::map<std::string, std::set<std::string> >::iterator group = 

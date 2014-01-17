@@ -97,12 +97,12 @@ namespace conman
     bool addGroup( const std::string &group_name);
 
     //! Set the membership for a group with just one member
-    bool setGroup(
+    bool setGroupMembers(
         const std::string &group_name,
         const std::string &member_name);
 
     //! Set the membership for a group
-    bool setGroup(
+    bool setGroupMembers(
         const std::string &group_name,
         const std::vector<std::string> &members);
 
@@ -113,8 +113,8 @@ namespace conman
 
     //! Remove a single block from a group
     bool removeFromGroup(
-        const std::string &group_name,
-        const std::string &member_name);
+        const std::string &member_name,
+        const std::string &group_name);
 
     //! Remove the blocks from a group, and then remove the group
     bool emptyGroup(const std::string &group_name);
