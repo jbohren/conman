@@ -169,10 +169,10 @@ bool HookService::update(const RTT::Seconds time)
   if(init_ || time <= last_exec_time_) {
     last_exec_time_ = time - desired_min_exec_period_;
 
-    min_exec_period_ = std::numeric_limits<double>::max();
+    min_exec_period_ = 1E9;
     max_exec_period_ = 0.0;
 
-    min_exec_duration_ = std::numeric_limits<double>::max();
+    min_exec_duration_ = 1E9;
     max_exec_duration_ = 0.0;
 
     init_ = false;
