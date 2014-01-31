@@ -1,0 +1,45 @@
+<package>
+  <name>conman_blocks</name>
+  <version>0.1.0</version>
+  <license>BSD</license>
+  <maintainer email="jbo@jhu.edu">Jonathan Bohren</maintainer>
+  <author email="jbo@jhu.edu">Jonathan Bohren</author>
+  <description>
+    You need these.
+  </description>
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <build_depend>rtt</build_depend>
+  <build_depend>ocl</build_depend>
+  <build_depend>kdl</build_depend>
+  <build_depend>eigen</build_depend>
+  <build_depend>conman</build_depend>
+
+  <build_depend>rtt_rosparam</build_depend>
+  <build_depend>rtt_rosclock</build_depend>
+  <build_depend>rtt_roscomm</build_depend>
+  <build_depend>rtt_ros</build_depend>
+  <build_depend>kdl_typekit</build_depend>
+  
+  <run_depend>rtt</run_depend>
+  <run_depend>ocl</run_depend>
+  <run_depend>kdl</run_depend>
+
+  <run_depend>rtt_ros</run_depend>
+  <run_depend>rtt_rosparam</run_depend>
+  <run_depend>rtt_rosclock</run_depend>
+  <run_depend>rtt_roscomm</run_depend>
+  <run_depend>kdl_typekit</run_depend>
+  <run_depend>eigen_typekit</run_depend>
+  <run_depend>conman</run_depend>
+
+  <export>
+    <rtt_ros>
+      <plugin_depend>rtt_rosparam</plugin_depend>
+      <plugin_depend>rtt_rosclock</plugin_depend>
+      <plugin_depend>rtt_roscomm</plugin_depend>
+      <plugin_depend>rtt_std_msgs</plugin_depend>
+    </rtt_ros>
+  </export>
+</package>
