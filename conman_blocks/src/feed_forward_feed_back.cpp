@@ -100,7 +100,7 @@ void FeedForwardFeedBack::updateHook()
   }
 
   // Check heartbeats
-  if((rtt_rosclock::host_rt_now() - last_heartbeat_time_).toSec() < heartbeat_max_period_) { 
+  if(!require_heartbeat_ || (rtt_rosclock::host_rt_now() - last_heartbeat_time_).toSec() < heartbeat_max_period_) { 
     // Get the fedback
     if(feedback_in_.readNewest( feedback_effort_, false) == RTT::NewData) {
       if(addend.size() == dim_) {

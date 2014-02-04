@@ -1071,17 +1071,19 @@ void Scheme::computeConflicts(conman::graph::DataFlowVertex::Ptr seed_vertex)
         out_conn_it != out_edge->connections.end();
         ++out_conn_it)
     {
+      const std::string source_port_path = ResolvePortPath(out_conn_it->sink_service, out_conn_it->sink_port);
+      const std::string sink_port_path = ResolvePortPath(out_conn_it->sink_service, out_conn_it->sink_port);
+
       RTT::log(RTT::Debug) << " -- -- Examining connection " 
-        << seed_block->getName()<<"."<<service_path(out_conn_it->source_service)<<"."<< out_conn_it->source_port->getName() 
+        << seed_block->getName()<<"."<<source_port_path
         << " -> "
-        << sink_vertex->block->getName()<<"."<<service_path(out_conn_it->sink_service)<<"."<<out_conn_it->sink_port->getName() << "..."
+        << sink_vertex->block->getName()<<"."<<sink_port_path<< " ..."
         << RTT::endlog();
 
       // Get the exclusivity of this connection from the seed to this sink
       // (the sink port of the out connection is the input that it is connected to)
-      // TODO: how do you make this work for sub-services
-      const conman::Exclusivity::Mode mode = sink_vertex->hook->getInputExclusivity(
-          service_path(out_conn_it->sink_service) + "." + out_conn_it->sink_port->getName());
+      const conman::Exclusivity::Mode mode = sink_vertex->hook->getInputExclusivity(sink_port_path);
+
       // Only exclusive ports can induce conflicts
       if(mode != conman::Exclusivity::EXCLUSIVE) {
         continue;

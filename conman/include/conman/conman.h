@@ -48,8 +48,8 @@ namespace conman {
       boost::shared_ptr<conman::Hook> hook;
     };
 
-    // Get the string name for the path to a service
-    static const std::string service_path(const RTT::Service *service)
+    //! Get the string name for the path to a service
+    static const std::string ResolveServicePath(const RTT::Service *service)
     {
       RTT::Service
         *parent_service = NULL, 
@@ -57,23 +57,43 @@ namespace conman {
 
       if(service) {
         parent_service = service->getParent().get();
+
+        if(parent_service) {
+          parent_parent_service = parent_service->getParent().get();
+
+          if(parent_parent_service) {
+            std::string parent_path = ResolveServicePath(parent_service);
+            
+            if(parent_path.length() > 0) {
+              return parent_path + "." + service->getName();
+            }
+          }
+        } else {
+          // service is the root service
+          return "";
+        }
       } else {
         // service doesn't exist
         return "";
       }
 
-      if(parent_service) {
-        parent_parent_service = parent_service->getParent().get();
-      } else {
-        // service is the root service
+      return service->getName();
+    }
+
+    //! Get the full path string for an RTT data port
+    static const std::string ResolvePortPath(const RTT::Service *service, const RTT::base::PortInterface *port)
+    {
+      if(!service || !port) {
         return "";
       }
 
-      if(parent_parent_service) {
-        return service_path(parent_service) + service->getName() + ".";
+      const std::string service_path = ResolveServicePath(service);
+      
+      if(service_path.length() > 0) {
+        return service_path + "." + port->getName();
       }
 
-      return service->getName();
+      return port->getName();
     }
 
     //! Boost Graph Edge Metadata for Data Flow Graph
