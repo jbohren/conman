@@ -73,9 +73,12 @@ Scheme::Scheme(std::string name)
 
   // Block runtime management
   this->addOperation("enableBlock", (bool (Scheme::*)(const std::string&, const bool))&Scheme::enableBlock, this, RTT::OwnThread)
-    .doc("Enable a block in this scheme.");
+    .doc("Enable a block in this scheme.")
+    .arg("name","The block to enable.")
+    .arg("force","If true, disable all conflicting blocks before enabling this one.");
   this->addOperation("disableBlock", (bool (Scheme::*)(const std::string&))&Scheme::disableBlock, this, RTT::OwnThread)
-    .doc("Disable a block in this scheme.");
+    .doc("Disable a block in this scheme.")
+    .arg("name","The block to disable.");
   this->addOperation("switchBlocks", &Scheme::switchBlocks, this, RTT::OwnThread)
     .doc("Simultaneousy enable and disable a list of blocks, any block not in either list will remain in its current state.");
 
