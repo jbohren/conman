@@ -14,7 +14,7 @@
 #include <rtt/Logger.hpp>
 #include <rtt/plugin/PluginLoader.hpp>
 
-#include <rtt_rosservice/rosservice.h>
+#include <rtt_roscomm/rosservice.h>
 
 #include <conman/conman.h>
 #include <conman/scheme.h>

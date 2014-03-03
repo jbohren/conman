@@ -3,7 +3,7 @@
 
 #include <conman/hook.h>
 #include <rtt_rosparam/rosparam.h>
-#include <rtt_roscomm/rostopic.h>
+#include <rtt_roscomm/rtt_rostopic.h>
 
 #include "feed_forward_feed_back.h"
 
@@ -40,11 +40,8 @@ FeedForwardFeedBack::FeedForwardFeedBack(std::string const& name) :
   this->ports()->addPort("heartbeats_ros_in", heartbeats_ros_in_)
     .doc("Heartbeat pulses from ROS.");
 
-  // Get an instance of the rtt_rostopic service requester
-  rtt_rostopic::ROSTopic rostopic;
-
   // Add the port and stream it to a ROS topic
-  heartbeats_ros_in_.createStream(rostopic.connection("~/"+this->getName()+"/heartbeats"));
+  heartbeats_ros_in_.createStream(rtt_roscomm::topic("~/"+this->getName()+"/heartbeats"));
 
   // Load Conman interface
   conman_hook_ = conman::Hook::GetHook(this);
