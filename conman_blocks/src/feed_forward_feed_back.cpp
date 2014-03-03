@@ -3,7 +3,7 @@
 
 #include <conman/hook.h>
 #include <rtt_rosparam/rosparam.h>
-#include <rtt_rostopic/rostopic.h>
+#include <rtt_roscomm/rostopic.h>
 
 #include "feed_forward_feed_back.h"
 
