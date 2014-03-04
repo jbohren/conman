@@ -2,18 +2,15 @@ cmake_minimum_required(VERSION 2.8.6)
 
 project(conman_blocks)
 
-find_package(catkin REQUIRED
-  COMPONENTS 
-  rtt_ros 
-  rtt_rosparam
-  rtt_roscomm
-  rtt_rosclock
-  )
+find_package(catkin REQUIRED)
+
+find_package(OROCOS-RTT REQUIRED)
+include(${OROCOS-RTT_USE_FILE_PATH}/UseOROCOS-RTT.cmake)
 
 find_package(orocos_kdl REQUIRED)
 find_package(Eigen REQUIRED)
 
-catkin_package()
+orocos_use_package(conman)
 
 include_directories(
   ${catkin_INCLUDE_DIRS}

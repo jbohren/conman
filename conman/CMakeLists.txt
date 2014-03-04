@@ -49,7 +49,7 @@ target_link_libraries(scheme_test
 
 orocos_generate_package(
   INCLUDE_DIRS include
-  DEPENDS rtt)
+  )
 
 #############
 ## Install ##
