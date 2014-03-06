@@ -23,11 +23,13 @@ ROSInterfaceService::ROSInterfaceService(RTT::TaskContext* owner) :
   }
 
   // Connect operation callers
+  RTT::log(RTT::Debug) << "Connecting conamn_ros operation callers..." << RTT::endlog();
   getBlocks = scheme->getOperation("getBlocks");
   getGroups = scheme->getOperation("getGroups");
   switchBlocks = scheme->getOperation("switchBlocks");
 
   // Create ros-control operation bindings
+  RTT::log(RTT::Debug) << "Creating ros_control service servers..." << RTT::endlog();
   roscontrol = owner->provides("roscontrol");
   roscontrol->addOperation("listControllerTypes", &ROSInterfaceService::listControllerTypesCB, this);
   roscontrol->addOperation("listControllers", &ROSInterfaceService::listControllersCB, this);
@@ -37,10 +39,10 @@ ROSInterfaceService::ROSInterfaceService(RTT::TaskContext* owner) :
   roscontrol->addOperation("unloadController", &ROSInterfaceService::unloadControllerCB, this);
 
   // Load the rosservice service
-  //RTT::plugin::PluginLoader::Instance()->loadService("rosservice",owner);
-
+  RTT::log(RTT::Debug) << "Getting rtt_roscomm service service..." << RTT::endlog();
   rosservice = owner->getProvider<rtt_rosservice::ROSService>("rosservice");
 
+  RTT::log(RTT::Debug) << "Connecting ros_control service servers..." << RTT::endlog();
   rosservice->connect("roscontrol.listControllerTypes",
                      "controller_manager/list_controller_types",
                      "controller_manager_msgs/ListControllerTypes");

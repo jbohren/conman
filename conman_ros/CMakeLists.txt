@@ -29,7 +29,7 @@ link_directories(
   ${catkin_LIBRARY_DIRS}
   ${USE_OROCOS_LIBRARY_DIRS})
 
-add_definitions(-DRTT_COMPONENT)
+#add_definitions(-DRTT_COMPONENT)
 orocos_service(${PROJECT_NAME}
   src/ros_interface_service.cpp
   )
