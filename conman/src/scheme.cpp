@@ -163,6 +163,12 @@ bool Scheme::addBlock(RTT::TaskContext *new_block)
 
   RTT::Logger::In in("Scheme::addBlock");
 
+  // Adding blocks posible only when scheme is stoped
+  if(this->getTaskState() != Stopped) {
+    RTT::log(RTT::Error) << "Scheme is in running state. Adding blocks forbidden." << RTT::endlog();
+    return false;
+  }
+
   // Nulls are bad
   if(new_block == NULL) {
     RTT::log(RTT::Error) << "Requested block to add is NULL." << RTT::endlog();
@@ -288,6 +294,12 @@ bool Scheme::removeBlock(
   using namespace conman::graph;
 
   RTT::Logger::In in("Scheme::removeBlock");
+
+  // Removeing blocks posible only when scheme is stoped
+  if(this->getTaskState() != Stopped) {
+    RTT::log(RTT::Error) << "Scheme is in running state. Removeing blocks forbidden." << RTT::endlog();
+    return false;
+  }
 
   if(block == NULL) {
     return false;
@@ -615,6 +627,12 @@ bool Scheme::latchConnections(
     const std::vector<std::string> &sink_names,
     const bool latch)
 {
+  // Latching blocks posible only when scheme is stoped
+  if(this->getTaskState() != Stopped) {
+    RTT::log(RTT::Error) << "Scheme is in running state. Latching blocks forbidden." << RTT::endlog();
+    return false;
+  }
+  
   // Latch connections between all sources and sinks
   bool success = true;
   for(std::vector<std::string>::const_iterator source_it = source_names.begin();
@@ -1269,6 +1287,12 @@ bool Scheme::regenerateModel()
 
   RTT::Logger::In in("Scheme::regenerateGraph");
 
+  // Regenerateing model posible only when scheme is stoped
+  if(this->getTaskState() != Stopped) {
+    RTT::log(RTT::Error) << "Scheme is in running state. Regenerateing model forbidden." << RTT::endlog();
+    return false;
+  }
+
   // Initialize the modification flag
   bool topology_modified = exec_ordering_.size() != flow_vertex_map_.size();
 
@@ -1738,7 +1762,11 @@ bool Scheme::configureHook()
 
 bool Scheme::startHook()
 {
-  return true;
+  if(!this->regenerateModel()) {
+    return false;
+  } else {
+    return true;
+  }
 }
 
 void Scheme::updateHook() 
