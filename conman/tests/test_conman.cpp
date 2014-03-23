@@ -133,6 +133,40 @@ TEST_F(BlocksTest, RemoveBlocks) {
   EXPECT_EQ(scheme.getBlocks().size(),0);
 }
 
+TEST_F(BlocksTest, StartAddBlocks) {
+
+  scheme.start();
+
+  ValidBlock vb1("vb1");
+  EXPECT_TRUE(scheme.addPeer(&vb1));
+  EXPECT_FALSE(scheme.addBlock("vb1"));
+  EXPECT_FALSE(scheme.addBlock(&vb1));
+  EXPECT_EQ(scheme.getBlocks().size(),0);
+
+  scheme.stop();
+
+  ValidBlock vb2("vb2");
+  EXPECT_TRUE(scheme.addBlock("vb1"));
+  EXPECT_TRUE(scheme.addBlock(&vb2));
+
+  EXPECT_EQ(scheme.getBlocks().size(),2);
+}
+
+TEST_F(BlocksTest, StartRemoveBlocks) {
+
+  ValidBlock vb1("vb1");
+  scheme.addBlock(&vb1);
+  scheme.start();
+  
+  EXPECT_FALSE(scheme.removeBlock("vb1"));
+  EXPECT_EQ(scheme.getBlocks().size(),1);
+  
+  scheme.stop();
+  
+  EXPECT_TRUE(scheme.removeBlock("vb1"));
+  EXPECT_EQ(scheme.getBlocks().size(),0);
+}
+
 class GroupsTest : public SchemeTest { 
 public:
   GroupsTest() : SchemeTest(),
@@ -397,6 +431,45 @@ TEST_F(DataFlowTest, Latchanalysis) {
 
   EXPECT_EQ(1,scheme.maxLatchCount());
   EXPECT_EQ(1,scheme.minLatchCount());
+}
+
+TEST_F(DataFlowTest, StartAcyclic) {
+  // Connect blocks without cycles
+  ConnectBlocksAcyclic();
+  AddBlocks();
+  EXPECT_TRUE(scheme.start());
+}
+
+TEST_F(DataFlowTest, StartCyclic) {
+  // Connect blocks without cycles
+  ConnectBlocksAcyclic();
+  AddBlocks();
+  EXPECT_TRUE(scheme.start());
+  scheme.stop();
+  // Add some cycles
+  ConnectBlocksCyclic();
+  EXPECT_FALSE(scheme.start());
+}
+
+TEST_F(DataFlowTest, StartLatchConnections) {
+  std::vector<std::vector<std::string> > flow_cycles, exec_cycles;
+
+  // Connect blocks with cycles
+  ConnectBlocksAcyclic();
+
+  AddBlocks();
+
+  scheme.start();
+
+  ConnectBlocksCyclic();
+  EXPECT_FALSE(scheme.regenerateModel());
+  EXPECT_FALSE(scheme.latchConnections("iob5","iob1",true));
+
+  scheme.stop();
+  EXPECT_FALSE(scheme.regenerateModel());
+  EXPECT_TRUE(scheme.latchConnections("iob5","iob1",true));
+  EXPECT_TRUE(scheme.latchConnections("iob5","iob2",true));
+  EXPECT_TRUE(scheme.regenerateModel());
 }
 
 int main(int argc, char** argv) {
