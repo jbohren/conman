@@ -370,6 +370,9 @@ namespace conman
         const bool strict);
 
     //\}
+    
+    //! Call configure on all components atached to scheme in topological order.
+    bool configureAll();
 
     /** \brief (Re)generates an internal model of the RTT port connection graph
      *
