@@ -85,6 +85,9 @@ Scheme::Scheme(std::string name)
   this->addOperation("setEnabledBlocks", &Scheme::setEnabledBlocks, this, RTT::OwnThread)
     .doc("Set the list of running blocks, any block not on the list will be disabled.");
 
+  this->addOperation("configureAll", &Scheme::configureAll, this, RTT::OwnThread)
+    .doc("Call configure on all components atached to scheme in topological order.");
+
   this->addProperty("last_exec_period",last_exec_period_)
     .doc("The last period between two consecutive executions.");
   this->addProperty("min_exec_period",min_exec_period_)
@@ -1751,6 +1754,30 @@ bool Scheme::setEnabledBlocks(
   bool enable_success = this->enableBlocks(enabled_block_names, strict, false);
 
   return disable_success && enable_success;
+}
+
+bool Scheme::configureAll() {
+  using namespace conman::graph;
+  bool ret = true;
+
+  if(!regenerateModel()) {
+    return false;
+  }
+
+  for(ExecutionOrdering::iterator block_it = exec_ordering_.begin();
+      block_it != exec_ordering_.end();
+      ++block_it) 
+  {
+    // Temporary variable for readability
+    DataFlowVertex::Ptr block_vertex = flow_graph_[*block_it];
+
+    // Get the state of the task
+    const RTT::base::TaskCore::TaskState block_state = block_vertex->block->getTaskState();
+    
+    ret = ret && block_vertex->block->configure();
+  }
+  
+  return ret;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
