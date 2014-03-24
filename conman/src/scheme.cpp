@@ -1740,7 +1740,7 @@ bool Scheme::switchBlocks(
 {
   // First disable blocks, so that "force" can be used appropriately when
   // enabling blocks.
-  bool disable_success = this->disableBlocks(strict);
+  bool disable_success = this->disableBlocks(disable_block_names, strict);
   bool enable_success = this->enableBlocks(enable_block_names, strict, force);
 
   return disable_success && enable_success;
