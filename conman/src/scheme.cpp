@@ -1,4 +1,3 @@
-
 #include <boost/bind.hpp>
 #include <boost/algorithm/string.hpp>
 
@@ -297,7 +296,7 @@ bool Scheme::removeBlock(
 
   // Removeing blocks posible only when scheme is stoped
   if(this->getTaskState() != Stopped) {
-    RTT::log(RTT::Error) << "Scheme is in running state. Removeing blocks forbidden." << RTT::endlog();
+    RTT::log(RTT::Error) << "Scheme is in running state. Removing blocks forbidden." << RTT::endlog();
     return false;
   }
 
