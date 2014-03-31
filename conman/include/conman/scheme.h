@@ -308,6 +308,11 @@ namespace conman
      */
     //\{
 
+    //! Check if a block (or group) can be enabled
+    bool enableable(const std::string &block_name) const;
+    //! Check if a list of blocks (or groups) can be enabled
+    bool enableable(const std::vector<std::string> &block_names) const;
+
     //! Enable a single conman Block
     bool enableBlock(RTT::TaskContext *block, const bool force);
     //! Enable a single Conman block (or group) by name
@@ -449,6 +454,11 @@ namespace conman
      */
     conman::graph::ConflictVertexMap conflict_vertex_map_;
     //\}
+    
+    //! Get a block vertex by name
+    const conman::graph::DataFlowVertex::Ptr getBlockVertex(const std::string &name) const;
+    //! Get a conflict vertex by task
+    const conman::graph::ConflictVertexDescriptor getConflictVertex(RTT::TaskContext* task) const;
 
     /** \brief Connect a block in the graph structures
      *

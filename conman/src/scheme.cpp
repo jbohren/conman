@@ -1153,6 +1153,16 @@ void Scheme::computeConflicts(conman::graph::DataFlowVertex::Ptr seed_vertex)
 
 ///////////////////////////////////////////////////////////////////////////////
 
+const conman::graph::DataFlowVertex::Ptr Scheme::getBlockVertex(const std::string &name) const
+{
+  return blocks_.find(name)->second;
+}
+
+const conman::graph::ConflictVertexDescriptor Scheme::getConflictVertex(RTT::TaskContext* task) const
+{
+  return conflict_vertex_map_.find(task)->second;
+}
+
 bool Scheme::addBlockToGraph(conman::graph::DataFlowVertex::Ptr new_vertex)
 {
   using namespace conman::graph;
@@ -1474,7 +1484,7 @@ bool Scheme::enableBlock(const std::string &block_name, const bool force)
   RTT::Logger::In in("Scheme::enableBlock");
 
   // First check if this block is a group
-  std::map<std::string, std::set<std::string> >::iterator group = 
+  conman::GroupMap::iterator group = 
     block_groups_.find(block_name);
 
   if(group != block_groups_.end()) {
@@ -1611,6 +1621,72 @@ bool Scheme::disableBlock(RTT::TaskContext* block)
   return true;
 }
 
+/*
+ *bool Scheme::enableBlocks(
+ *    const std::set<std::string> &block_names,
+ *    const bool strict,
+ *    const bool force)
+ *{
+ *  for(std::set<std::string>::const_iterator it = block_names.begin();
+ *      it != block_names.end();
+ *      ++it)
+ *  { 
+ *  }
+ *}
+ */
+
+bool Scheme::enableable(
+    const std::string &block_name) const
+{
+  using namespace conman::graph;
+
+  // Make sure the block is in the scheme
+  if(this->hasBlock(block_name)) {
+    // Get the blocks that conflict with this block
+    ConflictAdjacencyIterator conflict_it, conflict_end;
+
+    boost::tie(conflict_it, conflict_end) =
+      boost::adjacent_vertices(
+          this->getConflictVertex(
+              this->getBlockVertex(block_name)->block), conflict_graph_);
+
+    // Check if conflicting blocks are running
+    for(; conflict_it != conflict_end; ++conflict_it)
+    {
+      RTT::TaskContext *&conflict_block = conflict_graph_[*conflict_it]->block;
+
+      // Check if the conflicting block is running
+      if(conflict_block->getTaskState() == RTT::TaskContext::Running) {
+        return false;
+      }
+    }
+  } else if(this->hasGroup(block_name)) {
+    // Enable a group
+    if(!this->enableable(this->getGroupMembers(block_name))) {
+      return false;
+    }
+  } else {
+    RTT::log(RTT::Error) << "Could not check block or group for conflicts named \"" << block_name << "\" because it is not in the scheme." << RTT::endlog();
+  }
+
+  return true;
+}
+
+bool Scheme::enableable(
+    const std::vector<std::string> &block_names) const
+{
+  for(std::vector<std::string>::const_iterator it = block_names.begin();
+      it != block_names.end();
+      ++it)
+  {
+    if(!enableable(*it)) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
 bool Scheme::enableBlocks(
     const std::vector<std::string> &block_names,
     const bool strict,
@@ -1618,35 +1694,11 @@ bool Scheme::enableBlocks(
 {
   using namespace conman::graph;
 
-  // First make sure all the blocks can be enabled
+  // First make sure all the blocks can be enabled before actually trying to enable them
   if(!force) {
-    for(std::vector<std::string>::const_iterator it = block_names.begin();
-        it != block_names.end();
-        ++it)
-    {
-      // Make sure the block is in the scheme
-      if(!this->hasBlock(*it)) {
-        RTT::log(RTT::Error) << "Could not enable block named \"" << *it << "\" because it is not in the scheme." << RTT::endlog();
-        continue;
-      }
-
-      // Get the blocks that conflict with this block
-      ConflictAdjacencyIterator conflict_it, conflict_end;
-
-      boost::tie(conflict_it, conflict_end) =
-        boost::adjacent_vertices(conflict_vertex_map_[blocks_[*it]->block], conflict_graph_);
-
-      // Check if conflicting blocks are running
-      for(; conflict_it != conflict_end; ++conflict_it)
-      {
-        RTT::TaskContext *&conflict_block = conflict_graph_[*conflict_it]->block;
-
-        // Check if the conflicting block is running
-        if(conflict_block->getTaskState() == RTT::TaskContext::Running) {
-          RTT::log(RTT::Error) << "Could not enable block named \"" << *it << "\" because it conflicts with block \""<<conflict_block->getName()<<"\"." << RTT::endlog();
-          return false;
-        }
-      }
+    if(!this->enableable(block_names)) {
+      RTT::log(RTT::Error) << "Could not enable block because it has conflicts which will not be force-disabled." << RTT::endlog();
+      return false;
     }
   }
 
@@ -1711,12 +1763,28 @@ bool Scheme::switchBlocks(
     const bool strict,
     const bool force)
 {
+
+  bool success = true;
+
+  for(std::vector<std::string>::const_iterator it = disable_block_names.begin();
+      it != disable_block_names.end();
+      ++it)
+  {
+    // Don't disable a blcok that's about to be enabled
+    if(std::find(enable_block_names.begin(), enable_block_names.end(), *it) == enable_block_names.end()) {
+      // Try to disable the block
+      success &= this->disableBlock(*it);
+
+      // Break on failure if strict
+      if(!success && strict) { return false; }
+    }
+  }
+
   // First disable blocks, so that "force" can be used appropriately when
   // enabling blocks.
-  bool disable_success = this->disableBlocks(strict);
   bool enable_success = this->enableBlocks(enable_block_names, strict, force);
 
-  return disable_success && enable_success;
+  return success;
 }
 
 bool Scheme::setEnabledBlocks(
