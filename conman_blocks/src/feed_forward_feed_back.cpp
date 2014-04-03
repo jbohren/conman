@@ -92,12 +92,12 @@ void FeedForwardFeedBack::updateHook()
 
   // Listen for a pulse
   if(heartbeats_in_.readNewest(heartbeat_) == RTT::NewData || heartbeats_ros_in_.readNewest(heartbeat_ros_) == RTT::NewData) {
-    last_heartbeat_time_ = rtt_rosclock::host_rt_now();
+    last_heartbeat_time_ = rtt_rosclock::host_now();
     heartbeat_warning_ = false;
   }
 
   // Check heartbeats
-  if(!require_heartbeat_ || (rtt_rosclock::host_rt_now() - last_heartbeat_time_).toSec() < heartbeat_max_period_) { 
+  if(!require_heartbeat_ || (rtt_rosclock::host_now() - last_heartbeat_time_).toSec() < heartbeat_max_period_) { 
     // Get the fedback
     if(feedback_in_.readNewest( feedback_effort_, false) == RTT::NewData) {
       if(addend.size() == dim_) {
