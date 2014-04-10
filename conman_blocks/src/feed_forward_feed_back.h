@@ -45,6 +45,7 @@ namespace conman_blocks {
     double heartbeat_max_period_;
     ros::Time last_heartbeat_time_;
     bool heartbeat_warning_;
+    bool enable_feedback_;
 
     // Conman interface
     boost::shared_ptr<conman::Hook> conman_hook_;
