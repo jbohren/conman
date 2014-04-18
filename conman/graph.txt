@@ -1,0 +1,1 @@
+dot -Tps graph_test.dot > output.eps
