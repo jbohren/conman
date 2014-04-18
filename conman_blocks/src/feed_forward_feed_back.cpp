@@ -16,9 +16,11 @@ FeedForwardFeedBack::FeedForwardFeedBack(std::string const& name) :
   ,feedback_effort_()
   ,require_heartbeat_(false)
   ,heartbeat_max_period_(0.01)
+  ,heartbeat_lifetime_(0.0)
   // Haha... dim sum.
   ,feedforward_in_("feedforward_in",RTT::ConnPolicy::buffer(17))
   ,enable_feedback_(true)
+  ,enable_duration_(3.0)
 {
   // Declare properties
   this->addProperty("dim",dim_)
@@ -29,6 +31,10 @@ FeedForwardFeedBack::FeedForwardFeedBack(std::string const& name) :
     .doc("This is the maximum period between heartbeats before feedback control will be disabled.");
   this->addProperty("enable_feedback", enable_feedback_)
     .doc("Set to false to disable feedback term.");
+  this->addProperty("last_heartbeat_time", last_heartbeat_time_)
+    .doc("The last time a heartbeat was recieved.");
+  this->addProperty("enble_duration_", enable_duration_)
+    .doc("The amount of time it should take to go from 0 to 100\% command.");
 
   // Configure data ports
   this->ports()->addPort("feedforward_in", feedforward_in_)
@@ -94,18 +100,28 @@ void FeedForwardFeedBack::updateHook()
   }
 
   // Listen for a pulse
-  if(heartbeats_in_.readNewest(heartbeat_) == RTT::NewData || heartbeats_ros_in_.readNewest(heartbeat_ros_) == RTT::NewData) {
-    last_heartbeat_time_ = rtt_rosclock::host_now();
-    heartbeat_warning_ = false;
-  }
+  if(heartbeats_in_.readNewest(heartbeat_) == RTT::NewData || heartbeats_ros_in_.readNewest(heartbeat_ros_) == RTT::NewData) 
+  {
+    last_heartbeat_time_ = rtt_rosclock::rtt_now();
+
+    if(heartbeat_warning_) {
+      heartbeat_warning_ = false;
+      heartbeat_start_time_ = last_heartbeat_time_;
+    }  
+  } 
+
+  heartbeat_period_ = (rtt_rosclock::rtt_now() - last_heartbeat_time_).toSec();
+  heartbeat_lifetime_ = (rtt_rosclock::rtt_now() - heartbeat_start_time_).toSec();
+
 
   if(enable_feedback_) {
     // Check heartbeats
-    if(!require_heartbeat_ || (rtt_rosclock::host_now() - last_heartbeat_time_).toSec() < heartbeat_max_period_) { 
+    if(!require_heartbeat_ || heartbeat_period_ < heartbeat_max_period_) 
+    {
       // Get the fedback
       if(feedback_in_.readNewest( feedback_effort_, false) == RTT::NewData) {
         if(addend.size() == dim_) {
-          sum_ += feedback_effort_;
+          sum_ += std::min(1.0,(heartbeat_lifetime_/enable_duration_)) * feedback_effort_;
           has_new_data = true;
   /*
    *        if(interpolate_effort) {
@@ -124,6 +140,7 @@ void FeedForwardFeedBack::updateHook()
         }
       }
     } else {
+      heartbeat_lifetime_ = 0.0;
       if(!heartbeat_warning_) { 
         RTT::log(RTT::Warning) << "Heartbeats are not being sent often enough (should be < " << heartbeat_max_period_ << " s). Disabling feedback effort." << addend.size();
         heartbeat_warning_ = true;

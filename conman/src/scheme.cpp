@@ -1876,6 +1876,8 @@ void Scheme::updateHook()
         // Signal an error
         this->error();
       }
+
+      // Store the task's performance metrics
     }
   }
 }

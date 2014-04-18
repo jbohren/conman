@@ -63,7 +63,9 @@ namespace conman {
     //! Get the current execution time
     RTT::Seconds getTime();
     //! Get the period since the last execution time
-    RTT::Seconds getPeriod();
+    RTT::Seconds getPeriod(bool filtered=false);
+    //! Get the period since the last execution time
+    RTT::Seconds getDuration(bool filtered=false);
     //\}
 
     /** \name Execution */
@@ -75,7 +77,7 @@ namespace conman {
     bool update(const RTT::Seconds time);
 
     //\}
-    //
+    
   private:
 
     //! Init flag used for statistics computation initialization
@@ -93,7 +95,9 @@ namespace conman {
       last_exec_time_,
       last_exec_period_,
       min_exec_period_,
-      max_exec_period_;
+      max_exec_period_,
+      smooth_exec_period_,
+      var_exec_period_;
 
     //! Execution statistics
     //TODO: use nsecs instead?
@@ -101,7 +105,8 @@ namespace conman {
       last_exec_duration_,
       min_exec_duration_,
       max_exec_duration_,
-      smooth_exec_duration_;
+      smooth_exec_duration_,
+      var_exec_duration_;
 
     //! Internal properties describing an input port in a conman scheme
     struct InputProperties {

@@ -40,6 +40,10 @@ HookService::HookService(RTT::TaskContext* owner) :
     .doc("The minimum observed execution period between two consecutive executions.");
   this->addProperty("max_exec_period",max_exec_period_)
     .doc("The maximum observed execution period between two consecutive executions.");
+  this->addProperty("smooth_exec_period",smooth_exec_period_)
+    .doc("The filtered mean observed period between two consecutive executions.");
+  this->addProperty("var_exec_period",var_exec_period_)
+    .doc("The variance of the filtered observed period between two consecutive executions.");
 
   this->addProperty("last_exec_duration",last_exec_duration_)
     .doc("The last duration needed to execute the owner's update hook.");
@@ -48,7 +52,9 @@ HookService::HookService(RTT::TaskContext* owner) :
   this->addProperty("max_exec_duration",max_exec_duration_)
     .doc("The maximum observed duration needed to execute the owner's update hook.");
   this->addProperty("smooth_exec_duration",smooth_exec_duration_)
-    .doc("The maximum observed duration needed to execute the owner's update hook.");
+    .doc("The filtered mean observed duration needed to execute the owner's update hook.");
+  this->addProperty("var_exec_duration",var_exec_duration_)
+    .doc("The variance of the filtered observed duration.");
 
   // Conman Configuration Interface
   this->addOperation("setDesiredMinPeriod",&HookService::setDesiredMinPeriod,this,RTT::ClientThread);
@@ -151,9 +157,20 @@ RTT::Seconds HookService::getTime()
   return last_exec_time_;
 }
 
-RTT::Seconds HookService::getPeriod() 
+RTT::Seconds HookService::getPeriod(bool filtered) 
 {
+  if(filtered) {
+    return smooth_exec_period_;
+  }
   return last_exec_period_;
+}
+
+RTT::Seconds HookService::getDuration(bool filtered) 
+{
+  if(filtered) {
+    return smooth_exec_duration_;
+  }
+  return last_exec_duration_;
 }
 
 
@@ -171,9 +188,11 @@ bool HookService::update(const RTT::Seconds time)
 
     min_exec_period_ = 1E9;
     max_exec_period_ = 0.0;
+    var_exec_period_ = 0.0;
 
     min_exec_duration_ = 1E9;
     max_exec_duration_ = 0.0;
+    var_exec_duration_ = 0.0;
 
     init_ = false;
   }
@@ -207,7 +226,12 @@ bool HookService::update(const RTT::Seconds time)
   max_exec_duration_ = std::max(max_exec_duration_,last_exec_duration_);
 
   const double &a = exec_duration_smoothing_factor_;
+  var_exec_duration_ = (1.0-a)*(var_exec_duration_ + a*pow(last_exec_duration_ - smooth_exec_duration_,2));
+  var_exec_period_ = (1.0-a)*(var_exec_period_ + a*pow(last_exec_period_ - smooth_exec_period_,2));
+
   smooth_exec_duration_ = a*smooth_exec_duration_ + (1.0-a)*last_exec_duration_;
+  smooth_exec_period_ = a*smooth_exec_period_ + (1.0-a)*last_exec_period_;
+
 
   return success;
 }
