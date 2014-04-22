@@ -36,6 +36,15 @@ namespace conman {
       getInputExclusivity("getInputExclusivity"),
       getTime("getTime"),
       getPeriod("getPeriod"),
+      getPeriodAvg("getPeriodAvg"),
+      getPeriodMin("getPeriodMin"),
+      getPeriodMax("getPeriodMax"),
+      getPeriodVar("getPeriodVar"),
+      getDuration("getDuration"),
+      getDurationAvg("getDurationAvg"),
+      getDurationMin("getDurationMin"),
+      getDurationMax("getDurationMax"),
+      getDurationVar("getDurationVar"),
       init("init"),
       update("update")
     { 
@@ -45,7 +54,18 @@ namespace conman {
       this->addOperationCaller(getInputExclusivity);
 
       this->addOperationCaller(getTime);
+
       this->addOperationCaller(getPeriod);
+      this->addOperationCaller(getPeriodAvg);
+      this->addOperationCaller(getPeriodMin);
+      this->addOperationCaller(getPeriodMax);
+      this->addOperationCaller(getPeriodVar);
+
+      this->addOperationCaller(getDuration);
+      this->addOperationCaller(getDurationAvg);
+      this->addOperationCaller(getDurationMin);
+      this->addOperationCaller(getDurationMax);
+      this->addOperationCaller(getDurationVar);
 
       this->addOperationCaller(init);
       this->addOperationCaller(update);
@@ -62,8 +82,28 @@ namespace conman {
 
     RTT::OperationCaller<RTT::Seconds(void)>
       getTime;
+
     RTT::OperationCaller<RTT::Seconds(void)>
       getPeriod;
+    RTT::OperationCaller<RTT::Seconds(void)>
+      getPeriodAvg;
+    RTT::OperationCaller<RTT::Seconds(void)>
+      getPeriodMin;
+    RTT::OperationCaller<RTT::Seconds(void)>
+      getPeriodMax;
+    RTT::OperationCaller<RTT::Seconds(void)>
+      getPeriodVar;
+
+    RTT::OperationCaller<RTT::Seconds(void)>
+      getDuration;
+    RTT::OperationCaller<RTT::Seconds(void)>
+      getDurationAvg;
+    RTT::OperationCaller<RTT::Seconds(void)>
+      getDurationMin;
+    RTT::OperationCaller<RTT::Seconds(void)>
+      getDurationMax;
+    RTT::OperationCaller<RTT::Seconds(void)>
+      getDurationVar;
 
     RTT::OperationCaller<bool(const RTT::Seconds)>
       init;

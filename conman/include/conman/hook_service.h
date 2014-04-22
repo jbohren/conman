@@ -63,9 +63,17 @@ namespace conman {
     //! Get the current execution time
     RTT::Seconds getTime();
     //! Get the period since the last execution time
-    RTT::Seconds getPeriod(bool filtered=false);
+    RTT::Seconds getPeriod();
+    RTT::Seconds getPeriodAvg();
+    RTT::Seconds getPeriodMin();
+    RTT::Seconds getPeriodMax();
+    RTT::Seconds getPeriodVar();
     //! Get the period since the last execution time
-    RTT::Seconds getDuration(bool filtered=false);
+    RTT::Seconds getDuration();
+    RTT::Seconds getDurationAvg();
+    RTT::Seconds getDurationMin();
+    RTT::Seconds getDurationMax();
+    RTT::Seconds getDurationVar();
     //\}
 
     /** \name Execution */

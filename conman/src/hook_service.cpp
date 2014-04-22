@@ -17,7 +17,15 @@ HookService::HookService(RTT::TaskContext* owner) :
   RTT::Service("conman_hook",owner),
   // Property Initialization
   desired_min_exec_period_(0.0),
-  exec_duration_smoothing_factor_(0.5)
+  exec_duration_smoothing_factor_(0.99),
+  smooth_exec_period_(0.0),
+  min_exec_period_(1E9),
+  max_exec_period_(0.0),
+  var_exec_period_(0.0),
+  smooth_exec_duration_(0.0),
+  min_exec_duration_(1E9),
+  max_exec_duration_(0.0),
+  var_exec_duration_(0.0)
 { 
   // Constants 
   this->provides("exclusivity")->addConstant("UNRESTRICTED",Exclusivity::UNRESTRICTED);
@@ -63,10 +71,20 @@ HookService::HookService(RTT::TaskContext* owner) :
   this->addOperation("getInputExclusivity",&HookService::getInputExclusivity,this,RTT::ClientThread);
   this->addOperation("getRegisteredInputPorts",&HookService::getRegisteredInputPorts,this,RTT::ClientThread);
 
+
   // Conman Introspection interface
   // Note: These must be client-thread-based because they are called from the master activity
   this->addOperation("getTime",&HookService::getTime,this,RTT::ClientThread);
   this->addOperation("getPeriod",&HookService::getPeriod,this,RTT::ClientThread);
+  this->addOperation("getPeriodAvg",&HookService::getPeriodAvg,this,RTT::ClientThread);
+  this->addOperation("getPeriodMin",&HookService::getPeriodMin,this,RTT::ClientThread);
+  this->addOperation("getPeriodMax",&HookService::getPeriodMax,this,RTT::ClientThread);
+  this->addOperation("getPeriodVar",&HookService::getPeriodVar,this,RTT::ClientThread);
+  this->addOperation("getDuration",&HookService::getDuration,this,RTT::ClientThread);
+  this->addOperation("getDurationAvg",&HookService::getDurationAvg,this,RTT::ClientThread);
+  this->addOperation("getDurationMin",&HookService::getDurationMin,this,RTT::ClientThread);
+  this->addOperation("getDurationMax",&HookService::getDurationMax,this,RTT::ClientThread);
+  this->addOperation("getDurationVar",&HookService::getDurationVar,this,RTT::ClientThread);
 
   // Conman Execution Interface
   // Note: These must be client-thread-based because they are called from the master activity
@@ -157,20 +175,46 @@ RTT::Seconds HookService::getTime()
   return last_exec_time_;
 }
 
-RTT::Seconds HookService::getPeriod(bool filtered) 
+RTT::Seconds HookService::getPeriod() 
 {
-  if(filtered) {
-    return smooth_exec_period_;
-  }
   return last_exec_period_;
 }
-
-RTT::Seconds HookService::getDuration(bool filtered) 
+RTT::Seconds HookService::getPeriodAvg() 
 {
-  if(filtered) {
-    return smooth_exec_duration_;
-  }
+  return smooth_exec_period_;
+}
+RTT::Seconds HookService::getPeriodMin() 
+{
+  return min_exec_period_;
+}
+RTT::Seconds HookService::getPeriodMax() 
+{
+  return max_exec_period_;
+}
+RTT::Seconds HookService::getPeriodVar() 
+{
+  return var_exec_period_;
+}
+
+RTT::Seconds HookService::getDuration() 
+{
   return last_exec_duration_;
+}
+RTT::Seconds HookService::getDurationAvg() 
+{
+  return smooth_exec_duration_;
+}
+RTT::Seconds HookService::getDurationMin() 
+{
+  return min_exec_duration_;
+}
+RTT::Seconds HookService::getDurationMax() 
+{
+  return max_exec_duration_;
+}
+RTT::Seconds HookService::getDurationVar() 
+{
+  return var_exec_duration_;
 }
 
 

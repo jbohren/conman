@@ -12,6 +12,10 @@
 #include <rtt_roscomm/rtt_rostopic.h>
 
 #include <boost/algorithm/string.hpp>
+#include <boost/format.hpp>
+#include <conman/hook.h>
+#include <iomanip>
+
 
 using namespace conman_ros;
 
@@ -167,7 +171,7 @@ void ROSInterfaceService::broadcastGraph()
   RTT::Logger::In in("Scheme::broadcastGraph");
 
   // Create stringstreams for generating dotcode
-  std::ostringstream main_stream, edge_stream;
+  std::ostringstream main_stream;
 
   // Construct preamble
   main_stream << "\
@@ -206,7 +210,47 @@ void ROSInterfaceService::broadcastGraph()
       oss << "<" << sanitize(*port_name_it) << ">" << *port_name_it << "|";
     }
 
-    oss << "}}\"];";
+    oss << "}}";
+
+    // Add statistics
+    RTT::TaskContext *task = scheme->getPeer(block_it->name);
+    boost::shared_ptr<conman::Hook> hook = conman::Hook::GetHook(task);
+    RTT::Seconds 
+      pavg = hook->getPeriodAvg(),
+      pmin = hook->getPeriodMin(), 
+      pmax = hook->getPeriodMax(), 
+      pvar = hook->getPeriodVar();
+    RTT::Seconds 
+      davg = hook->getDurationAvg(),
+      dmin = hook->getDurationMin(), 
+      dmax = hook->getDurationMax(), 
+      dvar = hook->getDurationVar();
+
+    double fraction  = davg/pavg;
+
+    // |{{0.0001|205.7}|{0.00112 +/- 1E-7 (85%)|800.4 +/- 3} | {0.002|855.5}}
+
+    oss << boost::str(boost::format("|{{%1.2e|%1.2e}|{%1.2e +/- %1.1e|%1.2e +/- %1.1e (%3.1f%%)}|{%1.2e|%1.2e}}") 
+                      % pmin % dmin % pavg % pvar % davg % dvar % (100.0*fraction) % pmax % dmax);
+    //oss << "|{ period: " << pmin << "|" << pavg << " +/- " << std::setprecision(2) << pvar << "|" << pmax << "}";
+    //oss << "|{ duration: " << dmin << "|" << davg << " +/- " << dvar << "|" << dmax << "| " << fraction*100.0 << "% }";
+    oss << "\"";
+
+#if 0
+    oss << "fillcolor=\"#" << std::hex 
+      << int(255*fraction) 
+      << int(255*(1.0-fraction)) 
+      << int(255*(1.0-fraction)) << std::dec << "\"";
+#endif
+
+    if(task->isRunning()) {
+      oss << " fillcolor=\"" << 0.66*(1.0-std::min(std::max(fraction,0.0),1.0)) << " 0.6 0.8 \"";
+      oss << " color=\"" << 0.66*(1.0-std::min(std::max(fraction,0.0),1.0)) << " 0.6 0.3 \"";
+    } else {
+      oss << " fillcolor=\"0.0 0.0 0.8\" color=\"0.0 0.0 0.3\"";
+    }
+
+    oss << "];";
   }
 
   std::vector<conman::ConnectionDescription> conn_descriptions;
