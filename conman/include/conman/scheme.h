@@ -203,9 +203,8 @@ namespace conman
     bool latchOutputs(const std::string &name, const bool latch);
     //! Set latching for all current and future input arcs to a given block
     bool latchOutputs(RTT::TaskContext *block, const bool latch);
-
     //\}
-    
+
     ///////////////////////////////////////////////////////////////////////////
     /** \name Latch Analysis
      *
@@ -405,6 +404,9 @@ namespace conman
 
     //\}
 
+    void getConnectionDescriptions(std::vector<conman::ConnectionDescription> &connections);
+    void getBlockDescriptions(std::vector<conman::BlockDescription> &blocks);
+    
   protected:
 
     /** \brief The last time updateHook was called.

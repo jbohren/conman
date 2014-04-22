@@ -1269,27 +1269,6 @@ bool Scheme::removeBlockFromGraph(conman::graph::DataFlowVertex::Ptr vertex)
   return this->regenerateModel();
 }
 
-void get_all_ports(
-    boost::shared_ptr<RTT::Service> service,
-    std::vector<RTT::base::PortInterface*> &ports)
-{
-  // Get ports on this service
-  const std::vector<RTT::base::PortInterface*> &service_ports = service->getPorts();
-  ports.insert(ports.end(), service_ports.begin(), service_ports.end());
-
-  // Get the sub-services
-  RTT::Service::ProviderNames provider_names = service->getProviderNames();
-
-  RTT::Service::ProviderNames::const_iterator provider_name_it;
-  for(provider_name_it = provider_names.begin();
-      provider_name_it != provider_names.end();
-      ++provider_name_it)
-  {
-    // Get ports on sub-service
-    get_all_ports(service->provides(*provider_name_it), ports);
-  }
-}
-
 bool Scheme::regenerateModel()
 {
   using namespace conman::graph;
@@ -1315,7 +1294,7 @@ bool Scheme::regenerateModel()
 
     // Get the output ports for a given taskcontext
     std::vector<RTT::base::PortInterface*> ports;
-    get_all_ports(source_vertex->block->provides(), ports);
+    GetAllPorts(source_vertex->block->provides(), ports);
 
     // Create graph arcs for each port between blocks
     std::vector<RTT::base::PortInterface*>::const_iterator port_it;
@@ -1876,8 +1855,53 @@ void Scheme::updateHook()
         // Signal an error
         this->error();
       }
-
-      // Store the task's performance metrics
     }
   }
 }
+
+void Scheme::getConnectionDescriptions(
+    std::vector<conman::ConnectionDescription> &connections)
+{
+  using namespace conman::graph;
+
+  // Iterate over all blocks in the dataflow graph
+  std::map<std::string,graph::DataFlowVertex::Ptr>::iterator block_it;
+  for(block_it = blocks_.begin(); block_it != blocks_.end(); ++block_it) {
+
+    RTT::TaskContext *block = block_it->second->block;
+
+    // Iterate over all out edges for this block
+    DataFlowOutEdgeIterator out_edge_it, out_edge_end;
+    for(boost::tie(out_edge_it, out_edge_end) = boost::out_edges(flow_vertex_map_[block], flow_graph_);
+        out_edge_it != out_edge_end; 
+        ++out_edge_it) 
+    {
+      // Get a reference to the output edge properties for convenience
+      const DataFlowEdge::Ptr out_edge = flow_graph_[*out_edge_it];
+
+      // For each edge, iterate over all connections between the two components
+      for(std::vector<DataFlowEdge::Connection>::const_iterator out_conn_it = out_edge->connections.begin();
+          out_conn_it != out_edge->connections.end();
+          ++out_conn_it)
+      {
+        // For each connection, add a Connection::Description to the vector
+        connections.push_back(conman::ConnectionDescription(out_edge->latched, *out_conn_it));
+      }
+    }
+  }
+}
+
+void Scheme::getBlockDescriptions(
+    std::vector<conman::BlockDescription> &blocks)
+{
+  using namespace conman::graph;
+
+  // Iterate over all blocks in the dataflow graph
+  std::map<std::string,graph::DataFlowVertex::Ptr>::iterator block_it;
+  for(block_it = blocks_.begin(); block_it != blocks_.end(); ++block_it) {
+    RTT::TaskContext *block = block_it->second->block;
+
+    blocks.push_back(conman::BlockDescription(block));
+  }
+}
+
