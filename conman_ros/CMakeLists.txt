@@ -19,6 +19,8 @@ include(${OROCOS-RTT_USE_FILE_PATH}/UseOROCOS-RTT.cmake )
 #ros_generate_rtt_typekit(${PROJECT_NAME})
 #ros_generate_rtt_service_proxies(${PROJECT_NAME})
 
+add_definitions(-DRTT_COMPONENT)
+
 orocos_use_package(conman)
 orocos_use_package(rtt_roscomm)
 

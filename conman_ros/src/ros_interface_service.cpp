@@ -9,6 +9,10 @@
 
 #include "ros_interface_service.h"
 
+#include <rtt_roscomm/rtt_rostopic.h>
+
+#include <boost/algorithm/string.hpp>
+
 using namespace conman_ros;
 
 ROSInterfaceService::ROSInterfaceService(RTT::TaskContext* owner) :
@@ -66,6 +70,13 @@ ROSInterfaceService::ROSInterfaceService(RTT::TaskContext* owner) :
   rosservice->connect("roscontrol.unloadController",
                      "controller_manager/unload_controller",
                      "controller_manager_msgs/UnloadController"); 
+
+  // Introspection
+  introspection = owner->provides("introspection");
+  introspection->addOperation("broadcastGraph", &ROSInterfaceService::broadcastGraph, this, RTT::ClientThread)
+    .doc("Broadcast a graphviz representation of the scheme and its members.");
+  introspection->addPort("dotcode_out", dotcode_out_);
+  dotcode_out_.createStream(rtt_roscomm::topic("~"+owner->getName()+"/dotcode"));
 
 }
 
@@ -139,6 +150,82 @@ bool ROSInterfaceService::unloadControllerCB(
     controller_manager_msgs::UnloadController::Response& resp)
 {
   return false;
+}
+
+
+// Graphviz record labels can't have dots in them
+std::string sanitize(const std::string &unclean) {
+  std::string clean(unclean);
+  boost::replace_all(clean, ".", "_DOT_");
+  return clean;
+}
+
+void ROSInterfaceService::broadcastGraph()
+{
+  using namespace conman::graph;
+
+  RTT::Logger::In in("Scheme::broadcastGraph");
+
+  // Create stringstreams for generating dotcode
+  std::ostringstream main_stream, edge_stream;
+
+  // Construct preamble
+  main_stream << "\
+    digraph " << this->getName() << " {\
+      splines=true;\
+      overlap=false;\
+      rankdir=LR;\
+      nodesep=0.5;\
+      ranksep=1.5;\
+      fontname=\"sans\";\
+      node [style=\"rounded,filled\",fontsize=15,color=\"#777777\",fillcolor=\"#eeeeee\"]\
+      ";
+
+  // Get blocks
+  std::vector<conman::BlockDescription> block_descriptions;
+  scheme->getBlockDescriptions(block_descriptions);
+
+  for(std::vector<conman::BlockDescription>::const_iterator block_it=block_descriptions.begin();
+      block_it != block_descriptions.end();
+      ++block_it)
+  {
+    std::ostringstream &oss = main_stream;
+    oss << block_it->name + "[shape=record, label=\"\\N|{{";
+
+    for(std::vector<std::string>::const_iterator port_name_it=block_it->input_ports.begin();
+        port_name_it != block_it->input_ports.end();
+        ++port_name_it)
+    {
+      oss << "<" << sanitize(*port_name_it) << ">" << *port_name_it << "|";
+    }
+    oss << "}| |{";
+    for(std::vector<std::string>::const_iterator port_name_it=block_it->output_ports.begin();
+        port_name_it != block_it->output_ports.end();
+        ++port_name_it)
+    {
+      oss << "<" << sanitize(*port_name_it) << ">" << *port_name_it << "|";
+    }
+
+    oss << "}}\"];";
+  }
+
+  std::vector<conman::ConnectionDescription> conn_descriptions;
+  scheme->getConnectionDescriptions(conn_descriptions);
+
+  for(std::vector<conman::ConnectionDescription>::const_iterator conn_it=conn_descriptions.begin();
+      conn_it != conn_descriptions.end();
+      ++conn_it)
+  {
+    std::ostringstream &oss = main_stream;
+    oss << conn_it->source << ":" << sanitize(conn_it->source_port) << " -> " << conn_it->sink << ":" << sanitize(conn_it->sink_port) << ";";
+  }
+
+  main_stream << "}";
+
+  std_msgs::String msg;
+  msg.data = main_stream.str();
+  
+  dotcode_out_.write(msg);
 }
 
 ORO_SERVICE_NAMED_PLUGIN(conman_ros::ROSInterfaceService, "conman_ros");

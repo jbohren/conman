@@ -19,6 +19,8 @@
 #include <conman/conman.h>
 #include <conman/scheme.h>
 
+#include <std_msgs/String.h>
+
 // ROS srv types
 #include <controller_manager_msgs/ListControllerTypes.h>
 #include <controller_manager_msgs/ListControllers.h>
@@ -40,6 +42,7 @@ namespace conman_ros {
     ROSInterfaceService(RTT::TaskContext* owner);
 
     boost::shared_ptr<RTT::Service> roscontrol;
+    boost::shared_ptr<RTT::Service> introspection;
     boost::shared_ptr<rtt_rosservice::ROSService> rosservice;
 
     bool listControllerTypesCB(       controller_manager_msgs::ListControllerTypes::Request &req,       controller_manager_msgs::ListControllerTypes::Response& resp);
@@ -49,12 +52,16 @@ namespace conman_ros {
     bool switchControllerCB(          controller_manager_msgs::SwitchController::Request &req,          controller_manager_msgs::SwitchController::Response& resp);
     bool unloadControllerCB(          controller_manager_msgs::UnloadController::Request &req,          controller_manager_msgs::UnloadController::Response& resp);
 
+    RTT::OutputPort<std_msgs::String> dotcode_out_;
+
   private:
     conman::Scheme *scheme;
 
     RTT::OperationCaller<std::vector<std::string>(void)> getBlocks;
     RTT::OperationCaller<std::vector<std::string>(void)> getGroups;
     RTT::OperationCaller<bool(std::vector<std::string>&, std::vector<std::string>&, bool, bool)> switchBlocks;
+
+    void broadcastGraph();
   };
 }
 
