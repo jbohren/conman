@@ -123,6 +123,11 @@ void FeedForwardFeedBack::updateHook()
         if(addend.size() == dim_) {
           sum_ += std::min(1.0,(heartbeat_lifetime_/enable_duration_)) * feedback_effort_;
           has_new_data = true;
+
+          // TODO:::::::::::::::::
+          // compute joint-space inertia matrix and its inverse
+          // apply commanded torque and compute acceleration a = Hinv*f
+          // compute commanded jerk j = (a1 - a0) / dt 
   /*
    *        if(interpolate_effort) {
    *          joint_effort = joint_effort_last + interpolation_scale * (joint_effort_raw - joint_effort_last);
@@ -146,6 +151,8 @@ void FeedForwardFeedBack::updateHook()
         heartbeat_warning_ = true;
       }
     }
+  } else {
+    heartbeat_lifetime_ = 0.0;
   }
 
   // Write the sum
