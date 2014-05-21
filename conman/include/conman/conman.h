@@ -24,12 +24,13 @@
 #include <boost/graph/labeled_graph.hpp>
 
 //! Conman Controller Manager
-namespace conman {
-
+namespace conman 
+{
   //! Forward declarations
   class Hook;
 
-  namespace graph {
+  namespace graph 
+  {
 
     //! Boost Graph Vertex Metadata for Data Flow Graph
     struct DataFlowVertex 
@@ -48,54 +49,6 @@ namespace conman {
       boost::shared_ptr<conman::Hook> hook;
     };
 
-    //! Get the string name for the path to a service
-    static const std::string ResolveServicePath(const RTT::Service *service)
-    {
-      RTT::Service
-        *parent_service = NULL, 
-        *parent_parent_service = NULL; 
-
-      if(service) {
-        parent_service = service->getParent().get();
-
-        if(parent_service) {
-          parent_parent_service = parent_service->getParent().get();
-
-          if(parent_parent_service) {
-            std::string parent_path = ResolveServicePath(parent_service);
-            
-            if(parent_path.length() > 0) {
-              return parent_path + "." + service->getName();
-            }
-          }
-        } else {
-          // service is the root service
-          return "";
-        }
-      } else {
-        // service doesn't exist
-        return "";
-      }
-
-      return service->getName();
-    }
-
-    //! Get the full path string for an RTT data port
-    static const std::string ResolvePortPath(const RTT::Service *service, const RTT::base::PortInterface *port)
-    {
-      if(!service || !port) {
-        return "";
-      }
-
-      const std::string service_path = ResolveServicePath(service);
-      
-      if(service_path.length() > 0) {
-        return service_path + "." + port->getName();
-      }
-
-      return port->getName();
-    }
-
     //! Boost Graph Edge Metadata for Data Flow Graph
     struct DataFlowEdge 
     {
@@ -105,7 +58,17 @@ namespace conman {
       bool latched;
 
       //! Model representing a single RTT data port connection
-      struct Connection {
+      struct Connection 
+      {
+        //! The service the source port lives on
+        RTT::Service *source_service;
+        //! The service the sink port lives on
+        RTT::Service *sink_service;
+        //! The source (output) port
+        RTT::base::PortInterface *source_port;
+        //! The sink (input) port:
+        RTT::base::PortInterface *sink_port;
+
         Connection(
             RTT::Service *source_service_,
             RTT::base::PortInterface *source_port_,
@@ -116,14 +79,6 @@ namespace conman {
           source_port(source_port_),
           sink_port(sink_port_) { }
 
-        //! The service the source port lives on
-        RTT::Service *source_service;
-        //! The service the sink port lives on
-        RTT::Service *sink_service;
-        //! The source (output) port
-        RTT::base::PortInterface *source_port;
-        //! The sink (input) port:
-        RTT::base::PortInterface *sink_port;
       };
 
       //! All the connections on this edge
@@ -268,7 +223,6 @@ namespace conman {
     typedef boost::graph_traits<conman::graph::ConflictGraph>::vertex_iterator ConflictVertexIterator;
     //! Iterator for iterating over adjacent vertices in the ConflictGraph in no particular order
     typedef boost::graph_traits<conman::graph::ConflictGraph>::adjacency_iterator ConflictAdjacencyIterator;
-    
   }
 
   //! Exclusivity modes describe how a given port can be accessed.
@@ -282,6 +236,145 @@ namespace conman {
 
   //! Structure for representing groups of comopnents
   typedef std::map<std::string, std::set<std::string> > GroupMap;
+
+
+  //! Get all ports for a service
+  static const void GetAllPorts(
+      boost::shared_ptr<RTT::Service> service,
+      std::vector<RTT::base::PortInterface*> &ports)
+  {
+    // Get ports on this service
+    const std::vector<RTT::base::PortInterface*> &service_ports = service->getPorts();
+    ports.insert(ports.end(), service_ports.begin(), service_ports.end());
+
+    // Get the sub-services
+    RTT::Service::ProviderNames provider_names = service->getProviderNames();
+
+    RTT::Service::ProviderNames::const_iterator provider_name_it;
+    for(provider_name_it = provider_names.begin();
+        provider_name_it != provider_names.end();
+        ++provider_name_it)
+    {
+      // Get ports on sub-service
+      GetAllPorts(service->provides(*provider_name_it), ports);
+    }
+  }
+
+  //! Get all ports for a task
+  static const void GetAllPorts(
+      RTT::TaskContext *task,
+      std::vector<RTT::base::PortInterface*> &ports)
+  {
+    GetAllPorts(task->provides(), ports);
+  }
+
+  //! Get the string name for the path to a service
+  static const std::string ResolveServicePath(const RTT::Service *service)
+  {
+    RTT::Service
+      *parent_service = NULL, 
+    *parent_parent_service = NULL; 
+
+    if(service) {
+      parent_service = service->getParent().get();
+
+      if(parent_service) {
+        parent_parent_service = parent_service->getParent().get();
+
+        if(parent_parent_service) {
+          std::string parent_path = ResolveServicePath(parent_service);
+
+          if(parent_path.length() > 0) {
+            return parent_path + "." + service->getName();
+          }
+        }
+      } else {
+        // service is the root service
+        return "";
+      }
+    } else {
+      // service doesn't exist
+      return "";
+    }
+
+    return service->getName();
+  }
+
+  //! Get the full path string for an RTT data port
+  //! This will prepend all parent service names up to but not including the owner task
+  static const std::string ResolvePortPath(
+      const RTT::Service *service,
+      const RTT::base::PortInterface *port)
+  {
+    if(!service || !port) {
+      return "";
+    }
+
+    const std::string service_path = ResolveServicePath(service);
+
+    if(service_path.length() > 0) {
+      return service_path + "." + port->getName();
+    }
+
+    return port->getName();
+  }
+
+  static const std::string ResolvePortPath(
+      const RTT::base::PortInterface *port)
+  {
+    return ResolvePortPath(port->getInterface()->getService(),port);
+  }
+
+  //! A structure for describing a block with names only
+  struct BlockDescription 
+  {
+    std::string name;
+    std::vector<std::string> input_ports;
+    std::vector<std::string> output_ports;
+
+    BlockDescription(RTT::TaskContext *task) 
+    { 
+      if(task) {
+        // Get the name
+        name = task->getName();
+
+        // Get all the ports for this task
+        std::vector<RTT::base::PortInterface*> ports;
+        GetAllPorts(task, ports);
+
+        for(std::vector<RTT::base::PortInterface*>::const_iterator port_it = ports.begin();
+            port_it != ports.end();
+            ++port_it)
+        {
+          if(dynamic_cast<const RTT::base::InputPortInterface*>(*port_it)) {
+            input_ports.push_back(ResolvePortPath(*port_it));
+          } else if(dynamic_cast<const RTT::base::OutputPortInterface*>(*port_it)) {
+            output_ports.push_back(ResolvePortPath(*port_it));
+          }
+        }
+      }
+    }
+  };
+    
+  //! A structure for describing a connection with names only
+  struct ConnectionDescription 
+  {
+    bool latched;
+
+    std::string 
+      source,
+      sink,
+      source_port,
+      sink_port;
+
+    ConnectionDescription(bool latched_, const graph::DataFlowEdge::Connection &conn) :
+      latched(latched_),
+      source(conn.source_service->getOwner()->getName()),
+      sink(conn.sink_service->getOwner()->getName()),
+      source_port(ResolvePortPath(conn.source_service, conn.source_port)),
+      sink_port(ResolvePortPath(conn.sink_service, conn.sink_port))
+    { }
+  };
 }
 
 #endif // ifndef __CONMAN_CONMAN_H

@@ -16,8 +16,11 @@ FeedForwardFeedBack::FeedForwardFeedBack(std::string const& name) :
   ,feedback_effort_()
   ,require_heartbeat_(false)
   ,heartbeat_max_period_(0.01)
+  ,heartbeat_lifetime_(0.0)
   // Haha... dim sum.
   ,feedforward_in_("feedforward_in",RTT::ConnPolicy::buffer(17))
+  ,enable_feedback_(true)
+  ,enable_duration_(3.0)
 {
   // Declare properties
   this->addProperty("dim",dim_)
@@ -26,6 +29,12 @@ FeedForwardFeedBack::FeedForwardFeedBack(std::string const& name) :
     .doc("If true, feedback effort will be disabled if there is no heartbeat heartbeat.");
   this->addProperty("heartbeat_max_period", heartbeat_max_period_)
     .doc("This is the maximum period between heartbeats before feedback control will be disabled.");
+  this->addProperty("enable_feedback", enable_feedback_)
+    .doc("Set to false to disable feedback term.");
+  this->addProperty("last_heartbeat_time", last_heartbeat_time_)
+    .doc("The last time a heartbeat was recieved.");
+  this->addProperty("enble_duration_", enable_duration_)
+    .doc("The amount of time it should take to go from 0 to 100\% command.");
 
   // Configure data ports
   this->ports()->addPort("feedforward_in", feedforward_in_)
@@ -91,39 +100,59 @@ void FeedForwardFeedBack::updateHook()
   }
 
   // Listen for a pulse
-  if(heartbeats_in_.readNewest(heartbeat_) == RTT::NewData || heartbeats_ros_in_.readNewest(heartbeat_ros_) == RTT::NewData) {
-    last_heartbeat_time_ = rtt_rosclock::host_rt_now();
-    heartbeat_warning_ = false;
-  }
+  if(heartbeats_in_.readNewest(heartbeat_) == RTT::NewData || heartbeats_ros_in_.readNewest(heartbeat_ros_) == RTT::NewData) 
+  {
+    last_heartbeat_time_ = rtt_rosclock::rtt_now();
 
-  // Check heartbeats
-  if(!require_heartbeat_ || (rtt_rosclock::host_rt_now() - last_heartbeat_time_).toSec() < heartbeat_max_period_) { 
-    // Get the fedback
-    if(feedback_in_.readNewest( feedback_effort_, false) == RTT::NewData) {
-      if(addend.size() == dim_) {
-        sum_ += feedback_effort_;
-        has_new_data = true;
-/*
- *        if(interpolate_effort) {
- *          joint_effort = joint_effort_last + interpolation_scale * (joint_effort_raw - joint_effort_last);
- *          interpolation_scale = std::min(1.0,std::max(0.0,(interpolation_scale*interpolation_time + period)/interpolation_time));
- *
- *          if(fabs(interpolation_scale-1.0) < 1E-6) {
- *            interpolate_effort = false;
- *            interpolation_scale = 0.0;
- *          }
- *        }
- */
-      } else {
-        RTT::log(RTT::Error) << "Feed-back input to FeedForwardFeedBack component does not have the correct dimension. All inputs should have dimension "<<dim_<<" but this input had dimension " << addend.size();
-        this->error();
+    if(heartbeat_warning_) {
+      heartbeat_warning_ = false;
+      heartbeat_start_time_ = last_heartbeat_time_;
+    }  
+  } 
+
+  heartbeat_period_ = (rtt_rosclock::rtt_now() - last_heartbeat_time_).toSec();
+  heartbeat_lifetime_ = (rtt_rosclock::rtt_now() - heartbeat_start_time_).toSec();
+
+
+  if(enable_feedback_) {
+    // Check heartbeats
+    if(!require_heartbeat_ || heartbeat_period_ < heartbeat_max_period_) 
+    {
+      // Get the fedback
+      if(feedback_in_.readNewest( feedback_effort_, false) == RTT::NewData) {
+        if(addend.size() == dim_) {
+          sum_ += std::min(1.0,(heartbeat_lifetime_/enable_duration_)) * feedback_effort_;
+          has_new_data = true;
+
+          // TODO:::::::::::::::::
+          // compute joint-space inertia matrix and its inverse
+          // apply commanded torque and compute acceleration a = Hinv*f
+          // compute commanded jerk j = (a1 - a0) / dt 
+  /*
+   *        if(interpolate_effort) {
+   *          joint_effort = joint_effort_last + interpolation_scale * (joint_effort_raw - joint_effort_last);
+   *          interpolation_scale = std::min(1.0,std::max(0.0,(interpolation_scale*interpolation_time + period)/interpolation_time));
+   *
+   *          if(fabs(interpolation_scale-1.0) < 1E-6) {
+   *            interpolate_effort = false;
+   *            interpolation_scale = 0.0;
+   *          }
+   *        }
+   */
+        } else {
+          RTT::log(RTT::Error) << "Feed-back input to FeedForwardFeedBack component does not have the correct dimension. All inputs should have dimension "<<dim_<<" but this input had dimension " << addend.size();
+          this->error();
+        }
+      }
+    } else {
+      heartbeat_lifetime_ = 0.0;
+      if(!heartbeat_warning_) { 
+        RTT::log(RTT::Warning) << "Heartbeats are not being sent often enough (should be < " << heartbeat_max_period_ << " s). Disabling feedback effort." << addend.size();
+        heartbeat_warning_ = true;
       }
     }
   } else {
-    if(!heartbeat_warning_) { 
-      RTT::log(RTT::Warning) << "Heartbeats are not being sent often enough (should be < " << heartbeat_max_period_ << " s). Disabling feedback effort." << addend.size();
-      heartbeat_warning_ = true;
-    }
+    heartbeat_lifetime_ = 0.0;
   }
 
   // Write the sum
