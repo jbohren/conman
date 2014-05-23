@@ -118,9 +118,9 @@ void FeedForwardFeedBack::updateHook()
     // Check heartbeats
     if(!require_heartbeat_ || heartbeat_period_ < heartbeat_max_period_) 
     {
-      // Get the fedback
+      // Get the feedback
       if(feedback_in_.readNewest( feedback_effort_, false) == RTT::NewData) {
-        if(addend.size() == dim_) {
+        if(feedback_effort_.size() == dim_) {
           sum_ += std::min(1.0,(heartbeat_lifetime_/enable_duration_)) * feedback_effort_;
           has_new_data = true;
 
