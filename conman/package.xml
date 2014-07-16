@@ -41,6 +41,9 @@
   <!--   <test_depend>gtest</test_depend> -->
   <buildtool_depend>catkin</buildtool_depend>
 
+  <build_depend>ocl</build_depend>
+  <run_depend>ocl</run_depend>
+
   <build_depend>rtt</build_depend>
   <run_depend>rtt</run_depend>
 
