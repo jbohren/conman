@@ -45,7 +45,7 @@ add_dependencies(${PROJECT_NAME} ${${PROJECT_NAME}_EXPORTED_TARGETS})
 
 orocos_generate_package(
   DEPENDS ${PROJECT_NAME}
-  DEPENDS_TARGETS rtt_roscomm)
+  DEPENDS_TARGETS rtt_roscomm rtt_actionlib)
 
 
 

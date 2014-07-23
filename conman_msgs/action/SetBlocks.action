@@ -1,0 +1,9 @@
+string[] disable
+string[] enable
+bool diff
+bool force
+bool strict
+---
+string[] enabled
+string[] disabled
+---
