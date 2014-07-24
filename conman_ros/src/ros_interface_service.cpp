@@ -81,10 +81,6 @@ ROSInterfaceService::ROSInterfaceService(RTT::TaskContext* owner) :
   get_blocks_action_server_.registerGoalCallback(boost::bind(&ROSInterfaceService::get_blocks_goal_cb, this, _1));
   get_blocks_action_server_.start();
 
-  set_blocks_action_server_.addPorts(this->provides("set_blocks_action"), true, "~"+this->getOwner()->getName()+"/set_blocks_action/");
-  set_blocks_action_server_.registerGoalCallback(boost::bind(&ROSInterfaceService::set_blocks_goal_cb, this, _1));
-  set_blocks_action_server_.start();
-
   // Introspection
   introspection = owner->provides("introspection");
   introspection->addOperation("broadcastGraph", &ROSInterfaceService::broadcastGraph, this, RTT::ClientThread)
