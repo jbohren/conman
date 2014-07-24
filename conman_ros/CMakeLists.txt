@@ -23,6 +23,7 @@ add_definitions(-DRTT_COMPONENT)
 
 orocos_use_package(conman)
 orocos_use_package(rtt_roscomm)
+orocos_use_package(rtt_rosclock)
 
 include_directories(
   ${catkin_INCLUDE_DIRS}
