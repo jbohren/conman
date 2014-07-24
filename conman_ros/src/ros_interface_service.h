@@ -29,6 +29,12 @@
 #include <controller_manager_msgs/SwitchController.h>
 #include <controller_manager_msgs/UnloadController.h>
 
+#include <rtt_actionlib/rtt_actionlib.h>
+#include <rtt_actionlib/rtt_action_server.h>
+
+#include <conman_msgs/GetBlocksAction.h>
+#include <conman_msgs/SetBlocksAction.h>
+
 namespace conman_ros {
   
   //! This service provides a ROS interface to control a Conman Scheme
@@ -60,6 +66,12 @@ namespace conman_ros {
     RTT::OperationCaller<std::vector<std::string>(void)> getBlocks;
     RTT::OperationCaller<std::vector<std::string>(void)> getGroups;
     RTT::OperationCaller<bool(std::vector<std::string>&, std::vector<std::string>&, bool, bool)> switchBlocks;
+
+    rtt_actionlib::RTTActionServer<conman_msgs::GetBlocksAction> get_blocks_action_server_;
+    rtt_actionlib::RTTActionServer<conman_msgs::SetBlocksAction> set_blocks_action_server_;
+
+    void get_blocks_goal_cb(actionlib::ServerGoalHandle<conman_msgs::GetBlocksAction> gh);
+    void set_blocks_goal_cb(actionlib::ServerGoalHandle<conman_msgs::SetBlocksAction> gh);
 
     void broadcastGraph();
   };

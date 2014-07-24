@@ -1,8 +1,10 @@
 <?xml version="1.0"?>
 <package>
-  <name>conman_ros</name>
+  <name>rqt_conman</name>
   <version>0.0.0</version>
-  <description>The conman_ros package</description>
+  <description>
+    This is a smple rqt-based GUI for Conman
+  </description>
 
   <!-- One maintainer tag required, multiple allowed, one person per tag --> 
   <!-- Example:  -->
@@ -19,7 +21,7 @@
   <!-- Url tags are optional, but mutiple are allowed, one per tag -->
   <!-- Optional attribute type can be: website, bugtracker, or repository -->
   <!-- Example: -->
-  <!-- <url type="website">http://ros.org/wiki/conman_ros</url> -->
+  <!-- <url type="website">http://wiki.ros.org/rqt_dot</url> -->
 
 
   <!-- Author tags are optional, mutiple are allowed, one per tag -->
@@ -41,35 +43,21 @@
   <!--   <test_depend>gtest</test_depend> -->
   <buildtool_depend>catkin</buildtool_depend>
 
-  <build_depend>rtt</build_depend>
-  <build_depend>rtt_roscomm</build_depend>
-  <build_depend>rtt_actionlib</build_depend>
-  <build_depend>conman</build_depend>
-  <run_depend>conman</run_depend>
-
-  <build_depend>conman_msgs</build_depend>
+  <run_depend>xdot</run_depend>
+  <run_depend>rospy</run_depend>
+  <run_depend>rqt_gui</run_depend>
+  <run_depend>rqt_gui_py</run_depend>
+  <run_depend>rqt_dot</run_depend>
   <run_depend>conman_msgs</run_depend>
-  <build_depend>rtt_conman_msgs</build_depend>
-  <run_depend>rtt_conman_msgs</run_depend>
 
-  <build_depend>controller_manager_msgs</build_depend>
-  <run_depend>controller_manager_msgs</run_depend>
-  <build_depend>rtt_controller_manager_msgs</build_depend>
-  <run_depend>rtt_controller_manager_msgs</run_depend>
 
   <!-- The export tag contains other, unspecified, tags -->
   <export>
-    <rtt_ros>
-      <plugin_depend>conman</plugin_depend>
-      <plugin_depend>rtt_roscomm</plugin_depend>
-      <plugin_depend>rtt_actionlib</plugin_depend>
-      <plugin_depend>rtt_controller_manager_msgs</plugin_depend>
-      <plugin_depend>rtt_conman_msgs</plugin_depend>
-    </rtt_ros>
     <!-- You can specify that this package is a metapackage here: -->
     <!-- <metapackage/> -->
 
     <!-- Other tools can request additional information be placed here -->
+    <rqt_gui plugin="${prefix}/plugin.xml"/>
 
   </export>
 </package>

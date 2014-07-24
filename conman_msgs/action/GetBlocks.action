@@ -1,0 +1,8 @@
+conman_msgs/TaskState state_filter
+bool publish_flow_graph
+---
+duration min_period
+conman_msgs/TimeStatistics period
+conman_msgs/BlockInfo[] blocks
+conman_msgs/GroupInfo[] groups
+---

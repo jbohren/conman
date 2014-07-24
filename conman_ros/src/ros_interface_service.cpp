@@ -16,6 +16,7 @@
 #include <conman/hook.h>
 #include <iomanip>
 
+#include <typeinfo>
 
 using namespace conman_ros;
 
@@ -75,6 +76,15 @@ ROSInterfaceService::ROSInterfaceService(RTT::TaskContext* owner) :
                      "controller_manager/unload_controller",
                      "controller_manager_msgs/UnloadController"); 
 
+  // Actions
+  get_blocks_action_server_.addPorts(this->provides("get_blocks_action"), true, "~"+this->getOwner()->getName()+"/get_blocks_action/");
+  get_blocks_action_server_.registerGoalCallback(boost::bind(&ROSInterfaceService::get_blocks_goal_cb, this, _1));
+  get_blocks_action_server_.start();
+
+  set_blocks_action_server_.addPorts(this->provides("set_blocks_action"), true, "~"+this->getOwner()->getName()+"/set_blocks_action/");
+  set_blocks_action_server_.registerGoalCallback(boost::bind(&ROSInterfaceService::set_blocks_goal_cb, this, _1));
+  set_blocks_action_server_.start();
+
   // Introspection
   introspection = owner->provides("introspection");
   introspection->addOperation("broadcastGraph", &ROSInterfaceService::broadcastGraph, this, RTT::ClientThread)
@@ -95,8 +105,8 @@ bool ROSInterfaceService::listControllersCB(
     controller_manager_msgs::ListControllers::Request &req,
     controller_manager_msgs::ListControllers::Response& resp)
 {
-  const std::vector<std::string> block_names = getBlocks();
-  const std::vector<std::string> group_names = getGroups();
+  const std::vector<std::string> block_names = scheme->getBlocks();
+  const std::vector<std::string> group_names = scheme->getGroups();
 
   resp.controller.reserve(block_names.size() + group_names.size());
 
@@ -156,6 +166,83 @@ bool ROSInterfaceService::unloadControllerCB(
   return false;
 }
 
+
+void ROSInterfaceService::get_blocks_goal_cb(actionlib::ServerGoalHandle<conman_msgs::GetBlocksAction> gh)
+{
+  conman_msgs::GetBlocksResult result;
+
+  RTT::log(RTT::Info) << "Accepting goal." << RTT::endlog();
+  gh.setAccepted();
+
+  RTT::log(RTT::Info) << "Getting blocks." << RTT::endlog();
+  const std::vector<std::string> block_names = scheme->getBlocks();
+  const std::vector<std::string> group_names = scheme->getGroups();
+
+  result.blocks.reserve(block_names.size());
+  result.groups.reserve(group_names.size());
+
+  // Get all the block info
+  for(std::vector<std::string>::const_iterator it = block_names.begin();
+      it != block_names.end();
+      ++it)
+  {
+    RTT::TaskContext *block_task = scheme->getPeer(*it);
+    conman_msgs::BlockInfo bi;
+    bi.name = *it;
+    //bi.type = typeid(block_task).name();
+    bi.state.value = block_task->getTaskState();
+    result.blocks.push_back(bi);
+  }
+
+  // Get all the group info
+  RTT::log(RTT::Info) << "Getting groups." << RTT::endlog();
+  for(std::vector<std::string>::const_iterator it = group_names.begin();
+      it != group_names.end();
+      ++it)
+  {
+    conman_msgs::GroupInfo gi;
+    gi.name = *it;
+    scheme->getGroupMembers(*it, gi.members);
+    result.groups.push_back(gi);
+  }
+
+  // Check if the graph should be published
+  if(gh.getGoal()->publish_flow_graph) {
+    RTT::log(RTT::Info) << "Publishing flow graph." << RTT::endlog();
+    this->broadcastGraph();
+  }
+
+  RTT::log(RTT::Info) << "Succeeded." << RTT::endlog();
+  gh.setSucceeded(result);
+}
+
+void ROSInterfaceService::set_blocks_goal_cb(actionlib::ServerGoalHandle<conman_msgs::SetBlocksAction> gh)
+{
+  conman_msgs::SetBlocksResult result;
+  conman_msgs::SetBlocksGoalConstPtr goal = gh.getGoal();
+
+  // Check if the blocks are all valid
+  for(std::vector<std::string>::const_iterator it = goal->enable.begin();
+      it != goal->enable.end();
+      ++it)
+  {
+    if(!scheme->hasBlock(*it) && !scheme->hasGroup(*it)) {
+      gh.setRejected();
+      return;
+    }
+  }
+
+  // The query is valid, accept the goal
+  gh.setAccepted();
+
+  bool success = scheme->switchBlocks(goal->disable, goal->enable, goal->strict, goal->force);
+
+  if(success) {
+    gh.setSucceeded(result);
+  } else {
+    gh.setAborted(result);
+  }
+}
 
 // Graphviz record labels can't have dots in them
 std::string sanitize(const std::string &unclean) {
