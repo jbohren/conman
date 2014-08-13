@@ -7,6 +7,7 @@ from python_qt_binding.QtGui import QWidget
 from python_qt_binding.QtGui import QPalette
 from python_qt_binding.QtGui import QStyle,QApplication,QMouseEvent
 from python_qt_binding.QtCore import Qt
+from python_qt_binding.QtCore import Signal,Slot
 from python_qt_binding.QtGui import QWidget,QPalette,QColor,QStandardItemModel,QItemDelegate,QStyleOptionButton,QStandardItem
 from python_qt_binding.QtCore import Qt,QTimer,Signal,QRect,QSize,QEvent
 
@@ -89,6 +90,7 @@ class GroupsDelegate(QItemDelegate):
 
 
 class Conman(Plugin):
+    update_graph_sig = Signal(str)
 
     def __init__(self, context):
         super(Conman, self).__init__(context)
@@ -139,12 +141,17 @@ class Conman(Plugin):
         self._widget.refresh_button.clicked[bool].connect(self._handle_refresh_clicked)
         self._widget.commit_button.clicked[bool].connect(self._handle_commit_clicked)
 
+        #self._widget.xdot_widget.connect(
+                #self._widget.xdot_widget, SIGNAL('_update_graph'), self._widget.xdot_widget.set_dotcode)
+        self.update_graph_sig.connect(self._update_graph)
+
         self.blocks = { }
         self.groups = { }
 
         self._ns = ""
         self._actions_connected = False
         self.enable_widgets(False)
+        self.new_dotcode_data = ''
 
         self.update_timer = QTimer(self)
         self.update_timer.setInterval(50)
@@ -397,9 +404,13 @@ class Conman(Plugin):
 
         self._query_blocks()
 
+    @Slot(str)
+    def _update_graph(self,dotcode):
+        self._widget.xdot_widget.set_dotcode(dotcode)
 
     def _dotcode_msg_cb(self, msg):
-        self._widget.xdot_widget.set_dotcode(msg.data)
+        #self.new_dotcode_data = msg.data
+        self.update_graph_sig.emit(msg.data)
     
     def _update_widgets(self):
         self._update_groups()
