@@ -69,7 +69,7 @@ bool FeedForwardFeedBack::configureHook()
   boost::shared_ptr<rtt_rosparam::ROSParam> rosparam =
     this->getProvider<rtt_rosparam::ROSParam>("rosparam");
   rosparam->getComponentPrivate("dim");
-  feedback_effort_limits.resize(dim_);
+  feedback_effort_limits_.resize(dim_);
   feedback_effort_.resize(dim_);
   sum_.resize(dim_);
 
