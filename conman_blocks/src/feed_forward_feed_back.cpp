@@ -21,6 +21,7 @@ FeedForwardFeedBack::FeedForwardFeedBack(std::string const& name) :
   ,feedforward_in_("feedforward_in",RTT::ConnPolicy::buffer(17))
   ,enable_feedback_(true)
   ,enable_duration_(3.0)
+  ,disable_duration_(0.1)
 {
   // Declare properties
   this->addProperty("dim",dim_)
@@ -33,8 +34,12 @@ FeedForwardFeedBack::FeedForwardFeedBack(std::string const& name) :
     .doc("Set to false to disable feedback term.");
   this->addProperty("last_heartbeat_time", last_heartbeat_time_)
     .doc("The last time a heartbeat was recieved.");
-  this->addProperty("enble_duration_", enable_duration_)
+  this->addProperty("enable_duration", enable_duration_)
     .doc("The amount of time it should take to go from 0 to 100\% command.");
+  this->addProperty("disable_duration", disable_duration_)
+    .doc("The amount of time it should take to go from 100 to 0\% command.");
+  this->addProperty("feedback_effort_limits", feedback_effort_limits_)
+    .doc("The maximum feedback-component efforts for each joint.");
 
   // Configure data ports
   this->ports()->addPort("feedforward_in", feedforward_in_)
@@ -64,11 +69,16 @@ bool FeedForwardFeedBack::configureHook()
   boost::shared_ptr<rtt_rosparam::ROSParam> rosparam =
     this->getProvider<rtt_rosparam::ROSParam>("rosparam");
   rosparam->getComponentPrivate("dim");
+  feedback_effort_limits.resize(dim_);
+  feedback_effort_.resize(dim_);
+  sum_.resize(dim_);
+
   rosparam->getComponentPrivate("require_heartbeat");
   rosparam->getComponentPrivate("heartbeat_max_period");
+  rosparam->getComponentPrivate("enable_duration");
+  rosparam->getComponentPrivate("disable_duration");
+  rosparam->getComponentPrivate("feedback_effort_limits");
 
-  sum_.resize(dim_);
-  feedback_effort_.resize(dim_);
   return true;
 }
 
