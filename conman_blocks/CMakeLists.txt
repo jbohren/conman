@@ -4,6 +4,7 @@ project(conman_blocks)
 
 find_package(catkin REQUIRED)
 
+find_package(cmake_modules REQUIRED)
 find_package(OROCOS-RTT REQUIRED)
 include(${OROCOS-RTT_USE_FILE_PATH}/UseOROCOS-RTT.cmake)
 

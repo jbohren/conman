@@ -9,7 +9,7 @@
 // function_property_map isn't available until version 1.51
 #include <boost/version.hpp>
 #if BOOST_VERSION / 100000 >= 1 && BOOST_VERSION / 100 % 1000 >= 51
-#include <boost/property/function_property_map.hpp>
+#include <boost/property_map/function_property_map.hpp>
 #else
 #include "function_property_map.hpp"
 #endif
