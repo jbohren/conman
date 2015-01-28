@@ -252,6 +252,53 @@ void Scheme::printExecutionOrdering() const
   RTT::log(RTT::Info) << "Scheme ordering: [ " <<
     boost::algorithm::join(ordered_names, ", ") << " ] " << RTT::endlog();
 }
+//////////////////////////////////////////////////////////////////////////////
+
+bool Scheme::enableBlocksTopo(const bool strict, const bool force)
+{
+  using namespace conman::graph;
+
+  std::vector<std::string> ordered_names;
+  ordered_names.reserve(exec_ordering_.size());
+
+  for(ExecutionOrdering::const_iterator it = exec_ordering_.begin();
+      it != exec_ordering_.end();
+      ++it) 
+  {
+    const std::string &block_name = flow_graph_[*it]->block->getName();
+    ordered_names.push_back(block_name);
+  }
+
+  std::vector<std::string> &ordered_names_addr = ordered_names;
+ 
+  return this->enableBlocks(ordered_names_addr, strict, force);
+
+  //RTT::log(RTT::Info) << "Scheme ordering: [ " <<
+  //  boost::algorithm::join(ordered_names, ", ") << " ] " << RTT::endlog();
+}
+
+bool Scheme::disableBlocksTopo(const bool strict)
+{
+  using namespace conman::graph;
+
+  std::vector<std::string> ordered_names;
+  ordered_names.reserve(exec_ordering_.size());
+
+  for(ExecutionOrdering::const_iterator it = exec_ordering_.end();
+      it != exec_ordering_.begin();
+      --it) 
+  {
+    const std::string &block_name = flow_graph_[*it]->block->getName();
+    ordered_names.push_back(block_name);
+  }
+
+  std::vector<std::string> &ordered_names_addr = ordered_names;
+ 
+  return this->disableBlocks(ordered_names_addr, strict);
+ 
+  //RTT::log(RTT::Info) << "Scheme ordering: [ " <<
+  //  boost::algorithm::join(ordered_names, ", ") << " ] " << RTT::endlog();
+}
 
 ///////////////////////////////////////////////////////////////////////////////
 
