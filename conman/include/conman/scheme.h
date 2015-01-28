@@ -496,6 +496,15 @@ namespace conman
     //! Print out the current execution ordering
     void printExecutionOrdering() const;
 
+    //Enable blocks in topological order (execution ordering)
+    bool enableBlocksTopo(
+        const bool strict,
+        const bool force);
+
+    //Disable blocks in reverse topological order
+    bool disableBlocksTopo(
+        const bool strict);
+
     //! Time state
     //TODO: use nsecs instead?
     RTT::Seconds
