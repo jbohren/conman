@@ -327,7 +327,11 @@ namespace conman
         const std::vector<std::string> &block_names, 
         const bool strict,
         const bool force);
-
+    //Enable blocks in topological order (execution ordering)
+    bool enableBlocksTopo(
+        const std::vector<std::string> &blocks,
+        const bool strict,
+        const bool force);
     //! Disable a single conman Block
     bool disableBlock(RTT::TaskContext *block);
     //! Disable a single Conman block (or group) by name
@@ -337,6 +341,10 @@ namespace conman
     //! Disable multiple Conman blocks (or groups) by name simultaneously
     bool disableBlocks(
         const std::vector<std::string> &block_names,
+        const bool strict);
+    //Disable blocks in reverse topological order
+    bool disableBlocksTopo(
+        const std::vector<std::string> &blocks,
         const bool strict);
 
     /*** \brief Try to disable a set of blocks (or groups) and enable another
@@ -495,15 +503,6 @@ namespace conman
 
     //! Print out the current execution ordering
     void printExecutionOrdering() const;
-
-    //Enable blocks in topological order (execution ordering)
-    bool enableBlocksTopo(
-        const bool strict,
-        const bool force);
-
-    //Disable blocks in reverse topological order
-    bool disableBlocksTopo(
-        const bool strict);
 
     //! Time state
     //TODO: use nsecs instead?

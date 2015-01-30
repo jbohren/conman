@@ -29,6 +29,8 @@ using namespace boost::assign;
 #include <gmock/gmock.h>
 using ::testing::ElementsAre;
 
+std::vector<std::string> enable_Order;
+std::vector<std::string> disable_Order;
 
 class InvalidBlock : public RTT::TaskContext {
 public:
@@ -81,7 +83,7 @@ public:
   IOBlock iob5;
 
   // Expected cycles
-  std::vector<std::string> c1;//,c2,c3,c4;
+  std::vector<std::string> c1;
 
   TopoTest() : SchemeTest(),
     iob1("iob1"),
@@ -90,11 +92,8 @@ public:
     iob4("iob4"),
     iob5("iob5")
   {
-    // Expected cycles
+    // Expected cycle
     c1 += "iob1", "iob2", "iob3", "iob4", "iob5";
-    //c2 += "iob1", "iob3", "iob4", "iob5";
-    //c3 += "iob1", "iob5";
-    //c4 += "iob2", "iob3", "iob4", "iob5";
   }
 
   void AddBlocks() {
@@ -107,17 +106,13 @@ public:
 
   void ConnectBlocksAcyclic() {
     iob1.out1.connectTo(&iob2.in);
-    //iob1.out2.connectTo(&iob3.in_ex);
-    //iob2.out1.connectTo(&iob3.in_ex);
     iob2.out2.connectTo(&iob3.in);
     iob3.out1.connectTo(&iob4.in);
-    //iob1.out1.connectTo(&iob5.in);
     iob4.out1.connectTo(&iob5.in);
   }
 
   void ConnectBlocksCyclic() {
     iob5.out1.connectTo(&iob1.in);
-    //iob5.out2.connectTo(&iob2.in);
   }
 
   void PrintCycles(std::vector<std::vector<std::string> > &cycles) {
@@ -150,9 +145,11 @@ TEST_F(TopoTest, StartTopo) {
   EXPECT_TRUE(scheme.getExecutionOrder(execution_order));
 
   EXPECT_THAT(execution_order, ElementsAre("iob1", "iob2", "iob3", "iob4", "iob5"));
-
-  //OK GAME TIME
+  
   scheme.start();
+  std::vector<std::string> &ptr_blocks = execution_order;
+  EXPECT_TRUE(scheme.enableBlocksTopo(ptr_blocks, true, true));
+  EXPECT_TRUE(scheme.disableBlocksTopo(ptr_blocks, true));
   scheme.stop();
 }
 
