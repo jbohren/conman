@@ -1731,19 +1731,27 @@ bool Scheme::enableBlocksTopo(
   std::vector<std::string> ordered_names;
   ordered_names.reserve(exec_ordering_.size());
 
+  // Create non const vector of blocks from parameter so we can add 
+  // a new last element and use std::find
+  std::vector<std::string> non_const = unordered;
+  non_const.push_back("/0");
+
+  //Goes through all blocks in execution order, if that block is also
+  //in list of blocks to enable, it is put in the new ordered vector
   for(ExecutionOrdering::const_iterator it = exec_ordering_.begin();
       it != exec_ordering_.end();
       ++it) 
   {
     const std::string &block_name = flow_graph_[*it]->block->getName();
-    if(std::find(unordered.begin(), unordered.end(), block_name) != unordered.end())
+    if(std::find(non_const.begin(), non_const.end(), block_name) != non_const.end())
     {
       ordered_names.push_back(block_name);
     }
   }
 
   std::vector<std::string> &ordered_names_addr = ordered_names;
- 
+
+  //Send ordered list of blocks to enableBlocks function
   return this->enableBlocks(ordered_names_addr, strict, force);
 }
 
@@ -1794,19 +1802,30 @@ bool Scheme::disableBlocksTopo(
   std::vector<std::string> ordered_names;
   ordered_names.reserve(exec_ordering_.size());
 
-  for(ExecutionOrdering::const_iterator it = exec_ordering_.end();
-      it != exec_ordering_.begin();
-      --it) 
+  //Create non const list of unordered blocks to disable so we can add new
+  //arbitrary last element and then use std::find
+  std::vector<std::string> non_const = unordered;
+  non_const.push_back("/0");
+
+  //Go through all blocks in scheme in execution order, if block is in the
+  //list to disable, add to new ordered list.
+  for(ExecutionOrdering::const_iterator it = exec_ordering_.begin();
+      it != exec_ordering_.end();
+      ++it) 
   {
     const std::string &block_name = flow_graph_[*it]->block->getName();
-    if(std::find(unordered.begin(), unordered.end(), block_name) != unordered.end())
+    if(std::find(non_const.begin(), non_const.end(), block_name) != non_const.end())
     {
       ordered_names.push_back(block_name);
     }
   }
 
+  //We want to disable in reverse execution order to reverse the ordered list
+  std::reverse(ordered_names.begin(), ordered_names.end());
+    
   std::vector<std::string> &ordered_names_addr = ordered_names;
- 
+  
+  //Call function disableBlocks with new ordered list
   return this->disableBlocks(ordered_names_addr, strict);
 }
 
