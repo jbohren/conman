@@ -1739,13 +1739,10 @@ bool Scheme::enableBlocksTopo(
   // Enable the blocks
   bool success = true;
 
-  std::vector<std::string> ordered_names;
-  ordered_names.reserve(exec_ordering_.size());
-
   // Create non const vector of blocks from parameter so we can add 
   // a new last element and use std::find
-  std::vector<std::string> non_const = unordered;
-  non_const.push_back("/0");
+  std::vector<std::string> block_names = unordered;
+  block_names.push_back("/0");
 
   //Goes through all blocks in execution order, if that block is also
   //in list of blocks to enable, it is put in the new ordered vector
@@ -1754,7 +1751,7 @@ bool Scheme::enableBlocksTopo(
       ++it) 
   {
     const std::string &block_name = flow_graph_[*it]->block->getName();
-    if(std::find(non_const.begin(), non_const.end(), block_name) != non_const.end())
+    if(std::find(block_names.begin(), block_names.end(), block_name) != block_names.end())
     {
       // Try to start the block
       success = this->enableBlock(block_name,force) && success;
@@ -1811,47 +1808,30 @@ bool Scheme::disableBlocksTopo(
 {
   using namespace conman::graph;
 
-  std::vector<std::string> ordered_names;
-  ordered_names.reserve(exec_ordering_.size());
-
   //Create non const list of unordered blocks to disable so we can add new
   //arbitrary last element and then use std::find
-  std::vector<std::string> non_const = unordered;
-  non_const.push_back("/0");
+  std::vector<std::string> block_names = unordered;
+  block_names.push_back("/0");
 
-  //Go through all blocks in scheme in execution order, if block is in the
-  //list to disable, add to new ordered list.
-  for(ExecutionOrdering::const_iterator it = exec_ordering_.begin();
-      it != exec_ordering_.end();
+  bool success = true;
+
+  for(ExecutionOrdering::const_reverse_iterator it = exec_ordering_.rbegin();
+      it != exec_ordering_.rend();
       ++it) 
   {
     const std::string &block_name = flow_graph_[*it]->block->getName();
-    if(std::find(non_const.begin(), non_const.end(), block_name) != non_const.end())
+    if(std::find(block_names.begin(), block_names.end(), block_name) != block_names.end())
     {
-      ordered_names.push_back(block_name);
+      // Try to disable the block
+      success &= this->disableBlock(block_name);
+
+      // Break on failure if strict
+      if(!success && strict) { return false; }
+ 
     }
   }
 
-  //We want to disable in reverse execution order to reverse the ordered list
-  std::reverse(ordered_names.begin(), ordered_names.end());
-    
-  std::vector<std::string> &block_names = ordered_names;
-  
-  bool success = true;
-
-  for(std::vector<std::string>::const_iterator it = block_names.begin();
-      it != block_names.end();
-      ++it)
-  {
-    // Try to disable the block
-    success &= this->disableBlock(*it);
-
-    // Break on failure if strict
-    if(!success && strict) { return false; }
-  }
-
   return success;
-
 }
 
 
