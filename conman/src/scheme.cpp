@@ -1728,6 +1728,17 @@ bool Scheme::enableBlocksTopo(
 {
   using namespace conman::graph;
 
+  // First make sure all the blocks can be enabled before actually trying to enable them
+  if(!force) {
+    if(!this->enableable(unordered)) {
+      RTT::log(RTT::Error) << "Could not enable block because it has conflicts which will not be force-disabled." << RTT::endlog();
+      return false;
+    }
+  }
+
+  // Enable the blocks
+  bool success = true;
+
   std::vector<std::string> ordered_names;
   ordered_names.reserve(exec_ordering_.size());
 
@@ -1745,14 +1756,15 @@ bool Scheme::enableBlocksTopo(
     const std::string &block_name = flow_graph_[*it]->block->getName();
     if(std::find(non_const.begin(), non_const.end(), block_name) != non_const.end())
     {
-      ordered_names.push_back(block_name);
+      // Try to start the block
+      success = this->enableBlock(block_name,force) && success;
+
+      // Break on failure if strict
+      if(!success && strict) { return false; }
     }
   }
 
-  std::vector<std::string> &ordered_names_addr = ordered_names;
-
-  //Send ordered list of blocks to enableBlocks function
-  return this->enableBlocks(ordered_names_addr, strict, force);
+  return success;
 }
 
 bool Scheme::disableBlocks(const bool strict)
@@ -1823,10 +1835,23 @@ bool Scheme::disableBlocksTopo(
   //We want to disable in reverse execution order to reverse the ordered list
   std::reverse(ordered_names.begin(), ordered_names.end());
     
-  std::vector<std::string> &ordered_names_addr = ordered_names;
+  std::vector<std::string> &block_names = ordered_names;
   
-  //Call function disableBlocks with new ordered list
-  return this->disableBlocks(ordered_names_addr, strict);
+  bool success = true;
+
+  for(std::vector<std::string>::const_iterator it = block_names.begin();
+      it != block_names.end();
+      ++it)
+  {
+    // Try to disable the block
+    success &= this->disableBlock(*it);
+
+    // Break on failure if strict
+    if(!success && strict) { return false; }
+  }
+
+  return success;
+
 }
 
 
