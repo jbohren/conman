@@ -1689,39 +1689,40 @@ bool Scheme::enableable(
   return true;
 }
 
+/*
+ *bool Scheme::enableBlocks(
+ *    const std::vector<std::string> &block_names,
+ *    const bool strict,
+ *    const bool force)
+ *{
+ *  using namespace conman::graph;
+ *
+ *  // First make sure all the blocks can be enabled before actually trying to enable them
+ *  if(!force) {
+ *    if(!this->enableable(block_names)) {
+ *      RTT::log(RTT::Error) << "Could not enable block because it has conflicts which will not be force-disabled." << RTT::endlog();
+ *      return false;
+ *    }
+ *  }
+ *
+ *  // Enable the blocks
+ *  bool success = true;
+ *
+ *  for(std::vector<std::string>::const_iterator it = block_names.begin();
+ *      it != block_names.end();
+ *      ++it)
+ *  {
+ *    // Try to start the block
+ *   success = this->enableBlock(*it,force) && success;
+ *
+ *   // Break on failure if strict
+ *   if(!success && strict) { return false; }
+ * }
+ *
+ * return success;
+ *}
+ */
 bool Scheme::enableBlocks(
-    const std::vector<std::string> &block_names,
-    const bool strict,
-    const bool force)
-{
-  using namespace conman::graph;
-
-  // First make sure all the blocks can be enabled before actually trying to enable them
-  if(!force) {
-    if(!this->enableable(block_names)) {
-      RTT::log(RTT::Error) << "Could not enable block because it has conflicts which will not be force-disabled." << RTT::endlog();
-      return false;
-    }
-  }
-
-  // Enable the blocks
-  bool success = true;
-
-  for(std::vector<std::string>::const_iterator it = block_names.begin();
-      it != block_names.end();
-      ++it)
-  {
-    // Try to start the block
-    success = this->enableBlock(*it,force) && success;
-
-    // Break on failure if strict
-    if(!success && strict) { return false; }
-  }
-
-  return success;
-}
-
-bool Scheme::enableBlocksTopo(
     const std::vector<std::string> &unordered, 
     const bool strict, 
     const bool force)
@@ -1739,11 +1740,6 @@ bool Scheme::enableBlocksTopo(
   // Enable the blocks
   bool success = true;
 
-  // Create non const vector of blocks from parameter so we can add 
-  // a new last element and use std::find
-  std::vector<std::string> block_names = unordered;
-  block_names.push_back("/0");
-
   //Goes through all blocks in execution order, if that block is also
   //in list of blocks to enable, it is put in the new ordered vector
   for(ExecutionOrdering::const_iterator it = exec_ordering_.begin();
@@ -1751,7 +1747,7 @@ bool Scheme::enableBlocksTopo(
       ++it) 
   {
     const std::string &block_name = flow_graph_[*it]->block->getName();
-    if(std::find(block_names.begin(), block_names.end(), block_name) != block_names.end())
+    if(std::find(unordered.begin(), unordered.end(), block_name) != unordered.end())
     {
       // Try to start the block
       success = this->enableBlock(block_name,force) && success;
@@ -1782,36 +1778,32 @@ bool Scheme::disableBlocks(const bool strict)
   return success;
 }
 
+/*bool Scheme::disableBlocks(
+ *    const std::vector<std::string> &block_names,
+ *    const bool strict)
+ *{
+ *  bool success = true;
+ *
+ *  for(std::vector<std::string>::const_iterator it = block_names.begin();
+ *      it != block_names.end();
+ *      ++it)
+ *  {
+ *    // Try to disable the block
+ *    success &= this->disableBlock(*it);
+ *
+ *    // Break on failure if strict
+ *    if(!success && strict) { return false; }
+ *  }
+ *
+ *  return success;
+ *}
+ */
+
 bool Scheme::disableBlocks(
-    const std::vector<std::string> &block_names,
-    const bool strict)
-{
-  bool success = true;
-
-  for(std::vector<std::string>::const_iterator it = block_names.begin();
-      it != block_names.end();
-      ++it)
-  {
-    // Try to disable the block
-    success &= this->disableBlock(*it);
-
-    // Break on failure if strict
-    if(!success && strict) { return false; }
-  }
-
-  return success;
-}
-
-bool Scheme::disableBlocksTopo(
     const std::vector<std::string> &unordered, 
     const bool strict)
 {
   using namespace conman::graph;
-
-  //Create non const list of unordered blocks to disable so we can add new
-  //arbitrary last element and then use std::find
-  std::vector<std::string> block_names = unordered;
-  block_names.push_back("/0");
 
   bool success = true;
 
@@ -1820,7 +1812,7 @@ bool Scheme::disableBlocksTopo(
       ++it) 
   {
     const std::string &block_name = flow_graph_[*it]->block->getName();
-    if(std::find(block_names.begin(), block_names.end(), block_name) != block_names.end())
+    if(std::find(unordered.begin(), unordered.end(), block_name) != unordered.end())
     {
       // Try to disable the block
       success &= this->disableBlock(block_name);

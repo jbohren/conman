@@ -133,29 +133,6 @@ TEST_F(TopoTest, EnableOrder) {
   disable_Order.clear();
 }
 
-/*Test stop hook that contains the order of blocks disabled. */
-TEST_F(TopoTest, DisableOrder) {
-  //setup blocks, connected 1 -> 2 -> 3 -> 4 -> 5 -latched-> 1
-  ConnectBlocksAcyclic();
-  ConnectBlocksCyclic();
-  AddBlocks();
-  scheme.latchConnections("iob5","iob1",true);
-  std::vector<std::string> execution_order;
-  scheme.getExecutionOrder(execution_order);
-  
-  scheme.start();
-  std::vector<std::string> &ptr_blocks = execution_order;
-
-  EXPECT_TRUE(scheme.enableBlocks(ptr_blocks, true, true));
-
-  EXPECT_TRUE(scheme.disableBlocks(ptr_blocks, true));
-  EXPECT_THAT(disable_Order, ElementsAre("iob1", "iob2", "iob3", "iob4", "iob5"));
-
-  scheme.stop();
-  enable_Order.clear();
-  disable_Order.clear();
-}
-
 /* Test that enableBlocksTopo does indeed inable the blocks. */
 TEST_F(TopoTest, TopoEnable) {
   //setup blocks, connected 1 -> 2 -> 3 -> 4 -> 5 -latched-> 1
@@ -169,7 +146,7 @@ TEST_F(TopoTest, TopoEnable) {
   scheme.start();
   std::vector<std::string> &ptr_blocks = execution_order;
 
-  EXPECT_TRUE(scheme.enableBlocksTopo(ptr_blocks, true, true));
+  EXPECT_TRUE(scheme.enableBlocks(ptr_blocks, true, true));
   EXPECT_THAT(enable_Order, ElementsAre("iob1", "iob2", "iob3", "iob4", "iob5"));
  
   EXPECT_TRUE(scheme.disableBlocks(ptr_blocks, true));
@@ -197,7 +174,7 @@ TEST_F(TopoTest, TopoDisable) {
   std::reverse(reverse_order.begin(), reverse_order.end());
   std::vector<std::string> &ptr_blocks_reverse = reverse_order;
 
-  EXPECT_TRUE(scheme.disableBlocksTopo(ptr_blocks_reverse, true));
+  EXPECT_TRUE(scheme.disableBlocks(ptr_blocks_reverse, true));
   EXPECT_THAT(disable_Order, ElementsAre("iob5", "iob4", "iob3", "iob2", "iob1"));
 
   scheme.stop();
@@ -222,7 +199,7 @@ TEST_F(TopoTest, TopoEnableUnordered) {
   std::reverse(reverse_order.begin(), reverse_order.end());
   std::vector<std::string> &ptr_blocks_reverse = reverse_order;
 
-  EXPECT_TRUE(scheme.enableBlocksTopo(ptr_blocks_reverse, true, true));
+  EXPECT_TRUE(scheme.enableBlocks(ptr_blocks_reverse, true, true));
   EXPECT_THAT(enable_Order, ElementsAre("iob1", "iob2", "iob3", "iob4", "iob5"));
   
   EXPECT_TRUE(scheme.disableBlocks(ptr_blocks, true));
@@ -248,7 +225,7 @@ TEST_F(TopoTest, TopoDisableUnordered) {
 
   EXPECT_TRUE(scheme.enableBlocks(ptr_blocks, true, true));
   
-  EXPECT_TRUE(scheme.disableBlocksTopo(ptr_blocks, true));
+  EXPECT_TRUE(scheme.disableBlocks(ptr_blocks, true));
   EXPECT_EQ(disable_Order.size(), 5);
   EXPECT_THAT(disable_Order, ElementsAre("iob5", "iob4", "iob3", "iob2", "iob1")); 
 
