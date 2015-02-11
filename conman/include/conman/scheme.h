@@ -319,17 +319,12 @@ namespace conman
     /** \brief Enable multiple Conman blocks (or groups) by name simultaneously
      * 
      * This will enable the blocks in the given vector according to the
-     * provided order. This operation is atomic unless something goes wrong. If
+     * execution order. This operation is atomic unless something goes wrong. If
      * \param force is not set, and any of the blocks in the list conflict with
      * any running blocks, no blocks will be enabled.
      */
     bool enableBlocks(
         const std::vector<std::string> &block_names, 
-        const bool strict,
-        const bool force);
-    //Enable blocks in topological order (execution ordering)
-    bool enableBlocksTopo(
-        const std::vector<std::string> &blocks,
         const bool strict,
         const bool force);
     //! Disable a single conman Block
@@ -339,14 +334,10 @@ namespace conman
     //! Disable all Conman blocks simultaneously
     bool disableBlocks(const bool strict);
     //! Disable multiple Conman blocks (or groups) by name simultaneously
+    //! in reverse execution order.
     bool disableBlocks(
         const std::vector<std::string> &block_names,
         const bool strict);
-    //Disable blocks in reverse topological order
-    bool disableBlocksTopo(
-        const std::vector<std::string> &blocks,
-        const bool strict);
-
     /*** \brief Try to disable a set of blocks (or groups) and enable another
      * set of blocks (or groups)
      *
