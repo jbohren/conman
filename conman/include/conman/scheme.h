@@ -419,7 +419,7 @@ namespace conman
     /** \brief A map from block names onto flow graph vertex properties (for
      * fast access)
      */
-    std::map<std::string,conman::graph::DataFlowVertex::Ptr> blocks_;
+    boost::unordered_map<std::string,conman::graph::DataFlowVertex::Ptr> blocks_;
     //! A list of blocks ordered by index (for linear re-indexing)
     std::list<conman::graph::DataFlowVertex::Ptr> block_indices_;
     //! A map of block group names to block names
@@ -478,8 +478,8 @@ namespace conman
      */
     bool getGroupMembers(
         const std::string &group_name,
-        std::set<std::string> &members,
-        std::set<std::string> &visited) const;
+        boost::unordered_set<std::string> &members,
+        boost::unordered_set<std::string> &visited) const;
 
     //! Brief compute cycles in a specific flow graph.
     int computeCycles(

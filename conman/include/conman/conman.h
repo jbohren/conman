@@ -137,7 +137,7 @@ namespace conman
     typedef DataFlowPath ExecutionOrdering;
 
     //! Vertex descriptor map for retrieving DataFlowGraph vertices
-    typedef std::map<RTT::TaskContext*, DataFlowVertexDescriptor> DataFlowVertexTaskMap;
+    typedef boost::unordered_map<RTT::TaskContext*, DataFlowVertexDescriptor> DataFlowVertexTaskMap;
 
     /** \brief Function for extracting the vertex index from a block vertex
      *
@@ -218,7 +218,7 @@ namespace conman
     //! Vertex descriptor for the block conflict graph
     typedef boost::graph_traits<ConflictGraph>::vertex_descriptor ConflictVertexDescriptor;
     //! Vertex descriptor map for retrieving DataFlowGraph vertices
-    typedef std::map<RTT::TaskContext*,ConflictVertexDescriptor> ConflictVertexMap;
+    typedef boost::unordered_map<RTT::TaskContext*,ConflictVertexDescriptor> ConflictVertexMap;
     //! Iterator for iterating over vertices in the ConflictGraph in no particular order
     typedef boost::graph_traits<conman::graph::ConflictGraph>::vertex_iterator ConflictVertexIterator;
     //! Iterator for iterating over adjacent vertices in the ConflictGraph in no particular order
@@ -235,7 +235,7 @@ namespace conman
   };
 
   //! Structure for representing groups of comopnents
-  typedef std::map<std::string, std::set<std::string> > GroupMap;
+  typedef boost::unordered_map<std::string, boost::unordered_set<std::string> > GroupMap;
 
 
   //! Get all ports for a service
