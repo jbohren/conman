@@ -107,7 +107,7 @@ std::vector<std::string> Scheme::getBlocks() const
   std::vector<std::string> block_names(blocks_.size());
 
   std::vector<std::string>::iterator str_it = block_names.begin();
-  std::map<std::string,DataFlowVertex::Ptr>::const_iterator block_it =
+  boost::unordered_map<std::string,DataFlowVertex::Ptr>::const_iterator block_it =
     blocks_.begin();
 
   for(; str_it != block_names.end() && block_it != blocks_.end();
@@ -393,7 +393,7 @@ bool Scheme::addGroup(const std::string &group_name)
   }
 
   // Create an empty group
-  std::set<std::string> no_members;
+  boost::unordered_set<std::string> no_members;
   block_groups_[group_name] = no_members;
 
   return true;
@@ -439,7 +439,7 @@ bool Scheme::setGroupMembers(
   }
 
   // Set the group membership
-  block_groups_[group_name] = std::set<std::string>(members.begin(),members.end());
+  block_groups_[group_name] = boost::unordered_set<std::string>(members.begin(),members.end());
 
   return true; 
 }
@@ -451,7 +451,7 @@ bool Scheme::addToGroup(
   RTT::Logger::In in("Scheme::addToGroup");
 
   // Check if the group exists
-  std::map<std::string, std::set<std::string> >::iterator group =
+  boost::unordered_map<std::string, boost::unordered_set<std::string> >::iterator group =
     block_groups_.find(group_name);
 
   if(group == block_groups_.end()) {
@@ -481,7 +481,7 @@ bool Scheme::removeFromGroup(
     const std::string &group_name) 
 {
   // Check if the group exists
-  std::map<std::string, std::set<std::string> >::iterator group = 
+  boost::unordered_map<std::string, boost::unordered_set<std::string> >::iterator group = 
     block_groups_.find(group_name);
 
   if(group == block_groups_.end()) {
@@ -550,7 +550,7 @@ bool Scheme::getGroupMembers(
   const
 {
   // Expand the group recursively
-  std::set<std::string> member_set, visited;
+  boost::unordered_set<std::string> member_set, visited;
   bool success = getGroupMembers(group_name, member_set, visited);
 
   // Copy the set to vector
@@ -561,8 +561,8 @@ bool Scheme::getGroupMembers(
 
 bool Scheme::getGroupMembers(
     const std::string &name,
-    std::set<std::string> &member_set,
-    std::set<std::string> &visited) 
+    boost::unordered_set<std::string> &member_set,
+    boost::unordered_set<std::string> &visited) 
   const
 {
   bool success = true;
@@ -590,7 +590,7 @@ bool Scheme::getGroupMembers(
 
   // Return the group members
   success = true;
-  for(std::set<std::string>::const_iterator it=group->second.begin();
+  for(boost::unordered_set<std::string>::const_iterator it=group->second.begin();
       it != group->second.end();
       ++it)
   {
@@ -784,7 +784,7 @@ int Scheme::latchCount(
        ++source_name, ++sink_name)
   {
     // Get the blocks corresponding to the names
-    std::map<std::string, DataFlowVertex::Ptr>::const_iterator
+    boost::unordered_map<std::string, DataFlowVertex::Ptr>::const_iterator
       source, 
       sink;
 
@@ -1027,7 +1027,7 @@ bool Scheme::getExecutionOrder(std::vector<std::string> &order) const
 
 void Scheme::computeConflicts() 
 {
-  std::map<std::string,graph::DataFlowVertex::Ptr>::iterator it;
+  boost::unordered_map<std::string,graph::DataFlowVertex::Ptr>::iterator it;
   for(it = blocks_.begin(); it != blocks_.end(); ++it) {
     this->computeConflicts(it->second->block->getName());
   }
@@ -1285,7 +1285,7 @@ bool Scheme::regenerateModel()
   bool topology_modified = exec_ordering_.size() != flow_vertex_map_.size();
 
   // Iterate over all vertex structures
-  for(std::map<std::string, DataFlowVertex::Ptr>::iterator vert_it = blocks_.begin();
+  for(boost::unordered_map<std::string, DataFlowVertex::Ptr>::iterator vert_it = blocks_.begin();
       vert_it != blocks_.end();
       ++vert_it) 
   {
@@ -1514,7 +1514,7 @@ bool Scheme::enableBlock(RTT::TaskContext *block, const bool force)
   }
 
   const std::string &block_name = block->getName();
-  std::map<std::string,conman::graph::DataFlowVertex::Ptr>::const_iterator block_vertex_it = blocks_.find(block_name);
+  boost::unordered_map<std::string,conman::graph::DataFlowVertex::Ptr>::const_iterator block_vertex_it = blocks_.find(block_name);
 
   RTT::log(RTT::Debug) << "Enabling block \"" << block_name <<"\"" << RTT::endlog();
 
@@ -1592,7 +1592,7 @@ bool Scheme::enableBlock(RTT::TaskContext *block, const bool force)
 bool Scheme::disableBlock(const std::string &block_name)
 {
   // First check if this block is a group
-  std::map<std::string, std::set<std::string> >::iterator group = 
+  boost::unordered_map<std::string, boost::unordered_set<std::string> >::iterator group = 
     block_groups_.find(block_name);
 
   if(group != block_groups_.end()) {
@@ -1625,11 +1625,11 @@ bool Scheme::disableBlock(RTT::TaskContext* block)
 
 /*
  *bool Scheme::enableBlocks(
- *    const std::set<std::string> &block_names,
+ *    const boost::unordered_set<std::string> &block_names,
  *    const bool strict,
  *    const bool force)
  *{
- *  for(std::set<std::string>::const_iterator it = block_names.begin();
+ *  for(boost::unordered_set<std::string>::const_iterator it = block_names.begin();
  *      it != block_names.end();
  *      ++it)
  *  { 
@@ -1764,7 +1764,7 @@ bool Scheme::disableBlocks(const bool strict)
 {
   bool success = true;
 
-  for(std::map<std::string,graph::DataFlowVertex::Ptr>::const_iterator it = blocks_.begin();
+  for(boost::unordered_map<std::string,graph::DataFlowVertex::Ptr>::const_iterator it = blocks_.begin();
       it != blocks_.end();
       ++it)
   {
@@ -1933,7 +1933,7 @@ void Scheme::getConnectionDescriptions(
   using namespace conman::graph;
 
   // Iterate over all blocks in the dataflow graph
-  std::map<std::string,graph::DataFlowVertex::Ptr>::iterator block_it;
+  boost::unordered_map<std::string,graph::DataFlowVertex::Ptr>::iterator block_it;
   for(block_it = blocks_.begin(); block_it != blocks_.end(); ++block_it) {
 
     RTT::TaskContext *block = block_it->second->block;
@@ -1965,7 +1965,7 @@ void Scheme::getBlockDescriptions(
   using namespace conman::graph;
 
   // Iterate over all blocks in the dataflow graph
-  std::map<std::string,graph::DataFlowVertex::Ptr>::iterator block_it;
+  boost::unordered_map<std::string,graph::DataFlowVertex::Ptr>::iterator block_it;
   for(block_it = blocks_.begin(); block_it != blocks_.end(); ++block_it) {
     RTT::TaskContext *block = block_it->second->block;
 

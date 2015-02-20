@@ -319,17 +319,12 @@ namespace conman
     /** \brief Enable multiple Conman blocks (or groups) by name simultaneously
      * 
      * This will enable the blocks in the given vector according to the
-     * provided order. This operation is atomic unless something goes wrong. If
+     * execution order. This operation is atomic unless something goes wrong. If
      * \param force is not set, and any of the blocks in the list conflict with
      * any running blocks, no blocks will be enabled.
      */
     bool enableBlocks(
         const std::vector<std::string> &block_names, 
-        const bool strict,
-        const bool force);
-    //Enable blocks in topological order (execution ordering)
-    bool enableBlocksTopo(
-        const std::vector<std::string> &blocks,
         const bool strict,
         const bool force);
     //! Disable a single conman Block
@@ -339,14 +334,10 @@ namespace conman
     //! Disable all Conman blocks simultaneously
     bool disableBlocks(const bool strict);
     //! Disable multiple Conman blocks (or groups) by name simultaneously
+    //! in reverse execution order.
     bool disableBlocks(
         const std::vector<std::string> &block_names,
         const bool strict);
-    //Disable blocks in reverse topological order
-    bool disableBlocksTopo(
-        const std::vector<std::string> &blocks,
-        const bool strict);
-
     /*** \brief Try to disable a set of blocks (or groups) and enable another
      * set of blocks (or groups)
      *
@@ -428,7 +419,7 @@ namespace conman
     /** \brief A map from block names onto flow graph vertex properties (for
      * fast access)
      */
-    std::map<std::string,conman::graph::DataFlowVertex::Ptr> blocks_;
+    boost::unordered_map<std::string,conman::graph::DataFlowVertex::Ptr> blocks_;
     //! A list of blocks ordered by index (for linear re-indexing)
     std::list<conman::graph::DataFlowVertex::Ptr> block_indices_;
     //! A map of block group names to block names
@@ -487,8 +478,8 @@ namespace conman
      */
     bool getGroupMembers(
         const std::string &group_name,
-        std::set<std::string> &members,
-        std::set<std::string> &visited) const;
+        boost::unordered_set<std::string> &members,
+        boost::unordered_set<std::string> &visited) const;
 
     //! Brief compute cycles in a specific flow graph.
     int computeCycles(

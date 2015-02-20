@@ -144,7 +144,7 @@ unsigned int HookService::getInputExclusivity(
     const std::string &port_name)
 {
   // Get the port
-  std::map<std::string,InputProperties>::const_iterator props = 
+  boost::unordered_map<std::string,InputProperties>::const_iterator props = 
     input_ports_.find(port_name);
 
   if(props != input_ports_.end()) {
@@ -160,7 +160,7 @@ std::vector<std::string> HookService::getRegisteredInputPorts() const {
   std::vector<std::string> port_names;
   port_names.reserve(input_ports_.size());
 
-  for(std::map<std::string, InputProperties>::const_iterator it = input_ports_.begin();
+  for(boost::unordered_map<std::string, InputProperties>::const_iterator it = input_ports_.begin();
       it != input_ports_.end();
       ++it)
   {
