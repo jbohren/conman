@@ -5,7 +5,6 @@ find_package(catkin REQUIRED COMPONENTS
   conman
   roscpp
 )
-
 include_directories(
   ${catkin_INCLUDE_DIRS}
 )
@@ -13,6 +12,9 @@ include_directories(
 find_package(catkin REQUIRED)
 
 find_package(OROCOS-RTT REQUIRED)
+
+#find_package(conman_hook)
+
 include(${OROCOS-RTT_USE_FILE_PATH}/UseOROCOS-RTT.cmake )
 
 set(CMAKE_BUILD_TYPE Debug)
@@ -26,6 +28,14 @@ orocos_use_package( ocl-taskbrowser )
 orocos_use_package( ocl-deployment )
 orocos_use_package( ocl-logging )
 
+#orocos_plugin(conman_hook
+#    src/hook_service.cpp )
+#target_link_libraries(conman_hook conman)
+
+#orocos_component(conman_components
+#    src/conman_components.cpp )
+#target_link_libraries(conman_components conman)
+
 add_definitions(-DRTT_COMPONENT)
 
 add_executable(test_scheme src/test_scheme.cpp)
@@ -33,6 +43,14 @@ add_executable(test_scheme src/test_scheme.cpp)
 orocos_generate_package(
   INCLUDE_DIRS include
   )
+
+target_link_libraries(test_scheme
+#conman
+#conman_hook
+#conman_components
+    ${catkin_LIBRARIES}
+    ${GMOCK_LIBRARY}
+    ${USE_OROCOS_LIBRARIES})
 
 #############
 ## Install ##
@@ -44,3 +62,5 @@ install(DIRECTORY include/${PROJECT_NAME}/
   FILES_MATCHING PATTERN "*.h"
   PATTERN ".svn" EXCLUDE
   )
+
+
