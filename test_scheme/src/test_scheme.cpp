@@ -12,7 +12,7 @@
 #include <rtt/os/startstop.h>
 
 #include <rtt/deployment/ComponentLoader.hpp>
-//#include <rtt/plugin/PluginLoader.h>
+#include <rtt/plugin/PluginLoader.hpp>
 #include <ocl/DeploymentComponent.hpp>
 
 #include <ocl/TaskBrowser.hpp>
@@ -23,14 +23,9 @@
 #include <rtt/deployment/ComponentLoader.hpp>
 
 #include <rtt/RTT.hpp>
-//#include <rtt_actionlib/rtt_actionlib.h>
-//#include <rtt_actionlib/rtt_action_server.h>
 #include <rtt/scripting/Scripting.hpp>
 
 #include <actionlib/action_definition.h>
-//#include <rtt_actionlib_examples/SomeActionAction.h>
-//#include <rtt_rosclock/rtt_rosclock.h>
-
 #include <boost/graph/adjacency_list.hpp>
 #include <boost/graph/topological_sort.hpp>
 
@@ -69,6 +64,11 @@ int main(int argc, char** argv) {
   OCL::DeploymentComponent deployer("deployer");
   RTT::Logger::Instance()->setLogLevel(RTT::Logger::Debug);
   deployer.import("rtt_ros");
+  deployer.getProvider<RTT::Scripting>("scripting")->eval("ros.import(\"conman\")");
+  deployer.getProvider<RTT::Scripting>("scripting")->eval("ros.import(\"conman_ros\")");
+
+  //deployer.getProvider<RTT::Scripting>("scripting")->eval("ros.import(\"conman_ros_node\")");
+  //deployer.import("rtt_ros_node");  
 
   conman::Scheme scheme("scheme");
 
@@ -93,6 +93,9 @@ int main(int argc, char** argv) {
   std::vector<std::string> execution_order;
   scheme.getExecutionOrder(execution_order);
   std::vector<std::string> &ptr_blocks = execution_order;
+
+  scheme.loadService("conman_ros");
+  scheme.configure();
 
   scheme.start();
 

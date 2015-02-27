@@ -4,10 +4,22 @@ project(test_scheme)
 find_package(catkin REQUIRED COMPONENTS
   conman
   roscpp
+  rtt_ros
+  actionlib
+  actionlib_msgs
+  genmsg
+  rtt_roscomm
 )
 include_directories(
   ${catkin_INCLUDE_DIRS}
 )
+
+#add_action_files(DIRECTORY action FILES SomeAction.action)
+#generate_messages(DEPENDENCIES actionlib_msg)
+
+ros_generate_rtt_typekit(${PROJECT_NAME})
+catkin_package()
+
 
 find_package(catkin REQUIRED)
 
@@ -23,7 +35,7 @@ set(CMAKE_BUILD_TYPE Debug)
 ## Build ##
 ###########
 
-include_directories(include ${catkin_INCLUDE_DIRS})
+include_directories(include ${catkin_INCLUDE_DIRS} ${BOOST_INCLUDE_DIRS}, ${USE_OROCOS_INCLUDE_DIRS})
 orocos_use_package( ocl-taskbrowser )
 orocos_use_package( ocl-deployment )
 orocos_use_package( ocl-logging )
@@ -45,11 +57,9 @@ orocos_generate_package(
   )
 
 target_link_libraries(test_scheme
-#conman
-#conman_hook
-#conman_components
     ${catkin_LIBRARIES}
     ${GMOCK_LIBRARY}
+    ${OROCOS-RTT_RTT-SCRIPTING_LIBRARY}
     ${USE_OROCOS_LIBRARIES})
 
 #############
