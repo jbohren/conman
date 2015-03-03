@@ -65,12 +65,22 @@ int main(int argc, char** argv) {
   RTT::Logger::Instance()->setLogLevel(RTT::Logger::Debug);
   deployer.import("rtt_ros");
   deployer.getProvider<RTT::Scripting>("scripting")->eval("ros.import(\"conman\")");
-  deployer.getProvider<RTT::Scripting>("scripting")->eval("ros.import(\"conman_ros\")");
+  deployer.getProvider<RTT::Scripting>("scripting")->eval("ros.import(\"conman_ros\")"); 
 
-  //deployer.getProvider<RTT::Scripting>("scripting")->eval("ros.import(\"conman_ros_node\")");
-  //deployer.import("rtt_ros_node");  
+  //std::string scheme_name = "scheme";
+  //deployer.loadComponent(scheme_name, "conman::Scheme");
+  //conman::Scheme* 
+  //conman::Scheme scheme;
+  //scheme = deployer.getPeer(scheme_name);
+  //RTT::TaskContext scheme = deployer.getPeer(scheme_name);
+  //RTT::TaskContext* scheme_ptr = deployer.getPeer(scheme_name);
 
   conman::Scheme scheme("scheme");
+  //conman::Scheme* scheme_ptr = &scheme;
+  deployer.addPeer(&scheme);
+  //scheme.addPeer(deployer);
+
+  scheme.loadService("conman_ros");
 
   IOBlock iob1("iob1");
   IOBlock iob2("iob2");
@@ -94,7 +104,7 @@ int main(int argc, char** argv) {
   scheme.getExecutionOrder(execution_order);
   std::vector<std::string> &ptr_blocks = execution_order;
 
-  scheme.loadService("conman_ros");
+
   scheme.configure();
 
   scheme.start();
