@@ -40,20 +40,15 @@
 class IOBlock : public RTT::TaskContext {
 public:
   RTT::InputPort<double> in;
-  //RTT::InputPort<double> in_ex;
 
   RTT::OutputPort<double> out;
-  //RTT::OutputPort<double> out2;
 
   IOBlock(int argc, char** argv, const std::string &name) : RTT::TaskContext(name) {
     this->addPort("in",in);
-    //this->addPort("in_ex",in_ex);
 
     this->addPort("out",out);
-    //this->addPort("out2",out2);
 
     conman_hook_ = conman::Hook::GetHook(this);
-    //conman_hook_->setInputExclusivity("in_ex",conman::Exclusivity::EXCLUSIVE);
   }
   boost::shared_ptr<conman::Hook> conman_hook_;
 };
@@ -74,55 +69,46 @@ int main(int argc, char** argv) {
   scheme.connectPeers(&deployer);
   scheme.loadService("conman_ros");
   
-
-  //deployer.getProvider<RTT::Scripting>("scripting")->eval("ros.import(\"roscpp\")"); 
-  //ros::NodeHandle nh;
-
-
   IOBlock iob1(argc, argv, "iob1");
   IOBlock iob2(argc, argv, "iob2");
   IOBlock iob3(argc, argv, "iob3");
   IOBlock iob4(argc, argv, "iob4");
   IOBlock iob5(argc, argv, "iob5");
-  scheme.addBlock(&iob1);
-  //deployer.addPeer(&iob1);
-  //deployer.getProvider<RTT::Scripting>("scripting")->eval("ros.init_node(\'iob1\')"); 
-  //iob1.configure();
-  //iob1.start();
-  //roscpp::init_node(iob1);
 
-  //ros::init(argc, argv, iob1.getName());
-  //ros::NodeHandle nh;
- 
-
-  scheme.addBlock(&iob2);
-  scheme.addBlock(&iob3);
-  scheme.addBlock(&iob4);
-  scheme.addBlock(&iob5);
   iob1.out.connectTo(&iob2.in);
   iob2.out.connectTo(&iob3.in);
   iob3.out.connectTo(&iob4.in);
   iob4.out.connectTo(&iob5.in);
+  iob5.out.connectTo(&iob1.in);
 
- 
+  scheme.addBlock(&iob1);
+  scheme.addBlock(&iob2);
+  scheme.addBlock(&iob3);
+  scheme.addBlock(&iob4);
+  scheme.addBlock(&iob5);
+
   scheme.latchConnections("iob5","iob1",true);
 
-  //iob5.out.connectTo(&iob1.in);
+  scheme.setGroupMembers("even", "iob2");
+  scheme.addToGroup("iob4", "even");
+
+  scheme.addGroup("odd");
+  scheme.addToGroup("iob1", "odd");
+  scheme.addToGroup("iob3", "odd");
+  scheme.addToGroup("iob5", "odd");
+
+  scheme.addGroup("other");
+  scheme.addToGroup("iob5", "other");
+  scheme.addToGroup("iob4", "other");
 
   std::vector<std::string> execution_order;
   scheme.getExecutionOrder(execution_order);
   std::vector<std::string> &ptr_blocks = execution_order;
 
-  //iob1.configure();
-  //iob1.start();
- 
   scheme.configure();
 
   scheme.start();
 
-  //iob1.configure();
-  //iob1.start();
- 
   scheme.enableBlocks(ptr_blocks, true, true);
 
   OCL::TaskBrowser browse(&deployer);
@@ -130,4 +116,3 @@ int main(int argc, char** argv) {
 
   return 0;
 }
-//ORO_CREATE_COMPONENT(IOBlock(&iob1))
