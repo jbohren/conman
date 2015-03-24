@@ -406,7 +406,8 @@ class Conman(Plugin):
 
     @Slot(str)
     def _update_graph(self,dotcode):
-        self._widget.xdot_widget.set_dotcode(dotcode, center=False)
+        self._widget.xdot_widget.set_dotcode(dotcode, center=True)
+        self._widget.xdot_widget.zoom_to_fit()
 
     def _dotcode_msg_cb(self, msg):
         #self.new_dotcode_data = msg.data
