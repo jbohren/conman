@@ -141,7 +141,7 @@ class Conman(Plugin):
         self._widget.setPalette(palette)
 
         #self._widget.subscribe_button.setCheckable(True)
-
+        self._widget.namespace_input.currentIndexChanged.connect(self._handle_refresh_clicked)
         self._widget.ns_refresh_button.clicked.connect(self.refresh_combo_box)
         self._widget.refresh_button.clicked[bool].connect(self._handle_refresh_clicked)
         self._widget.commit_button.clicked[bool].connect(self._handle_commit_clicked)
