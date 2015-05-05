@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(test_scheme)
+project(conman_examples)
 
 find_package(catkin REQUIRED COMPONENTS
   conman
@@ -50,13 +50,13 @@ orocos_use_package( ocl-logging )
 
 add_definitions(-DRTT_COMPONENT)
 
-add_executable(test_scheme src/test_scheme.cpp)
+add_executable(conman_ros_example src/conman_ros_example.cpp)
 
 orocos_generate_package(
   INCLUDE_DIRS include
   )
 
-target_link_libraries(test_scheme
+target_link_libraries(conman_ros_example
     ${catkin_LIBRARIES}
     ${GMOCK_LIBRARY}
     ${OROCOS-RTT_RTT-SCRIPTING_LIBRARY}

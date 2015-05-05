@@ -1,8 +1,8 @@
 <?xml version="1.0"?>
 <package>
-  <name>test_scheme</name>
+  <name>conman_examples</name>
   <version>0.0.0</version>
-  <description>The test_scheme package</description>
+  <description>The conman_examples package</description>
 
   <!-- One maintainer tag required, multiple allowed, one person per tag --> 
   <!-- Example:  -->
@@ -19,7 +19,7 @@
   <!-- Url tags are optional, but mutiple are allowed, one per tag -->
   <!-- Optional attribute type can be: website, bugtracker, or repository -->
   <!-- Example: -->
-  <!-- <url type="website">http://wiki.ros.org/test_scheme</url> -->
+  <!-- <url type="website">http://wiki.ros.org/conman_examples</url> -->
 
 
   <!-- Author tags are optional, mutiple are allowed, one per tag -->
