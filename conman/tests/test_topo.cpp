@@ -133,7 +133,7 @@ TEST_F(TopoTest, EnableOrder) {
   disable_Order.clear();
 }
 
-/* Test that enableBlocksTopo does indeed inable the blocks. */
+/* Test that enableBlocks does indeed inable the blocks. */
 TEST_F(TopoTest, TopoEnable) {
   //setup blocks, connected 1 -> 2 -> 3 -> 4 -> 5 -latched-> 1
   ConnectBlocksAcyclic();
@@ -156,7 +156,7 @@ TEST_F(TopoTest, TopoEnable) {
   disable_Order.clear();
 }
 
-/*Test that disableBlocksTopo disables blocks. */
+/*Test that disableBlocks disables blocks. */
 TEST_F(TopoTest, TopoDisable) {
   //setup blocks, connected 1 -> 2 -> 3 -> 4 -> 5 -latched-> 1
   ConnectBlocksAcyclic();
@@ -182,7 +182,7 @@ TEST_F(TopoTest, TopoDisable) {
   disable_Order.clear();
 }
 
-/*Test that enableBlocksTopo enables blocks in the correct order 
+/*Test that enableBlocks enables blocks in the correct order 
  * when they were provided in the wrong order. */
 TEST_F(TopoTest, TopoEnableUnordered) {
   //setup blocks, connected 1 -> 2 -> 3 -> 4 -> 5 -latched-> 1
@@ -209,7 +209,7 @@ TEST_F(TopoTest, TopoEnableUnordered) {
   disable_Order.clear();
 }
 
-/*Test that disableBlocksTopo disables blocks in the correct order
+/*Test that disableBlocks disables blocks in the correct order
  * when they are provided in the wrng order. */
 TEST_F(TopoTest, TopoDisableUnordered) {
   //setup blocks, connected 1 -> 2 -> 3 -> 4 -> 5 -latched-> 1
