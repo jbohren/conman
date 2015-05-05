@@ -223,7 +223,7 @@ TEST_F(GroupsTest, AddToGroups) {
   EXPECT_TRUE(scheme.getGroupMembers("win",members_get));
   EXPECT_EQ(members_get.size(),2);
 
-  EXPECT_THAT(members_get, ElementsAre("vb1","vb2"));
+  EXPECT_THAT(members_get, ElementsAre("vb2","vb1"));
 }
 
 TEST_F(GroupsTest, NestedGroups) {
