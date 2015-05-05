@@ -20,9 +20,12 @@
 
 using namespace conman_ros;
 
-ROSInterfaceService::ROSInterfaceService(RTT::TaskContext* owner)
-    : RTT::Service("conman_ros", owner),
-      scheme(dynamic_cast<conman::Scheme*>(owner)) {
+ROSInterfaceService::ROSInterfaceService(RTT::TaskContext* owner) :
+  RTT::Service("conman_ros",owner),
+  scheme(dynamic_cast<conman::Scheme*>(owner)),
+  set_blocks_action_server_("set_blocks_action",1.0),
+  get_blocks_action_server_("get_blocks_action",1.0)
+{ 
   // Make sure we're attached to a scheme
   if (!scheme) {
     std::string err_text =

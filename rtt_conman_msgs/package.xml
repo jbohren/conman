@@ -25,14 +25,12 @@
 
   <build_depend>conman_msgs</build_depend>
   <build_depend>rtt_roscomm</build_depend>
+  <build_depend>rtt_std_msgs</build_depend>
+  <build_depend>rtt_actionlib</build_depend>
+  <build_depend>rtt_actionlib_msgs</build_depend>
 
   <run_depend>conman_msgs</run_depend>
   <run_depend>rtt_roscomm</run_depend>
-  
-  <build_depend>rtt_actionlib_msgs</build_depend>
-  <run_depend>rtt_actionlib_msgs</run_depend>
-
-
 
   <export>
     <rtt_ros>

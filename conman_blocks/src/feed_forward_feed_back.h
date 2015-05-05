@@ -49,7 +49,9 @@ namespace conman_blocks {
     bool heartbeat_warning_;
     bool enable_feedback_;
     double enable_duration_;
+    double disable_duration_;
     double heartbeat_period_;
+    Eigen::VectorXd feedback_effort_limits_;
 
     // Conman interface
     boost::shared_ptr<conman::Hook> conman_hook_;

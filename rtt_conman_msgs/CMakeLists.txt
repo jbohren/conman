@@ -8,5 +8,5 @@ ros_generate_rtt_service_proxies(conman_msgs)
 
 orocos_generate_package(
   DEPENDS conman_msgs
-  DEPENDS_TARGETS rtt_roscomm rtt_actionlib_msgs
+  DEPENDS_TARGETS rtt_roscomm rtt_actionlib rtt_actionlib_msgs
 )
