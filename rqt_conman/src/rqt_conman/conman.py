@@ -8,8 +8,10 @@ from python_qt_binding.QtGui import QPalette
 from python_qt_binding.QtGui import QStyle,QApplication,QMouseEvent
 from python_qt_binding.QtCore import Qt
 from python_qt_binding.QtCore import Signal,Slot
-from python_qt_binding.QtGui import QWidget,QPalette,QColor,QStandardItemModel,QItemDelegate,QStyleOptionButton,QStandardItem
+from python_qt_binding.QtGui import QWidget,QPalette,QColor,QStandardItemModel,QItemDelegate,QStyleOptionButton,QStandardItem,QIcon
 from python_qt_binding.QtCore import Qt,QTimer,Signal,QRect,QSize,QEvent
+from rqt_py_common.extended_combo_box import ExtendedComboBox
+from qt_gui_py_common.worker_thread import WorkerThread
 
 from xdot.xdot_qt import DotWidget
 
@@ -96,7 +98,8 @@ class Conman(Plugin):
         super(Conman, self).__init__(context)
 
         self._dotcode_sub = None
-
+        self._topic_dict = {}
+        self._update_thread = WorkerThread(self._update_thread_run, self._update_finished)
         # Give QObjects reasonable names
         self.setObjectName('Conman')
 
@@ -121,6 +124,7 @@ class Conman(Plugin):
         loadUi(ui_file, self._widget)
         # Give QObjects reasonable names
 
+        self._widget.ns_refresh_button.setIcon(QIcon.fromTheme('view-refresh'))
         self._widget.setObjectName('ConmanPluginUi')
         # Show _widget.windowTitle on left-top of each plugin (when 
         # it's set in _widget). This is useful when you open multiple 
@@ -137,7 +141,8 @@ class Conman(Plugin):
         self._widget.setPalette(palette)
 
         #self._widget.subscribe_button.setCheckable(True)
-
+        self._widget.namespace_input.currentIndexChanged.connect(self._handle_refresh_clicked)
+        self._widget.ns_refresh_button.clicked.connect(self.refresh_combo_box)
         self._widget.refresh_button.clicked[bool].connect(self._handle_refresh_clicked)
         self._widget.commit_button.clicked[bool].connect(self._handle_commit_clicked)
 
@@ -181,6 +186,7 @@ class Conman(Plugin):
         self._groups_delegate = GroupsDelegate(self)
         self._widget.groups_table.setItemDelegate(self._groups_delegate)
 
+        self.refresh_combo_box()
     
     def block_changed(self, item):
         row = item.row()
@@ -190,6 +196,7 @@ class Conman(Plugin):
 
     def shutdown_plugin(self):
         # TODO unregister all publishers here
+        self._update_thread.kill()
         pass
 
     def save_settings(self, plugin_settings, instance_settings):
@@ -206,6 +213,28 @@ class Conman(Plugin):
         # Comment in to signal that the plugin has a way to configure
         # This will enable a setting button (gear icon) in each dock widget title bar
         # Usually used to open a modal configuration dialog
+
+    @Slot()
+    def refresh_combo_box(self):
+        self._update_thread.kill()
+        self._widget.namespace_input.setEnabled(False)
+        self._widget.namespace_input.setEditText('updating...')
+        self._update_thread.start()
+
+    def _update_thread_run(self):
+        _, _, topic_types = rospy.get_master().getTopicTypes()
+        self._topic_dict = dict(topic_types)
+        keys = list(self._topic_dict.keys())
+        namespaces = list()
+        for i in keys:
+            if i.endswith("get_blocks_action/goal"):
+                namespaces.append(i[0:i.index("get_blocks_action/goal")])
+
+        self._widget.namespace_input.setItems.emit(namespaces)
+
+    @Slot()
+    def _update_finished(self):
+        self._widget.namespace_input.setEnabled(True)
 
     def _get_result_cb(self, status, res):
         rospy.loginfo("got result!")
@@ -344,7 +373,7 @@ class Conman(Plugin):
         self._widget.regenerate_graph_button.setEnabled(enable)
 
     def _handle_refresh_clicked(self, checked):
-        ns = self._widget.namespace_input.text()
+        ns = self._widget.namespace_input.currentText()
 
         if len(ns) > 0:
             if self._ns != ns:
@@ -406,7 +435,8 @@ class Conman(Plugin):
 
     @Slot(str)
     def _update_graph(self,dotcode):
-        self._widget.xdot_widget.set_dotcode(dotcode, center=False)
+        self._widget.xdot_widget.set_dotcode(dotcode, center=True)
+        self._widget.xdot_widget.zoom_to_fit()
 
     def _dotcode_msg_cb(self, msg):
         #self.new_dotcode_data = msg.data
