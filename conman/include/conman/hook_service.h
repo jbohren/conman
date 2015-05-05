@@ -128,8 +128,8 @@ namespace conman {
     };
 
     //! Map port names onto port annotations
-    std::map<std::string, InputProperties> input_ports_;
-    std::map<std::string, OutputProperties> output_ports_;
+    boost::unordered_map<std::string, InputProperties> input_ports_;
+    boost::unordered_map<std::string, OutputProperties> output_ports_;
 
     /** \brief Get a port by name
      *
