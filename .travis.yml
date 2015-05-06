@@ -26,7 +26,11 @@ before_install:
   - mkdir -p ~/ws/src
   - pushd ~/ws/src
   - ln -s $CI_SOURCE_PATH
-  #- git clone https://github.com/jhu-lcsr-forks/rtt_ros_integration.git
+  - git clone https://github.com/jhu-lcsr-forks/rtt_ros_integration.git
+  - pushd rtt_ros_integration
+  - find . -maxdepth 1 -type d -exec touch {}/CATKIN_IGNORE \;
+  - rm rtt_actionlib/CATKIN_IGNORE
+  - popd
   - git clone https://github.com/jbohren/rqt_dot.git
   - git clone https://github.com/jhu-lcsr/rtt_ros_control.git
   - popd
