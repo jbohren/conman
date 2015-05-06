@@ -20,6 +20,16 @@
    <item>
     <layout class="QHBoxLayout" name="horizontalLayout_2">
      <item>
+      <widget class="QPushButton" name="ns_refresh_button">
+       <property name="toolTip">
+        <string>Refresh available namespaces.</string>
+       </property>
+       <property name="text">
+        <string/>
+       </property>
+      </widget>
+     </item> 
+     <item>
       <widget class="QLabel" name="label">
        <property name="text">
         <string>Namespace:</string>
@@ -27,12 +37,34 @@
       </widget>
      </item>
      <item>
-      <widget class="QLineEdit" name="namespace_input"/>
+      <widget class="ExtendedComboBox" name="namespace_input">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+         <horstretch>1</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+       <property name="minimumSize">
+        <size>
+          <width>100</width>
+          <height>0</height>
+        </size>
+       </property>
+       <property name="toolTip">
+        <string>Conman namespace graph to display.</string>
+       </property>
+       <property name="editable">
+        <bool>true</bool>
+       </property>
+       <property name="sizeAdjustPolicy">
+        <enum>QComboBox::AdjustToMinimumContentsLength</enum>
+       </property>
+      </widget>
      </item>
      <item>
       <widget class="QPushButton" name="refresh_button">
        <property name="text">
-        <string>Refresh</string>
+        <string>Update Graph</string>
        </property>
       </widget>
      </item>
@@ -380,6 +412,11 @@
    <class>DotWidget</class>
    <extends>QWidget</extends>
    <header>xdot.xdot_qt</header>
+  </customwidget>
+  <customwidget>
+   <class>ExtendedComboBox</class>
+   <extends>QComboBox</extends>
+   <header>rqt_py_common.extended_combo_box</header>
   </customwidget>
  </customwidgets>
  <resources/>
