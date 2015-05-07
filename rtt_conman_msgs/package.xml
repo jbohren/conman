@@ -31,9 +31,6 @@
 
   <run_depend>conman_msgs</run_depend>
   <run_depend>rtt_roscomm</run_depend>
-  <run_depend>rtt_std_msgs</run_depend>
-  <run_depend>rtt_actionlib</run_depend>
-  <run_depend>rtt_actionlib_msgs</run_depend>
 
   <export>
     <rtt_ros>

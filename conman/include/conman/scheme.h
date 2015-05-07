@@ -177,6 +177,11 @@ namespace conman
      */
     //\{
 
+
+    //! Properties
+    std::string scheme_name_;
+
+
     //! Add/Remove a latch between two blocks (or two groups of blocks) by name
     bool latchConnections(
       const std::string &source_name,
@@ -373,6 +378,9 @@ namespace conman
         const bool strict);
 
     //\}
+    
+    //! Call configure on all components atached to scheme in topological order.
+    bool configureAll();
 
     /** \brief (Re)generates an internal model of the RTT port connection graph
      *
