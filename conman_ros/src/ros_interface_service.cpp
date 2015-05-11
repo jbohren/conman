@@ -34,11 +34,9 @@ ROSInterfaceService::ROSInterfaceService(RTT::TaskContext* owner) :
   }
 
   // Connect operation callers
-  RTT::log(RTT::Debug) << "Connecting conamn_ros operation callers..." << RTT::endlog();
-  //getBlocks = scheme->getOperation("getBlocks");
+  RTT::log(RTT::Debug) << "Connecting conamn_ros operation callers..." << RTT::endlog(); 
   getBlocks = RTT::OperationCaller<bool(std::vector<std::string>&, std::vector<std::string>&, bool, bool)>(
       scheme->getOperation("getBlocks"), scheme->engine());
-  //getGroups = scheme->getOperation("getGroups");
   getGroups = RTT::OperationCaller<bool(std::vector<std::string>&, std::vector<std::string>&, bool, bool)>(
       scheme->getOperation("getGroups"), scheme->engine()); 
   switchBlocks = RTT::OperationCaller<bool(std::vector<std::string>&, std::vector<std::string>&, bool, bool)>(
@@ -153,7 +151,6 @@ bool ROSInterfaceService::reloadControllerLibrariesCB(
 {
   return false;
 }
-//HERE
 bool ROSInterfaceService::switchControllerCB(
     controller_manager_msgs::SwitchController::Request &req,
     controller_manager_msgs::SwitchController::Response& resp)
@@ -164,7 +161,6 @@ bool ROSInterfaceService::switchControllerCB(
       req.start_controllers,
       req.strictness == controller_manager_msgs::SwitchController::Request::STRICT,
       false);
-  RTT::log(RTT::Debug) << "Finished handling ros_control switch controllers request..." << RTT::endlog(); 
   return true;
 }
 bool ROSInterfaceService::unloadControllerCB(
@@ -173,7 +169,6 @@ bool ROSInterfaceService::unloadControllerCB(
 {
   return false;
 }
-
 
 void ROSInterfaceService::get_blocks_goal_cb(actionlib::ServerGoalHandle<conman_msgs::GetBlocksAction> gh)
 {
