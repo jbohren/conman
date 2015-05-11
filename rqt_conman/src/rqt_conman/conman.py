@@ -23,6 +23,8 @@ import conman_msgs.msg
 
 from actionlib_msgs.msg import GoalStatus
 
+initialized = 0
+
 state_map = {
     conman_msgs.msg.TaskState.INIT: 'Init',
     conman_msgs.msg.TaskState.PRE_OPERATIONAL: 'PreOperational',
@@ -187,7 +189,7 @@ class Conman(Plugin):
         self._widget.groups_table.setItemDelegate(self._groups_delegate)
 
         self.refresh_combo_box()
-    
+        
     def block_changed(self, item):
         row = item.row()
         name = self._blocks_model.item(row,3).text()
@@ -435,8 +437,13 @@ class Conman(Plugin):
 
     @Slot(str)
     def _update_graph(self,dotcode):
-        self._widget.xdot_widget.set_dotcode(dotcode, center=True)
-        self._widget.xdot_widget.zoom_to_fit()
+        global initialized
+        if initialized: 
+            self._widget.xdot_widget.set_dotcode(dotcode, center=False);
+        else:
+            self._widget.xdot_widget.set_dotcode(dotcode, center=True);
+            self._widget.xdot_widget.zoom_to_fit()
+            initialized = 1
 
     def _dotcode_msg_cb(self, msg):
         #self.new_dotcode_data = msg.data
