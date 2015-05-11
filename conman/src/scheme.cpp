@@ -1623,20 +1623,6 @@ bool Scheme::disableBlock(RTT::TaskContext* block)
   return true;
 }
 
-/*
- *bool Scheme::enableBlocks(
- *    const boost::unordered_set<std::string> &block_names,
- *    const bool strict,
- *    const bool force)
- *{
- *  for(boost::unordered_set<std::string>::const_iterator it = block_names.begin();
- *      it != block_names.end();
- *      ++it)
- *  { 
- *  }
- *}
- */
-
 bool Scheme::enableable(
     const std::string &block_name) const
 {
@@ -1689,39 +1675,6 @@ bool Scheme::enableable(
   return true;
 }
 
-/*
- *bool Scheme::enableBlocks(
- *    const std::vector<std::string> &block_names,
- *    const bool strict,
- *    const bool force)
- *{
- *  using namespace conman::graph;
- *
- *  // First make sure all the blocks can be enabled before actually trying to enable them
- *  if(!force) {
- *    if(!this->enableable(block_names)) {
- *      RTT::log(RTT::Error) << "Could not enable block because it has conflicts which will not be force-disabled." << RTT::endlog();
- *      return false;
- *    }
- *  }
- *
- *  // Enable the blocks
- *  bool success = true;
- *
- *  for(std::vector<std::string>::const_iterator it = block_names.begin();
- *      it != block_names.end();
- *      ++it)
- *  {
- *    // Try to start the block
- *   success = this->enableBlock(*it,force) && success;
- *
- *   // Break on failure if strict
- *   if(!success && strict) { return false; }
- * }
- *
- * return success;
- *}
- */
 bool Scheme::enableBlocks(
     const std::vector<std::string> &unordered, 
     const bool strict, 
@@ -1777,27 +1730,6 @@ bool Scheme::disableBlocks(const bool strict)
 
   return success;
 }
-
-/*bool Scheme::disableBlocks(
- *    const std::vector<std::string> &block_names,
- *    const bool strict)
- *{
- *  bool success = true;
- *
- *  for(std::vector<std::string>::const_iterator it = block_names.begin();
- *      it != block_names.end();
- *      ++it)
- *  {
- *    // Try to disable the block
- *    success &= this->disableBlock(*it);
- *
- *    // Break on failure if strict
- *    if(!success && strict) { return false; }
- *  }
- *
- *  return success;
- *}
- */
 
 bool Scheme::disableBlocks(
     const std::vector<std::string> &unordered, 

@@ -189,7 +189,11 @@ class Conman(Plugin):
         self._widget.groups_table.setItemDelegate(self._groups_delegate)
 
         self.refresh_combo_box()
+<<<<<<< HEAD
         
+=======
+    
+>>>>>>> jbo/master
     def block_changed(self, item):
         row = item.row()
         name = self._blocks_model.item(row,3).text()
@@ -437,6 +441,7 @@ class Conman(Plugin):
 
     @Slot(str)
     def _update_graph(self,dotcode):
+<<<<<<< HEAD
         global initialized
         if initialized: 
             self._widget.xdot_widget.set_dotcode(dotcode, center=False);
@@ -444,6 +449,10 @@ class Conman(Plugin):
             self._widget.xdot_widget.set_dotcode(dotcode, center=True);
             self._widget.xdot_widget.zoom_to_fit()
             initialized = 1
+=======
+        self._widget.xdot_widget.set_dotcode(dotcode, center=True)
+        self._widget.xdot_widget.zoom_to_fit()
+>>>>>>> jbo/master
 
     def _dotcode_msg_cb(self, msg):
         #self.new_dotcode_data = msg.data
