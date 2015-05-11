@@ -34,10 +34,13 @@ ROSInterfaceService::ROSInterfaceService(RTT::TaskContext* owner) :
   }
 
   // Connect operation callers
-  RTT::log(RTT::Debug) << "Connecting conamn_ros operation callers..." << RTT::endlog();
-  getBlocks = scheme->getOperation("getBlocks");
-  getGroups = scheme->getOperation("getGroups");
-  switchBlocks = scheme->getOperation("switchBlocks");
+  RTT::log(RTT::Debug) << "Connecting conamn_ros operation callers..." << RTT::endlog(); 
+  getBlocks = RTT::OperationCaller<bool(std::vector<std::string>&, std::vector<std::string>&, bool, bool)>(
+      scheme->getOperation("getBlocks"), scheme->engine());
+  getGroups = RTT::OperationCaller<bool(std::vector<std::string>&, std::vector<std::string>&, bool, bool)>(
+      scheme->getOperation("getGroups"), scheme->engine()); 
+  switchBlocks = RTT::OperationCaller<bool(std::vector<std::string>&, std::vector<std::string>&, bool, bool)>(
+      scheme->getOperation("switchBlocks"), scheme->engine());
 
   // Create ros-control operation bindings
   RTT::log(RTT::Debug) << "Creating ros_control service servers..." << RTT::endlog();
@@ -69,7 +72,7 @@ ROSInterfaceService::ROSInterfaceService(RTT::TaskContext* owner) :
   rosservice->connect("roscontrol.reloadControllerLibraries",
                      "controller_manager/reload_controller_libraries",
                      "controller_manager_msgs/ReloadControllerLibraries");
-
+ 
   rosservice->connect("roscontrol.switchController",
                      "controller_manager/switch_controller",
                      "controller_manager_msgs/SwitchController");
@@ -158,7 +161,6 @@ bool ROSInterfaceService::switchControllerCB(
       req.start_controllers,
       req.strictness == controller_manager_msgs::SwitchController::Request::STRICT,
       false);
-
   return true;
 }
 bool ROSInterfaceService::unloadControllerCB(
@@ -167,7 +169,6 @@ bool ROSInterfaceService::unloadControllerCB(
 {
   return false;
 }
-
 
 void ROSInterfaceService::get_blocks_goal_cb(actionlib::ServerGoalHandle<conman_msgs::GetBlocksAction> gh)
 {
@@ -236,9 +237,8 @@ void ROSInterfaceService::set_blocks_goal_cb(actionlib::ServerGoalHandle<conman_
 
   // The query is valid, accept the goal
   gh.setAccepted();
-
   bool success = scheme->switchBlocks(goal->disable, goal->enable, goal->strict, goal->force);
-
+ 
   if(success) {
     gh.setSucceeded(result);
   } else {
