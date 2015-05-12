@@ -35,9 +35,9 @@ ROSInterfaceService::ROSInterfaceService(RTT::TaskContext* owner) :
 
   // Connect operation callers
   RTT::log(RTT::Debug) << "Connecting conamn_ros operation callers..." << RTT::endlog(); 
-  getBlocks = RTT::OperationCaller<bool(std::vector<std::string>&, std::vector<std::string>&, bool, bool)>(
+  getBlocks = RTT::OperationCaller<bool(std::vector<std::string>&)>(
       scheme->getOperation("getBlocks"), scheme->engine());
-  getGroups = RTT::OperationCaller<bool(std::vector<std::string>&, std::vector<std::string>&, bool, bool)>(
+  getGroups = RTT::OperationCaller<bool()>(
       scheme->getOperation("getGroups"), scheme->engine()); 
   switchBlocks = RTT::OperationCaller<bool(std::vector<std::string>&, std::vector<std::string>&, bool, bool)>(
       scheme->getOperation("switchBlocks"), scheme->engine());
