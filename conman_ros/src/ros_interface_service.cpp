@@ -1,6 +1,6 @@
-/** Copyright (c) 2013, Jonathan Bohren, all rights reserved. 
+/** Copyright (c) 2013, Jonathan Bohren, all rights reserved.
  * This software is released under the BSD 3-clause license, for the details of
- * this license, please see LICENSE.txt at the root of this repository. 
+ * this license, please see LICENSE.txt at the root of this repository.
  */
 
 #include <rtt/plugin/ServicePlugin.hpp>
@@ -25,20 +25,20 @@ ROSInterfaceService::ROSInterfaceService(RTT::TaskContext* owner) :
   scheme(dynamic_cast<conman::Scheme*>(owner)),
   set_blocks_action_server_("set_blocks_action",1.0),
   get_blocks_action_server_("get_blocks_action",1.0)
-{ 
+{
   // Make sure we're attached to a scheme
-  if(!scheme) { 
+  if(!scheme) {
     std::string err_text = "Attmpted to load the Conman ROS interface on a component which isn't a scheme!";
     RTT::log(RTT::Error) << err_text << RTT::endlog();
     throw std::runtime_error(err_text);
   }
 
   // Connect operation callers
-  RTT::log(RTT::Debug) << "Connecting conamn_ros operation callers..." << RTT::endlog(); 
-  getBlocks = RTT::OperationCaller<std::vector<std::string>()>(
+  RTT::log(RTT::Debug) << "Connecting conamn_ros operation callers..." << RTT::endlog();
+  getBlocks = RTT::OperationCaller<bool(std::vector<std::string>&)>(
       scheme->getOperation("getBlocks"), scheme->engine());
   getGroups = RTT::OperationCaller<bool()>(
-      scheme->getOperation("getGroups"), scheme->engine()); 
+      scheme->getOperation("getGroups"), scheme->engine());
   switchBlocks = RTT::OperationCaller<bool(std::vector<std::string>&, std::vector<std::string>&, bool, bool)>(
       scheme->getOperation("switchBlocks"), scheme->engine());
 
@@ -64,7 +64,7 @@ ROSInterfaceService::ROSInterfaceService(RTT::TaskContext* owner) :
   rosservice->connect("roscontrol.listControllers",
                      "controller_manager/list_controllers",
                      "controller_manager_msgs/ListControllers");
-  
+
   rosservice->connect("roscontrol.loadController",
                      "controller_manager/load_controller",
                      "controller_manager_msgs/LoadController");
@@ -72,14 +72,14 @@ ROSInterfaceService::ROSInterfaceService(RTT::TaskContext* owner) :
   rosservice->connect("roscontrol.reloadControllerLibraries",
                      "controller_manager/reload_controller_libraries",
                      "controller_manager_msgs/ReloadControllerLibraries");
- 
+
   rosservice->connect("roscontrol.switchController",
                      "controller_manager/switch_controller",
                      "controller_manager_msgs/SwitchController");
 
   rosservice->connect("roscontrol.unloadController",
                      "controller_manager/unload_controller",
-                     "controller_manager_msgs/UnloadController"); 
+                     "controller_manager_msgs/UnloadController");
 
   // Actions
   get_blocks_action_server_.addPorts(this->provides("get_blocks_action"), true, "~"+this->getOwner()->getName()+"/get_blocks_action/");
@@ -238,7 +238,7 @@ void ROSInterfaceService::set_blocks_goal_cb(actionlib::ServerGoalHandle<conman_
   // The query is valid, accept the goal
   gh.setAccepted();
   bool success = scheme->switchBlocks(goal->disable, goal->enable, goal->strict, goal->force);
- 
+
   if(success) {
     gh.setSucceeded(result);
   } else {
@@ -304,31 +304,31 @@ void ROSInterfaceService::broadcastGraph()
     // Add statistics
     RTT::TaskContext *task = scheme->getPeer(block_it->name);
     boost::shared_ptr<conman::Hook> hook = conman::Hook::GetHook(task);
-    RTT::Seconds 
+    RTT::Seconds
       pavg = hook->getPeriodAvg(),
-      pmin = hook->getPeriodMin(), 
-      pmax = hook->getPeriodMax(), 
+      pmin = hook->getPeriodMin(),
+      pmax = hook->getPeriodMax(),
       pvar = hook->getPeriodVar();
-    RTT::Seconds 
+    RTT::Seconds
       davg = hook->getDurationAvg(),
-      dmin = hook->getDurationMin(), 
-      dmax = hook->getDurationMax(), 
+      dmin = hook->getDurationMin(),
+      dmax = hook->getDurationMax(),
       dvar = hook->getDurationVar();
 
     double fraction  = davg/pavg;
 
     // |{{0.0001|205.7}|{0.00112 +/- 1E-7 (85%)|800.4 +/- 3} | {0.002|855.5}}
 
-    oss << boost::str(boost::format("|{{%1.2e|%1.2e}|{%1.2e +/- %1.1e|%1.2e +/- %1.1e (%3.1f%%)}|{%1.2e|%1.2e}}") 
+    oss << boost::str(boost::format("|{{%1.2e|%1.2e}|{%1.2e +/- %1.1e|%1.2e +/- %1.1e (%3.1f%%)}|{%1.2e|%1.2e}}")
                       % pmin % dmin % pavg % pvar % davg % dvar % (100.0*fraction) % pmax % dmax);
     //oss << "|{ period: " << pmin << "|" << pavg << " +/- " << std::setprecision(2) << pvar << "|" << pmax << "}";
     //oss << "|{ duration: " << dmin << "|" << davg << " +/- " << dvar << "|" << dmax << "| " << fraction*100.0 << "% }";
     oss << "\"";
 
 #if 0
-    oss << "fillcolor=\"#" << std::hex 
-      << int(255*fraction) 
-      << int(255*(1.0-fraction)) 
+    oss << "fillcolor=\"#" << std::hex
+      << int(255*fraction)
+      << int(255*(1.0-fraction))
       << int(255*(1.0-fraction)) << std::dec << "\"";
 #endif
 
@@ -357,7 +357,7 @@ void ROSInterfaceService::broadcastGraph()
 
   std_msgs::String msg;
   msg.data = main_stream.str();
-  
+
   dotcode_out_.write(msg);
 }
 
