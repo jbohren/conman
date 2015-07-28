@@ -27,7 +27,7 @@
 
 using namespace conman;
 
-Scheme::Scheme(std::string name) 
+Scheme::Scheme(std::string name)
  : RTT::TaskContext(name)
 {
   // Modifying blocks in the scheme
@@ -139,7 +139,7 @@ bool Scheme::addBlock(const std::string &block_name)
 
     for(RTT::TaskContext::PeerList::iterator it = peers.begin();
         it != peers.end();
-        ++it) 
+        ++it)
     {
       RTT::log(RTT::Error) << "    " << *it << std::endl;
     }
@@ -182,13 +182,13 @@ bool Scheme::addBlock(RTT::TaskContext *new_block)
   }
 
   // Try to add this block as a peer if it isn't already a peer
-  if(!(this->getPeer(new_block->getName()) == new_block) 
-     && !this->connectPeers(new_block)) 
+  if(!(this->getPeer(new_block->getName()) == new_block)
+     && !this->connectPeers(new_block))
   {
     RTT::log() << RTT::Logger::Error << "Could not connect peer: " <<
       new_block->getName() << RTT::endlog();
   }
-  
+
   // Get the block name
   const std::string block_name = new_block->getName();
 
@@ -212,14 +212,14 @@ bool Scheme::addBlock(RTT::TaskContext *new_block)
       block_name <<"\" to the scheme." << RTT::endlog();
     // Remove the block
     if(!this->removeBlock(new_block)) {
-      // This is 
+      // This is
       RTT::log(RTT::Fatal) << "Could not clean up block \"" << block_name <<
         "\" when trying to remove it. Something is terribly wrong." <<
         RTT::endlog();
     }
     return false;
   }
-  
+
   // Compute conflicts for this block and represent them in the RCG
   this->computeConflicts(new_vertex);
 
@@ -244,7 +244,7 @@ void Scheme::printExecutionOrdering() const
 
   for(ExecutionOrdering::const_iterator it = exec_ordering_.begin();
       it != exec_ordering_.end();
-      ++it) 
+      ++it)
   {
     ordered_names.push_back(flow_graph_[*it]->block->getName());
   }
@@ -270,7 +270,7 @@ bool Scheme::removeBlock(const std::string &block_name)
 
     for(RTT::TaskContext::PeerList::iterator it = peers.begin();
         it != peers.end();
-        ++it) 
+        ++it)
     {
       RTT::log(RTT::Error) << "    " << *it << std::endl;
     }
@@ -335,7 +335,7 @@ bool Scheme::removeBlock(
   // Remove the block from the block map
   blocks_.erase(block->getName());
 
-  // Re-index the vertices 
+  // Re-index the vertices
   unsigned int i=0;
   std::list<DataFlowVertex::Ptr>::iterator it = block_indices_.begin();
   for(; it != block_indices_.end(); )
@@ -359,7 +359,7 @@ bool Scheme::removeBlock(
 ///////////////////////////////////////////////////////////////////////////////
 
 bool Scheme::hasGroup(const std::string &group_name) const
-{ 
+{
   return block_groups_.find(group_name) != block_groups_.end();
 }
 
@@ -377,8 +377,8 @@ std::vector<std::string> Scheme::getGroups() const
   return group_names;
 }
 
-bool Scheme::addGroup(const std::string &group_name) 
-{ 
+bool Scheme::addGroup(const std::string &group_name)
+{
   // Check if the group name collides with a real block
   if(this->hasBlock(group_name)) {
     RTT::log(RTT::Error) << "Block group named \"" << group_name << "\" "
@@ -401,8 +401,8 @@ bool Scheme::addGroup(const std::string &group_name)
 
 bool Scheme::setGroupMembers(
     const std::string &group_name,
-    const std::string &member_name) 
-{ 
+    const std::string &member_name)
+{
   std::vector<std::string> members;
   members.push_back(member_name);
   return this->setGroupMembers(group_name, members);
@@ -411,7 +411,7 @@ bool Scheme::setGroupMembers(
 bool Scheme::setGroupMembers(
     const std::string &group_name,
     const std::vector<std::string> &members)
-{ 
+{
   RTT::Logger::In in("Scheme::createGroup");
 
   // Check if the group already exists
@@ -441,12 +441,12 @@ bool Scheme::setGroupMembers(
   // Set the group membership
   block_groups_[group_name] = boost::unordered_set<std::string>(members.begin(),members.end());
 
-  return true; 
+  return true;
 }
 
 bool Scheme::addToGroup(
     const std::string &new_name,
-    const std::string &group_name) 
+    const std::string &group_name)
 {
   RTT::Logger::In in("Scheme::addToGroup");
 
@@ -463,7 +463,7 @@ bool Scheme::addToGroup(
   // Check if the block is in the scheme
   if(!this->hasBlock(new_name) &&
      !this->hasGroup(new_name) &&
-     !this->addBlock(new_name)) 
+     !this->addBlock(new_name))
   {
     RTT::log(RTT::Error) << "Block or group named \"" << new_name << "\" is not"
       " in the scheme and could not be added to the scheme." << RTT::endlog();
@@ -473,15 +473,15 @@ bool Scheme::addToGroup(
   // Add the new name to the group
   group->second.insert(new_name);
 
-  return true; 
+  return true;
 }
 
 bool Scheme::removeFromGroup(
     const std::string &block,
-    const std::string &group_name) 
+    const std::string &group_name)
 {
   // Check if the group exists
-  boost::unordered_map<std::string, boost::unordered_set<std::string> >::iterator group = 
+  boost::unordered_map<std::string, boost::unordered_set<std::string> >::iterator group =
     block_groups_.find(group_name);
 
   if(group == block_groups_.end()) {
@@ -497,10 +497,10 @@ bool Scheme::removeFromGroup(
   // Remove the block from the group
   group->second.erase(block);
 
-  return true; 
+  return true;
 }
 
-bool Scheme::emptyGroup( const std::string &group_name) 
+bool Scheme::emptyGroup( const std::string &group_name)
 {
   // Check if the group exists
   if(!this->hasGroup(group_name)) {
@@ -510,10 +510,10 @@ bool Scheme::emptyGroup( const std::string &group_name)
   // Remove the elments from the group
   block_groups_[group_name].clear();
 
-  return true; 
+  return true;
 }
 
-bool Scheme::removeGroup( const std::string &group_name) 
+bool Scheme::removeGroup( const std::string &group_name)
 {
   // Check if the group exists
   if(this->hasGroup(group_name)) {
@@ -528,12 +528,12 @@ bool Scheme::removeGroup( const std::string &group_name)
       this->removeFromGroup(it->first, group_name);
     }
   }
-  
-  return true; 
+
+  return true;
 }
 
 std::vector<std::string> Scheme::getGroupMembers(
-    const std::string &group_name) 
+    const std::string &group_name)
   const
 {
   std::vector<std::string> block_names;
@@ -546,7 +546,7 @@ std::vector<std::string> Scheme::getGroupMembers(
 
 bool Scheme::getGroupMembers(
     const std::string &group_name,
-    std::vector<std::string> &members) 
+    std::vector<std::string> &members)
   const
 {
   // Expand the group recursively
@@ -562,7 +562,7 @@ bool Scheme::getGroupMembers(
 bool Scheme::getGroupMembers(
     const std::string &name,
     boost::unordered_set<std::string> &member_set,
-    boost::unordered_set<std::string> &visited) 
+    boost::unordered_set<std::string> &visited)
   const
 {
   bool success = true;
@@ -597,7 +597,7 @@ bool Scheme::getGroupMembers(
     success &= this->getGroupMembers(*it, member_set, visited);
   }
 
-  return success; 
+  return success;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -631,7 +631,7 @@ bool Scheme::latchConnections(
     RTT::log(RTT::Error) << "Scheme is in running state. Latching blocks forbidden." << RTT::endlog();
     return false;
   }
-  
+
   // Latch connections between all sources and sinks
   bool success = true;
   for(std::vector<std::string>::const_iterator source_it = source_names.begin();
@@ -671,8 +671,8 @@ bool Scheme::latchConnections(
   DataFlowEdgeDescriptor edge;
   bool edge_found;
   boost::tie(edge, edge_found) = boost::edge(
-      flow_vertex_map_[source], 
-      flow_vertex_map_[sink], 
+      flow_vertex_map_[source],
+      flow_vertex_map_[sink],
       flow_graph_);
 
   // Latch the edge
@@ -701,7 +701,7 @@ bool Scheme::latchConnections(
     this->printExecutionOrdering();
   } else if(strict) {
     // Only error if strict
-    RTT::log(RTT::Error) << "Tried to " << 
+    RTT::log(RTT::Error) << "Tried to " <<
       ((latch) ? ("latch") : ("un_latch"))
       << " a non-existent connection." <<
       RTT::endlog();
@@ -719,7 +719,7 @@ bool Scheme::latchInputs(const std::string &sink_name, const bool latch)
   this->getBlocks(sources);
   // Get the sinks (potentially a group)
   this->getGroupMembers(sink_name, sinks);
-  
+
   // Set latching flags for all vertices
   for(std::vector<std::string>::const_iterator it=sinks.begin();
       it != sinks.end();
@@ -744,7 +744,7 @@ bool Scheme::latchOutputs(const std::string &source_name, const bool latch)
   this->getGroupMembers(source_name, sources);
   // Get the sinks (all blocks)
   this->getBlocks(sinks);
-  
+
   // Set latching flags for all vertices
   for(std::vector<std::string>::const_iterator it=sources.begin();
       it != sources.end();
@@ -778,14 +778,14 @@ int Scheme::latchCount(
 
   // Iterate over pairs of vertices
   std::vector<std::string>::const_iterator
-    source_name = path.begin(), 
+    source_name = path.begin(),
     sink_name = ++path.begin();
   for( ;source_name != path.end() && sink_name != path.end();
        ++source_name, ++sink_name)
   {
     // Get the blocks corresponding to the names
     boost::unordered_map<std::string, DataFlowVertex::Ptr>::const_iterator
-      source, 
+      source,
       sink;
 
     source = blocks_.find(*source_name);
@@ -806,7 +806,7 @@ int Scheme::latchCount(
     DataFlowEdgeDescriptor edge;
     bool edge_found;
     boost::tie(edge,edge_found) = boost::edge(u,v,flow_graph_);
-    
+
     if(!edge_found) {
       RTT::log(RTT::Error) << "Could not compute latch count because path"
         " elements aren't connected." << RTT::endlog();
@@ -887,7 +887,7 @@ int Scheme::getFlowCycles(
   for(size_t c=0; c < cycles.size(); c++) {
     for(DataFlowPath::const_iterator v_it=cycles[c].begin();
         v_it != cycles[c].end();
-        ++v_it) 
+        ++v_it)
     {
       cycle_strs[c].push_back(flow_graph_[*v_it]->block->getName());
     }
@@ -910,7 +910,7 @@ int Scheme::computeCycles(
   FlowCycleVisitor visitor(cycles);
 
   try {
-    // Find all cycles 
+    // Find all cycles
 #ifdef USE_HAWICK
     boost::hawick_circuits( data_flow_graph, visitor);
 #else
@@ -927,7 +927,7 @@ int Scheme::computeCycles(
 
 bool Scheme::computeSchedule(
     const conman::graph::DataFlowGraph &data_flow_graph,
-    conman::graph::ExecutionOrdering &ordering, 
+    conman::graph::ExecutionOrdering &ordering,
     const bool quiet)
   const
 {
@@ -942,8 +942,8 @@ bool Scheme::computeSchedule(
     // algorithm to work since our adjacency_list uses a list as the underlying
     // vertex data structure. See the documentation for DataFlowVertexIndex for
     // more info.
-    boost::topological_sort( 
-        data_flow_graph, 
+    boost::topological_sort(
+        data_flow_graph,
         std::front_inserter(ordering));/**,
         boost::vertex_index_map(
             boost::make_function_property_map<DataFlowVertexDescriptor>(
@@ -993,7 +993,7 @@ int Scheme::getExecutionCycles(
   for(size_t c=0; c < cycles.size(); c++) {
     for(DataFlowPath::const_iterator v_it=cycles[c].begin();
         v_it != cycles[c].end();
-        ++v_it) 
+        ++v_it)
     {
       cycle_strs[c].push_back(exec_graph_[*v_it]->block->getName());
     }
@@ -1012,7 +1012,7 @@ bool Scheme::getExecutionOrder(std::vector<std::string> &order) const
     return false;
   }
 
-  // Fill the order with 
+  // Fill the order with
   for(conman::graph::ExecutionOrdering::const_iterator it = exec_ordering_.begin();
       it != exec_ordering_.end();
       ++it)
@@ -1025,7 +1025,7 @@ bool Scheme::getExecutionOrder(std::vector<std::string> &order) const
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void Scheme::computeConflicts() 
+void Scheme::computeConflicts()
 {
   boost::unordered_map<std::string,graph::DataFlowVertex::Ptr>::iterator it;
   for(it = blocks_.begin(); it != blocks_.end(); ++it) {
@@ -1033,7 +1033,7 @@ void Scheme::computeConflicts()
   }
 }
 
-void Scheme::computeConflicts(const std::string &block_name) 
+void Scheme::computeConflicts(const std::string &block_name)
 {
   if(blocks_.find(block_name) != blocks_.end()) {
     this->computeConflicts(blocks_[block_name]);
@@ -1074,8 +1074,8 @@ void Scheme::computeConflicts(conman::graph::DataFlowVertex::Ptr seed_vertex)
 
   // Iterate over each data flow edge from the seed vertex
   for(boost::tie(out_edge_it, out_edge_end) = boost::out_edges(flow_vertex_map_[seed_block], flow_graph_);
-      out_edge_it != out_edge_end; 
-      ++out_edge_it) 
+      out_edge_it != out_edge_end;
+      ++out_edge_it)
   {
     // Get a reference to the output edge properties for convenience
     const DataFlowEdge::Ptr out_edge = flow_graph_[*out_edge_it];
@@ -1094,7 +1094,7 @@ void Scheme::computeConflicts(conman::graph::DataFlowVertex::Ptr seed_vertex)
       const std::string source_port_path = ResolvePortPath(out_conn_it->sink_service, out_conn_it->sink_port);
       const std::string sink_port_path = ResolvePortPath(out_conn_it->sink_service, out_conn_it->sink_port);
 
-      RTT::log(RTT::Debug) << " -- -- Examining connection " 
+      RTT::log(RTT::Debug) << " -- -- Examining connection "
         << seed_block->getName()<<"."<<source_port_path
         << " -> "
         << sink_vertex->block->getName()<<"."<<sink_port_path<< " ..."
@@ -1109,7 +1109,7 @@ void Scheme::computeConflicts(conman::graph::DataFlowVertex::Ptr seed_vertex)
         continue;
       }
 
-      RTT::log(RTT::Debug) << " -- -- This connection is EXCLUSIVE " << RTT::endlog(); 
+      RTT::log(RTT::Debug) << " -- -- This connection is EXCLUSIVE " << RTT::endlog();
 
       // Iterator for edges targeting the sink vertex
       DataFlowInEdgeIterator in_edge_it, in_edge_end;
@@ -1117,7 +1117,7 @@ void Scheme::computeConflicts(conman::graph::DataFlowVertex::Ptr seed_vertex)
       // Iterate over all input edges to the sink vertex
       for(boost::tie(in_edge_it, in_edge_end) = boost::in_edges(sink_vertex_descriptor, flow_graph_);
           in_edge_it != in_edge_end;
-          ++in_edge_it) 
+          ++in_edge_it)
       {
         // Get a reference to the edge properties for convenience
         const DataFlowEdge::Ptr in_edge = flow_graph_[*in_edge_it];
@@ -1130,8 +1130,8 @@ void Scheme::computeConflicts(conman::graph::DataFlowVertex::Ptr seed_vertex)
             in_conn_it != in_edge->connections.end();
             ++in_conn_it)
         {
-          RTT::log(RTT::Debug) << " -- -- -- -- Examining connection " 
-            << source_vertex->block->getName()<<"."<< in_conn_it->source_port->getName() 
+          RTT::log(RTT::Debug) << " -- -- -- -- Examining connection "
+            << source_vertex->block->getName()<<"."<< in_conn_it->source_port->getName()
             << " -> "
             << sink_vertex->block->getName()<<"."<< in_conn_it->sink_port->getName() << "..."
             << RTT::endlog();
@@ -1146,7 +1146,7 @@ void Scheme::computeConflicts(conman::graph::DataFlowVertex::Ptr seed_vertex)
 
           // Make sure the source block is in the conflict map, and isn't the seed block
           if( conflict_vertex_map_.find(conflicting_vertex->block) == conflict_vertex_map_.end() ||
-              seed_block == conflicting_vertex->block) 
+              seed_block == conflicting_vertex->block)
           {
             continue;
           }
@@ -1287,7 +1287,7 @@ bool Scheme::regenerateModel()
   // Iterate over all vertex structures
   for(boost::unordered_map<std::string, DataFlowVertex::Ptr>::iterator vert_it = blocks_.begin();
       vert_it != blocks_.end();
-      ++vert_it) 
+      ++vert_it)
   {
     // Temporary variable for readability
     DataFlowVertex::Ptr source_vertex = vert_it->second;
@@ -1298,7 +1298,7 @@ bool Scheme::regenerateModel()
 
     // Create graph arcs for each port between blocks
     std::vector<RTT::base::PortInterface*>::const_iterator port_it;
-    for(port_it = ports.begin(); port_it != ports.end(); ++port_it) 
+    for(port_it = ports.begin(); port_it != ports.end(); ++port_it)
     {
       // Get the port, for readability
       const RTT::base::PortInterface *port = *port_it;
@@ -1315,20 +1315,20 @@ bool Scheme::regenerateModel()
       std::list<RTT::internal::ConnectionManager::ChannelDescriptor>::iterator channel_it;
 
       // Create graph arcs for each connection
-      for(channel_it = channels.begin(); channel_it != channels.end(); ++channel_it) 
+      for(channel_it = channels.begin(); channel_it != channels.end(); ++channel_it)
       {
         // Get the connection descriptor
         RTT::base::ChannelElementBase::shared_ptr connection = channel_it->get<1>();
 
         // Pointers to the endpoints of this connection
-        RTT::base::PortInterface  
-          *source_port = connection->getInputEndPoint()->getPort(), 
+        RTT::base::PortInterface
+          *source_port = connection->getInputEndPoint()->getPort(),
           *sink_port = connection->getOutputEndPoint()->getPort();
 
         // Make sure the ports and components are not null
         // Make sure they have DFIs (some dont, like streamed ports)
         if( source_port == NULL || source_port->getInterface() == NULL
-            || sink_port == NULL || sink_port->getInterface() == NULL) 
+            || sink_port == NULL || sink_port->getInterface() == NULL)
         {
           continue;
         }
@@ -1343,10 +1343,10 @@ bool Scheme::regenerateModel()
           *sink_block = sink_port->getInterface()->getOwner();
 
         // Make sure both blocks are in the DFG and ESG
-        if( flow_vertex_map_.find(source_block) == flow_vertex_map_.end() || 
+        if( flow_vertex_map_.find(source_block) == flow_vertex_map_.end() ||
             flow_vertex_map_.find(sink_block)   == flow_vertex_map_.end() ||
-            exec_vertex_map_.find(source_block) == exec_vertex_map_.end() || 
-            exec_vertex_map_.find(sink_block)   == exec_vertex_map_.end()) 
+            exec_vertex_map_.find(source_block) == exec_vertex_map_.end() ||
+            exec_vertex_map_.find(sink_block)   == exec_vertex_map_.end())
         {
           continue;
         }
@@ -1385,9 +1385,9 @@ bool Scheme::regenerateModel()
           // Add the edge to the DFG
           bool edge_added;
           boost::tie(flow_edge_desc,edge_added) = boost::add_edge(
-              flow_source_desc, 
-              flow_sink_desc, 
-              flow_edge, 
+              flow_source_desc,
+              flow_sink_desc,
+              flow_edge,
               flow_graph_);
 
           if(edge_added) {
@@ -1409,10 +1409,10 @@ bool Scheme::regenerateModel()
         std::vector<DataFlowEdge::Connection>::const_iterator edge_connection_it;
         for(edge_connection_it = flow_edge->connections.begin();
             edge_connection_it != flow_edge->connections.end();
-            ++edge_connection_it) 
+            ++edge_connection_it)
         {
           if( edge_connection_it->source_port == source_port &&
-              edge_connection_it->sink_port == sink_port) 
+              edge_connection_it->sink_port == sink_port)
           {
             connection_exists = true;
             break;
@@ -1486,7 +1486,7 @@ bool Scheme::enableBlock(const std::string &block_name, const bool force)
   RTT::Logger::In in("Scheme::enableBlock");
 
   // First check if this block is a group
-  conman::GroupMap::iterator group = 
+  conman::GroupMap::iterator group =
     block_groups_.find(block_name);
 
   if(group != block_groups_.end()) {
@@ -1508,9 +1508,9 @@ bool Scheme::enableBlock(RTT::TaskContext *block, const bool force)
 
   RTT::Logger::In in("Scheme::enableBlock");
 
-  if(block == NULL) { 
+  if(block == NULL) {
     RTT::log(RTT::Error) << "Could not enable block because the given block is NULL." << RTT::endlog();
-    return false; 
+    return false;
   }
 
   const std::string &block_name = block->getName();
@@ -1592,7 +1592,7 @@ bool Scheme::enableBlock(RTT::TaskContext *block, const bool force)
 bool Scheme::disableBlock(const std::string &block_name)
 {
   // First check if this block is a group
-  boost::unordered_map<std::string, boost::unordered_set<std::string> >::iterator group = 
+  boost::unordered_map<std::string, boost::unordered_set<std::string> >::iterator group =
     block_groups_.find(block_name);
 
   if(group != block_groups_.end()) {
@@ -1606,14 +1606,14 @@ bool Scheme::disableBlock(const std::string &block_name)
   return this->disableBlock(this->getPeer(block_name));
 }
 
-bool Scheme::disableBlock(RTT::TaskContext* block) 
+bool Scheme::disableBlock(RTT::TaskContext* block)
 {
   if(block == NULL) { return false; }
 
   // Stop a block
   if(block->isRunning()) {
     if(!block->stop()) {
-      RTT::log(RTT::Error) 
+      RTT::log(RTT::Error)
         << "Could not disable block \""<< block->getName() << "\" because it"
         " could not be stop()ed." << RTT::endlog();
       return false;
@@ -1660,31 +1660,31 @@ bool Scheme::enableable(
   return true;
 }
 
-bool Scheme::enableable(
-    const std::vector<std::string> &block_names) const
-{
-  for(std::vector<std::string>::const_iterator it = block_names.begin();
-      it != block_names.end();
-      ++it)
-  {
-    if(!enableable(*it)) {
-      return false;
-    }
-  }
-
-  return true;
-}
-
 bool Scheme::enableBlocks(
-    const std::vector<std::string> &unordered, 
-    const bool strict, 
+    const std::vector<std::string> &unordered,
+    const bool strict,
     const bool force)
 {
   using namespace conman::graph;
 
+  // Flatten the groups into block names
+  boost::unordered_set<std::string> flattened;
+
+  for(std::vector<std::string>::const_iterator it=unordered.begin();
+      it!=unordered.end();
+      ++it)
+  {
+    if(this->hasBlock(*it)) {
+      flattened.insert(flattened.end(), *it);
+    } else if(this->hasGroup(*it)) {
+      const std::vector<std::string> members = this->getGroupMembers(*it);
+      flattened.insert(members.begin(), members.end());
+    }
+  }
+
   // First make sure all the blocks can be enabled before actually trying to enable them
   if(!force) {
-    if(!this->enableable(unordered)) {
+    if(!this->enableable(flattened)) {
       RTT::log(RTT::Error) << "Could not enable block because it has conflicts which will not be force-disabled." << RTT::endlog();
       return false;
     }
@@ -1697,10 +1697,10 @@ bool Scheme::enableBlocks(
   //in list of blocks to enable, it is put in the new ordered vector
   for(ExecutionOrdering::const_iterator it = exec_ordering_.begin();
       it != exec_ordering_.end();
-      ++it) 
+      ++it)
   {
     const std::string &block_name = flow_graph_[*it]->block->getName();
-    if(std::find(unordered.begin(), unordered.end(), block_name) != unordered.end())
+    if(std::find(flattened.begin(), flattened.end(), block_name) != flattened.end())
     {
       // Try to start the block
       success = this->enableBlock(block_name,force) && success;
@@ -1732,26 +1732,42 @@ bool Scheme::disableBlocks(const bool strict)
 }
 
 bool Scheme::disableBlocks(
-    const std::vector<std::string> &unordered, 
-    const bool strict)
+    const std::vector<std::string> &unordered,
+    const bool strict,
+    const bool inverse)
 {
   using namespace conman::graph;
 
   bool success = true;
 
+  // Flatten the groups into block names
+  boost::unordered_set<std::string> flattened;
+
+  for(std::vector<std::string>::const_iterator it=unordered.begin();
+      it!=unordered.end();
+      ++it)
+  {
+    if(this->hasBlock(*it)) {
+      flattened.insert(flattened.end(), *it);
+    } else if(this->hasGroup(*it)) {
+      const std::vector<std::string> members = this->getGroupMembers(*it);
+      flattened.insert(members.begin(), members.end());
+    }
+  }
+
   for(ExecutionOrdering::const_reverse_iterator it = exec_ordering_.rbegin();
       it != exec_ordering_.rend();
-      ++it) 
+      ++it)
   {
     const std::string &block_name = flow_graph_[*it]->block->getName();
-    if(std::find(unordered.begin(), unordered.end(), block_name) != unordered.end())
+    if(inverse ^ std::find(flattened.begin(), flattened.end(), block_name) != flattened.end())
     {
       // Try to disable the block
       success &= this->disableBlock(block_name);
 
       // Break on failure if strict
       if(!success && strict) { return false; }
- 
+
     }
   }
 
@@ -1784,7 +1800,7 @@ bool Scheme::switchBlocks(
 
   // First disable blocks, so that "force" can be used appropriately when
   // enabling blocks.
-  bool enable_success = this->enableBlocks(enable_block_names, strict, force);
+  success = success && this->enableBlocks(enable_block_names, strict, force);
 
   return success;
 }
@@ -1793,7 +1809,7 @@ bool Scheme::setEnabledBlocks(
     const std::vector<std::string> &enabled_block_names,
     const bool strict)
 {
-  bool disable_success = this->disableBlocks(strict);
+  bool disable_success = this->disableBlocks(enabled_block_names, strict, true /*inverse*/);
   bool enable_success = this->enableBlocks(enabled_block_names, strict, false);
 
   return disable_success && enable_success;
@@ -1815,7 +1831,7 @@ bool Scheme::startHook()
   }
 }
 
-void Scheme::updateHook() 
+void Scheme::updateHook()
 {
   using namespace conman::graph;
 
@@ -1823,10 +1839,10 @@ void Scheme::updateHook()
 
   // What time is it
   RTT::os::TimeService::nsecs now = RTT::os::TimeService::Instance()->getNSecs();
-  RTT::os::TimeService::Seconds 
+  RTT::os::TimeService::Seconds
     time = RTT::nsecs_to_Seconds(now),
     period = RTT::nsecs_to_Seconds(RTT::os::TimeService::Instance()->getNSecs(last_update_time_));
-  
+
   // Store update time
   last_update_time_ = now;
 
@@ -1839,7 +1855,7 @@ void Scheme::updateHook()
   // Execute the blocks in the appropriate order
   for(ExecutionOrdering::iterator block_it = exec_ordering_.begin();
       block_it != exec_ordering_.end();
-      ++block_it) 
+      ++block_it)
   {
     // Temporary variable for readability
     DataFlowVertex::Ptr block_vertex = flow_graph_[*block_it];
@@ -1847,8 +1863,8 @@ void Scheme::updateHook()
     // Get the state of the task
     const RTT::base::TaskCore::TaskState block_state = block_vertex->block->getTaskState();
 
-    // Check if the task is running 
-    if(block_state == RTT::TaskContext::Running) { 
+    // Check if the task is running
+    if(block_state == RTT::TaskContext::Running) {
 
       // Update the task
       if(!block_vertex->hook->update(time)) {
@@ -1873,8 +1889,8 @@ void Scheme::getConnectionDescriptions(
     // Iterate over all out edges for this block
     DataFlowOutEdgeIterator out_edge_it, out_edge_end;
     for(boost::tie(out_edge_it, out_edge_end) = boost::out_edges(flow_vertex_map_[block], flow_graph_);
-        out_edge_it != out_edge_end; 
-        ++out_edge_it) 
+        out_edge_it != out_edge_end;
+        ++out_edge_it)
     {
       // Get a reference to the output edge properties for convenience
       const DataFlowEdge::Ptr out_edge = flow_graph_[*out_edge_it];
