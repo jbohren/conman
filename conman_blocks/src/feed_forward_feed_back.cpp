@@ -131,6 +131,13 @@ void FeedForwardFeedBack::updateHook()
       // Get the feedback
       if(feedback_in_.readNewest( feedback_effort_, false) == RTT::NewData) {
         if(feedback_effort_.size() == dim_) {
+
+          for(int i=0; i<dim_; i++) {
+            if(std::abs(feedback_effort_(i) + sum_(i) ) > feedback_effort_limits_(i)) {
+              feedback_effort_(i) = 0.0;
+            }
+          }
+
           sum_ += std::min(1.0,(heartbeat_lifetime_/enable_duration_)) * feedback_effort_;
           has_new_data = true;
 
