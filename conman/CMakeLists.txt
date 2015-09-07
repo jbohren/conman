@@ -67,7 +67,7 @@ install(DIRECTORY include/${PROJECT_NAME}/
 #############
 
 ## Add gtest based cpp test target and link libraries
-if (CATKIN_ENABLE_TESTING)
+if (FALSE AND CATKIN_ENABLE_TESTING)
   find_library(GMOCK_LIBRARY REQUIRED NAMES gmock)
 
 
