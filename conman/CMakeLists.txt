@@ -99,6 +99,5 @@ if (CATKIN_ENABLE_TESTING)
         ${PROJECT_BINARY_DIR}/coverage)
     endif()  
   endif()
-
 endif()
 
