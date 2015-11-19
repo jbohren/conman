@@ -68,35 +68,37 @@ install(DIRECTORY include/${PROJECT_NAME}/
 
 ## Add gtest based cpp test target and link libraries
 if (CATKIN_ENABLE_TESTING)
-  find_library(GMOCK_LIBRARY REQUIRED NAMES gmock)
+  find_library(GMOCK_LIBRARY OPTIONAL NAMES gmock)
 
+  if(GMOCK_LIBRARY_FOUND)
 
-  catkin_add_gtest(test_conman tests/test_conman.cpp)
-  target_link_libraries(test_conman 
-    conman 
-    conman_hook 
-    conman_components 
-    ${catkin_LIBRARIES} 
-    ${GMOCK_LIBRARY}
-    ${USE_OROCOS_LIBRARIES})
+    catkin_add_gtest(test_conman tests/test_conman.cpp)
+    target_link_libraries(test_conman 
+      conman 
+      conman_hook 
+      conman_components 
+      ${catkin_LIBRARIES} 
+      ${GMOCK_LIBRARY}
+      ${USE_OROCOS_LIBRARIES})
 
-  catkin_add_gtest(test_topo tests/test_topo.cpp)
-  target_link_libraries(test_topo
-    conman 
-    conman_hook 
-    conman_components 
-    ${catkin_LIBRARIES} 
-    ${GMOCK_LIBRARY}
-    ${USE_OROCOS_LIBRARIES})
+    catkin_add_gtest(test_topo tests/test_topo.cpp)
+    target_link_libraries(test_topo
+      conman 
+      conman_hook 
+      conman_components 
+      ${catkin_LIBRARIES} 
+      ${GMOCK_LIBRARY}
+      ${USE_OROCOS_LIBRARIES})
 
-  if (ENABLE_COVERAGE)
-    list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
-    include(CodeCoverage)
-    setup_target_for_coverage(
-      ${PROJECT_NAME}_coverage 
-      test_conman 
-      ${PROJECT_BINARY_DIR}/coverage)
-  endif()  
+    if (ENABLE_COVERAGE)
+      list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
+      include(CodeCoverage)
+      setup_target_for_coverage(
+        ${PROJECT_NAME}_coverage 
+        test_conman 
+        ${PROJECT_BINARY_DIR}/coverage)
+    endif()  
+  endif()
 
 endif()
 
