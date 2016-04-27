@@ -52,33 +52,40 @@ ROSInterfaceService::ROSInterfaceService(RTT::TaskContext* owner) :
   roscontrol->addOperation("switchController", &ROSInterfaceService::switchControllerCB, this);
   roscontrol->addOperation("unloadController", &ROSInterfaceService::unloadControllerCB, this);
 
+  std::string controller_name_;
+  if (scheme->scheme_name_.empty()) {
+      controller_name_ = "controller_manager";
+  } else {
+     controller_name_ = scheme->scheme_name_;
+  }
+
   // Load the rosservice service
   RTT::log(RTT::Debug) << "Getting rtt_roscomm service service..." << RTT::endlog();
   rosservice = owner->getProvider<rtt_rosservice::ROSService>("rosservice");
 
   RTT::log(RTT::Debug) << "Connecting ros_control service servers..." << RTT::endlog();
   rosservice->connect("roscontrol.listControllerTypes",
-                     "controller_manager/list_controller_types",
+                      controller_name_ + "/list_controller_types",
                      "controller_manager_msgs/ListControllerTypes");
 
   rosservice->connect("roscontrol.listControllers",
-                     "controller_manager/list_controllers",
+                      controller_name_ + "/list_controllers",
                      "controller_manager_msgs/ListControllers");
 
   rosservice->connect("roscontrol.loadController",
-                     "controller_manager/load_controller",
+                      controller_name_ + "/load_controller",
                      "controller_manager_msgs/LoadController");
 
   rosservice->connect("roscontrol.reloadControllerLibraries",
-                     "controller_manager/reload_controller_libraries",
+                      controller_name_ + "/reload_controller_libraries",
                      "controller_manager_msgs/ReloadControllerLibraries");
 
   rosservice->connect("roscontrol.switchController",
-                     "controller_manager/switch_controller",
+                      controller_name_ + "/switch_controller",
                      "controller_manager_msgs/SwitchController");
 
   rosservice->connect("roscontrol.unloadController",
-                     "controller_manager/unload_controller",
+                      controller_name_ + "/unload_controller",
                      "controller_manager_msgs/UnloadController");
 
   // Actions
@@ -230,6 +237,7 @@ void ROSInterfaceService::set_blocks_goal_cb(actionlib::ServerGoalHandle<conman_
       ++it)
   {
     if(!scheme->hasBlock(*it) && !scheme->hasGroup(*it)) {
+      RTT::log(RTT::Warning) << "No block or group named \""<<(*it)<<"\"" << RTT::endlog();
       gh.setRejected();
       return;
     }
@@ -237,7 +245,13 @@ void ROSInterfaceService::set_blocks_goal_cb(actionlib::ServerGoalHandle<conman_
 
   // The query is valid, accept the goal
   gh.setAccepted();
-  bool success = scheme->switchBlocks(goal->disable, goal->enable, goal->strict, goal->force);
+  bool success = false;
+  
+  if(goal->diff) {
+    success = scheme->switchBlocks(goal->disable, goal->enable, goal->strict, goal->force);
+  } else {
+    success = scheme->setEnabledBlocks(goal->enable, goal->strict);
+  }
 
   if(success) {
     gh.setSucceeded(result);

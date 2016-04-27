@@ -8,7 +8,6 @@ find_package(catkin REQUIRED COMPONENTS
 find_package(OROCOS-RTT REQUIRED)
 find_package(Eigen REQUIRED)
 
-
 include(${OROCOS-RTT_USE_FILE_PATH}/UseOROCOS-RTT.cmake )
 
 # Generate ROS messages
@@ -26,6 +25,8 @@ add_definitions(-DRTT_COMPONENT)
 
 orocos_use_package(conman)
 orocos_use_package(rtt_roscomm)
+orocos_use_package(ocl-taskbrowser)
+orocos_use_package(ocl-deployment)
 
 include_directories(
   ${catkin_INCLUDE_DIRS}
