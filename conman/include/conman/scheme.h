@@ -314,7 +314,8 @@ namespace conman
     //! Check if a block (or group) can be enabled
     bool enableable(const std::string &block_name) const;
     //! Check if a list of blocks (or groups) can be enabled
-    bool enableable(const std::vector<std::string> &block_names) const;
+    template <class T>
+    bool enableable(const T &block_names) const;
 
     //! Enable a single conman Block
     bool enableBlock(RTT::TaskContext *block, const bool force);
@@ -341,7 +342,8 @@ namespace conman
     //! in reverse execution order.
     bool disableBlocks(
         const std::vector<std::string> &block_names,
-        const bool strict);
+        const bool strict,
+        const bool inverse=false);
     /*** \brief Try to disable a set of blocks (or groups) and enable another
      * set of blocks (or groups)
      *
@@ -517,6 +519,23 @@ namespace conman
 
     size_t n_running_blocks_;
   };
+
+  template <class T>
+  bool Scheme::enableable(
+      const T &block_names) const
+  {
+    for(typename T::const_iterator it = block_names.begin();
+        it != block_names.end();
+        ++it)
+    {
+      if(!enableable(*it)) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
 }
 
 #endif // ifndef __CONMAN_SCHEME_H

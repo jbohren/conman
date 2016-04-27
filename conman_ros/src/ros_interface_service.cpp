@@ -237,6 +237,7 @@ void ROSInterfaceService::set_blocks_goal_cb(actionlib::ServerGoalHandle<conman_
       ++it)
   {
     if(!scheme->hasBlock(*it) && !scheme->hasGroup(*it)) {
+      RTT::log(RTT::Warning) << "No block or group named \""<<(*it)<<"\"" << RTT::endlog();
       gh.setRejected();
       return;
     }
@@ -244,7 +245,13 @@ void ROSInterfaceService::set_blocks_goal_cb(actionlib::ServerGoalHandle<conman_
 
   // The query is valid, accept the goal
   gh.setAccepted();
-  bool success = scheme->switchBlocks(goal->disable, goal->enable, goal->strict, goal->force);
+  bool success = false;
+  
+  if(goal->diff) {
+    success = scheme->switchBlocks(goal->disable, goal->enable, goal->strict, goal->force);
+  } else {
+    success = scheme->setEnabledBlocks(goal->enable, goal->strict);
+  }
 
   if(success) {
     gh.setSucceeded(result);
