@@ -177,6 +177,10 @@ namespace conman
      */
     //\{
 
+    //! Properties
+    std::string scheme_name_;
+
+
     //! Add/Remove a latch between two blocks (or two groups of blocks) by name
     bool latchConnections(
       const std::string &source_name,

@@ -28,7 +28,7 @@
 using namespace conman;
 
 Scheme::Scheme(std::string name)
- : RTT::TaskContext(name)
+ : RTT::TaskContext(name), scheme_name_("")
 {
   // Modifying blocks in the scheme
   this->addOperation("hasBlock", &Scheme::hasBlock, this, RTT::OwnThread)
@@ -65,6 +65,9 @@ Scheme::Scheme(std::string name)
     .doc("Latch all the inputs to a given component.");
   this->addOperation("latchOutputs", (bool (Scheme::*)(const std::string&, const bool))&Scheme::latchOutputs, this, RTT::OwnThread)
     .doc("Latch all the outputs to a given component.");
+
+  // Add properties
+  this->addProperty("scheme_name", scheme_name_).doc("Scheme Name");
 
   // Execution introspection
   this->addOperation("executable", &Scheme::executable, this, RTT::OwnThread)
